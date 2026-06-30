@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Agent Orchestration — Competitive Research</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  color: #1f2328;
+  line-height: 1.65;
+  font-size: 16px;
+  background: #fff;
+}
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; color: #424a53; }
+p { margin: 0.6em 0; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+pre code { background: transparent; padding: 0; }
+blockquote {
+  border-left: 4px solid #d1d9e0;
+  margin: 1em 0;
+  padding: 0.2em 1em;
+  color: #424a53;
+  background: #f8fafc;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f6f8fa; font-weight: 600; }
+hr {
+  border: none;
+  border-top: 1px solid #d1d9e0;
+  margin: 2em 0;
+}
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.25em 0; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+</style>
+</head>
+<body>
+<h1 id="multi-agent-orchestration-competitive-research">Multi-Agent Orchestration — Competitive Research</h1>
+<p><strong>Context.</strong> For AIRO's agentic surface at Workato, looking at how other AI products let one task run across several agents. Two use cases drive this: (1) splitting a task across multiple agents to finish faster (parallel decomposition), and (2) different agents playing different roles like writer, reviewer, or researcher. Feeds the "borrow proven patterns from leading AI products" principle the AIRO team already designs against.</p>
+<p><strong>Products covered.</strong> MorphMind, Claude Code (subagents), Devin / MultiDevin, CrewAI, Manus, Flowith, Ottogrid / Paradigm, Genspark Super Agent.</p>
+<p><strong>Scope.</strong> How each product orchestrates multiple agents on a single job: how work is split, whether agents have roles, what users see while it runs, what it costs, and where it breaks. Deliberately skews toward newer, more experimental products rather than the enterprise automation incumbents.</p>
+<hr />
+<h2 id="part-1-orchestration-behavior-per-product">Part 1 — Orchestration behavior per product</h2>
+<h3 id="11-morphmind">1.1 MorphMind</h3>
+<p>Frames orchestration as a team of role-based specialists you can inspect and steer (tagline "Controllable AI agents, work you can stand behind"), with <a href="https://morphmind.ai/" target="_blank" rel="noopener noreferrer">WorldSeed</a> running agents that propose hypotheses, run experiments, and peer-review each other's work, <a href="https://morphmind.ai/" target="_blank" rel="noopener noreferrer">Caliper</a> attaching a calibrated trust score to every result, and <a href="https://morphmind.ai/" target="_blank" rel="noopener noreferrer">Flowtrace</a> turning a session into a reusable flow rather than a throwaway chat; the official copy is about role-based collaboration and verification, not parallel speed.</p>
+<h3 id="12-claude-code-subagents">1.2 Claude Code (subagents)</h3>
+<p><a href="https://code.claude.com/docs/en/sub-agents" target="_blank" rel="noopener noreferrer">Subagents</a> are role-based assistants defined in markdown, each with its own prompt, tool allowlist, and model, that the main agent delegates to in isolated context windows; the main agent can spawn several in parallel, and an experimental <a href="https://code.claude.com/docs/en/agent-teams" target="_blank" rel="noopener noreferrer">agent teams</a> mode lets full sessions coordinate through a shared task list and message each other.</p>
+<h3 id="13-devin-multidevin">1.3 Devin / MultiDevin</h3>
+<p>A coordinator Devin scopes a large task, spins up to 10 worker Devins that run in parallel in isolated VMs, and merges only the successful workers into one branch or PR (<a href="https://cognition.ai/blog/devin-can-now-manage-devins" target="_blank" rel="noopener noreferrer">Devin can now manage Devins</a>, March 2026); the workers are identical general-purpose Devins differentiated only by their assigned task, so there are no preset roles, and Cognition recommends it only for repeated, isolated work like lint fixes, migrations, and refactors.</p>
+<h3 id="14-crewai">1.4 CrewAI</h3>
+<p><a href="https://docs.crewai.com/en/concepts/crews" target="_blank" rel="noopener noreferrer">Crews</a> are role-based agents, each given a role, goal, and backstory, that run either <a href="https://docs.crewai.com/en/concepts/processes" target="_blank" rel="noopener noreferrer">sequentially or hierarchically</a> under a manager agent that delegates and validates outputs, with independent <a href="https://docs.crewai.com/en/concepts/tasks" target="_blank" rel="noopener noreferrer">tasks marked <code>async_execution</code></a> running in parallel and downstream tasks waiting on them.</p>
+<h3 id="15-manus-wide-research">1.5 Manus (Wide Research)</h3>
+<p><a href="https://manus.im/blog/introducing-wide-research" target="_blank" rel="noopener noreferrer">Wide Research</a> is deliberately role-free parallel decomposition: a controller breaks a task into independent subtasks and spins up many subagents (the docs say hundreds), each a full Manus instance on its own virtual machine with a fresh context window, then aggregates the results into one output; Manus explicitly <a href="https://manus.im/blog/manus-wide-research-solve-context-problem" target="_blank" rel="noopener noreferrer">contrasts this</a> with role-based manager/coder/designer systems.</p>
+<h3 id="16-flowith">1.6 Flowith</h3>
+<p>A 2D <a href="https://doc.flowith.io/" target="_blank" rel="noopener noreferrer">infinite agentic canvas</a> where prompts and responses are branchable nodes across multiple models, with an orchestrator (Oracle) that breaks a task into editable steps and picks a tool per step, plus an autonomous execution engine, <a href="https://flowith.io/blog/meet-agent-neo/" target="_blank" rel="noopener noreferrer">Agent Neo</a>, that runs long multi-step jobs in the cloud; the parallelism is the multi-thread canvas plus Oracle's subtask split rather than distinct role agents.</p>
+<h3 id="17-ottogrid-paradigm-agents-as-a-grid">1.7 Ottogrid / Paradigm (agents-as-a-grid)</h3>
+<p>Both put a parallel agent swarm behind a spreadsheet: in <a href="https://docs.ottogrid.ai/" target="_blank" rel="noopener noreferrer">Ottogrid</a> each column is an agent with its own prompt and tools and rows fill in parallel across hundreds of jobs, and <a href="https://paradigmai.com/" target="_blank" rel="noopener noreferrer">Paradigm</a> markets an agent in every cell with thousands of agents fanning out across the web to fill rows in parallel (founders cite roughly <a href="https://techcrunch.com/2025/08/18/why-paradigm-built-a-spreadsheet-with-an-ai-agent-in-every-cell/" target="_blank" rel="noopener noreferrer">5,000 cells a minute</a>); role specialization is light, just the per-column prompt.</p>
+<h3 id="18-genspark-super-agent">1.8 Genspark Super Agent</h3>
+<p><a href="https://www.genspark.ai/blog/genspark-less-control-more-tools" target="_blank" rel="noopener noreferrer">Super Agent</a> runs a mixture-of-agents architecture combining nine LLMs and 80+ tools, decomposing a request and routing each subtask to the best-suited model (creative work to one, reasoning to another), then reconciling the outputs into one result; this is both parallel decomposition and strength-based routing across models.</p>
+<p>A quick read on the two use cases: only Claude Code, CrewAI, and Genspark ship first-class support for both parallel and role-based out of the box. Manus, Flowith, and Ottogrid/Paradigm are parallel-first with little or no role concept. MorphMind is the clearest role-first bet, leading with peer review and trust scores rather than speed.</p>
+<hr />
+<h2 id="part-2-user-pain-points-themed-insights">Part 2 — User pain points (themed insights)</h2>
+<p>Six themes, mined from the Anthropic and Cognition engineering essays, Hacker News, the CrewAI and AutoGen issue trackers, app store and Product Hunt reviews, and independent review blogs. One thing to flag up front: the complaint volume clusters on metered or autonomous products (Manus, Genspark) and developer frameworks (CrewAI, Claude Code, AutoGen). The newest role-based products (MorphMind, Paradigm, Ottogrid) have almost no public user complaints yet, partly because they are too new and partly because they market directly against the pains below. That absence is a finding, not validation.</p>
+<h3 id="theme-1-the-token-bill-scales-with-the-agent-count-and-it-lands-as-a-surprise">Theme 1: The token bill scales with the agent count, and it lands as a surprise</h3>
+<p>The cost of fanning out is real and users discover it after the fact, not before.</p>
+<ul>
+<li>Anthropic concedes the multiple in its own engineering post: "agents typically use about 4× more tokens than chat interactions, and multi-agent systems use about 15× more tokens than chats" (<a href="https://www.anthropic.com/engineering/multi-agent-research-system" target="_blank" rel="noopener noreferrer">Anthropic Engineering</a>, June 2025).</li>
+<li>Genspark: "On my second day after subscribing to the Genspark Plus plan for $24.99 a month, I realized that my 10,000 credits had hit zero," because Super Agent "consumes around 100 credits per action" and runs by default for any prompt (<a href="https://note.com/satoshi_hayasaki/n/nb18a87331cc2?hl=en" target="_blank" rel="noopener noreferrer">satoshi hayasaki, note.com</a>, March 2026).</li>
+<li>Manus, from a five-star reviewer: "New credit feature is expensive. A single question could use up all your credits for a month!" (<a href="https://apps.apple.com/us/app/manus-ai/id6740909540?see-all=reviews" target="_blank" rel="noopener noreferrer">Apple App Store</a>, April 2025).</li>
+<li>CrewAI: "A crew of 5 agents processing a complex task can easily 10x your API costs compared to a single well-prompted agent" (<a href="https://www.agentrank.tech/blog/crewai-review-multi-agent-framework-2026" target="_blank" rel="noopener noreferrer">Hugh McInnis, AgentRank</a>, March 2026).</li>
+</ul>
+<p>The pattern holds whether the meter is tokens (Anthropic, CrewAI) or opaque credits (Manus, Genspark). Credit-based products are worse because the user can't map "100 credits" to anything before they spend it. (An often-cited $47,000 Claude Code subagent run from <a href="https://www.aicosts.ai/blog/claude-code-subagent-cost-explosion-887k-tokens-minute-crisis" target="_blank" rel="noopener noreferrer">aicosts.ai</a> circulates as illustration, but the company is unnamed, so treat it as color rather than evidence.)</p>
+<p><strong>For AIRO:</strong> in a metered enterprise product, the cost of spawning N agents is worth showing before the fan-out, not just on the invoice. A pre-run estimate and a live running cost per agent would address the single most common complaint in this space.</p>
+<h3 id="theme-2-parallel-agents-step-on-each-other-because-they-cant-see-each-others-work">Theme 2: Parallel agents step on each other, because they can't see each other's work</h3>
+<p>When agents run in parallel without shared context, their outputs don't fit together.</p>
+<ul>
+<li>Cognition's case against multi-agent leads with this: a subagent asked to build part of a Flappy Bird clone "started building a background that looks like Super Mario Bros," so the pieces don't match, because "the decision-making ends up being too dispersed and context isn't able to be shared thoroughly enough between the agents" (<a href="https://cognition.ai/blog/dont-build-multi-agents" target="_blank" rel="noopener noreferrer">Walden Yan, Cognition</a>, June 2025).</li>
+<li>On Hacker News: "My biggest hesitation about this is being stuck in merge hell. Even a minute or two needing to deal with that could negate the benefits of agents working in parallel" (<a href="https://news.ycombinator.com/item?id=45489884" target="_blank" rel="noopener noreferrer">babyshake</a>, 2025).</li>
+<li>The same thread surfaces a context limit, not just a token limit: "agents start losing track of their original goals around the 50k token mark" (<a href="https://news.ycombinator.com/item?id=45096962" target="_blank" rel="noopener noreferrer">pbd</a>, 2025).</li>
+</ul>
+<p>The strongest evidence is that Claude Code shipped a whole <a href="https://code.claude.com/docs/en/worktrees" target="_blank" rel="noopener noreferrer">git worktree feature</a> to keep parallel agents in separate working directories. It exists specifically to prevent two agents editing the same file at once and overwriting each other. When a product builds dedicated machinery to stop a failure mode, the failure mode is real.</p>
+<p><strong>For AIRO:</strong> if two agents can touch the same recipe, connection, or shared resource at once, the conflict has to be designed for, not discovered. Worth deciding early whether parallel agents get isolated scratch space or share live state.</p>
+<h3 id="theme-3-you-cant-tell-what-each-agent-did-or-which-one-broke">Theme 3: You can't tell what each agent did, or which one broke</h3>
+<p>Once work is spread across agents, attribution and debugging get hard.</p>
+<ul>
+<li>CrewAI: "When a crew produces bad output, figuring out which agent screwed up and why is genuinely difficult," and "the open-source version gives you limited visibility into inter-agent communication. You end up adding print statements like it's 2005" (<a href="https://www.agentrank.tech/blog/crewai-review-multi-agent-framework-2026" target="_blank" rel="noopener noreferrer">AgentRank</a>, March 2026).</li>
+<li>Anthropic names the root cause: "Agents make dynamic decisions and are non-deterministic between runs, even with identical prompts. This makes debugging harder" (<a href="https://www.anthropic.com/engineering/multi-agent-research-system" target="_blank" rel="noopener noreferrer">Anthropic Engineering</a>, June 2025).</li>
+<li>Manus, on the lack of any signal during a long autonomous run: "Manus does not warn when it is approaching its context limit. There is no yellow light. There is no 'I'm getting close to my limit, let me generate a handover log'" (<a href="https://www.riotimesonline.com/manus-a-i-review-14-failures-in-two-weeks-of-testing/" target="_blank" rel="noopener noreferrer">Iolanda Fonseca, The Rio Times</a>, March 2026).</li>
+</ul>
+<p>This is the clearest open UX gap, and it's exactly where MorphMind is placing its bet: WorldSeed makes the agents' work inspectable and Caliper attaches a trust score to each result, both aimed at "see what the AI did" rather than "trust the black box." Nobody in the set has a strong unified view of what each agent did across a parallel run.</p>
+<p><strong>For AIRO:</strong> a single timeline or trace that shows which agent did what, in what order, with what result, would directly serve the observability gap and AIRO's existing run-history work.</p>
+<h3 id="theme-4-the-reviewer-just-agrees-with-the-writer">Theme 4: The reviewer just agrees with the writer</h3>
+<p>The role-based use case has its own failure: adding a reviewer or critic agent doesn't guarantee the scrutiny it promises.</p>
+<ul>
+<li>Research on multi-agent debate finds that "sycophancy can collapse debates into premature consensus, potentially undermining the benefits of multi-agent debate" (<a href="https://arxiv.org/html/2509.23055v1" target="_blank" rel="noopener noreferrer">Yao et al., arXiv 2509.23055</a>, 2025). The reviewer tends to agree rather than push back.</li>
+<li>Practitioners reach the same conclusion about role crews generally: "for 70% of use cases, a single well-prompted agent with good tools outperforms a crew of mediocre agents" (<a href="https://www.agentrank.tech/blog/crewai-review-multi-agent-framework-2026" target="_blank" rel="noopener noreferrer">AgentRank</a>, March 2026).</li>
+</ul>
+<p>The products that take use case 2 seriously are the ones engineering against rubber-stamping: MorphMind's WorldSeed has agents peer-review each other, and the cleanest reference for a genuinely adversarial reviewer is Google Jules's separate critic agent in the coding space. A writer-then-reviewer crew where the reviewer defaults to agreement adds cost without adding the check.</p>
+<p><strong>For AIRO:</strong> a reviewer role is only worth its cost if it actually disagrees sometimes. Worth defining what the reviewer is adversarial about and how a disagreement surfaces to the user, rather than assuming a second agent improves quality by existing.</p>
+<h3 id="theme-5-the-coordinator-cant-delegate-cleanly-so-agents-loop-or-stall">Theme 5: The coordinator can't delegate cleanly, so agents loop or stall</h3>
+<p>The manager-and-workers pattern fails in predictable ways: agents hand work back and forth, or get stuck.</p>
+<ul>
+<li>CrewAI: when multiple agents can delegate to each other, they fall into loops where A delegates to B and B delegates back to A (<a href="https://github.com/crewAIInc/crewAI/issues/1355" target="_blank" rel="noopener noreferrer">GitHub #1355</a>; <a href="https://community.crewai.com/t/agents-keeps-going-in-a-loop/1053" target="_blank" rel="noopener noreferrer">community thread</a>).</li>
+<li>AutoGen's group chat hits infinite loops because the framework uses brittle rules to decide when a conversation should terminate, fixed only by hard message caps (<a href="https://github.com/microsoft/autogen/issues/133" target="_blank" rel="noopener noreferrer">microsoft/autogen #133</a>).</li>
+<li>It shows up in autonomous consumer products too. Manus "will waste your credits over and over and over again, trying to achieve the same command that you gave it to begin with" (<a href="https://apps.apple.com/us/app/manus-ai/id6740909540?see-all=reviews" target="_blank" rel="noopener noreferrer">joblessgambler, Apple App Store</a>, August 2025), and a Genspark user reports a task "constantly interrupted, and the operation must be restarted every 10 minutes" (<a href="https://www.trustpilot.com/review/genspark.ai" target="_blank" rel="noopener noreferrer">Trustpilot</a>, reviewer unattributed).</li>
+</ul>
+<p><strong>For AIRO:</strong> any coordinator-driven orchestration needs a hard ceiling (max rounds, max delegations, max spend) and a clear terminal state, so a stuck crew fails visibly instead of looping on the meter.</p>
+<h3 id="theme-6-watching-the-swarm-becomes-its-own-full-time-job">Theme 6: Watching the swarm becomes its own full-time job</h3>
+<p>Parallel agents promise speed, but the supervision they require can eat the gain.</p>
+<ul>
+<li>"When reviewing agentic generated code I can trust nothing and have to verify every assumption and that introduces a massive overhead" (<a href="https://news.ycombinator.com/item?id=45489884" target="_blank" rel="noopener noreferrer">munk-a, Hacker News</a>, 2025).</li>
+<li>"I'm not convinced there is any hope for a productive, long-term, burnout-free parallel agent workflow. Not while they need even the slightest amount of supervision/review" (<a href="https://news.ycombinator.com/item?id=45489884" target="_blank" rel="noopener noreferrer">grim_io</a>, 2025).</li>
+<li>And the trust cost when an agent fabricates progress: Manus "produced fabricated evidence, curl responses, file listings, and status checks that were formatted like real server output but described a state that did not exist on the server" (<a href="https://www.riotimesonline.com/manus-a-i-review-14-failures-in-two-weeks-of-testing/" target="_blank" rel="noopener noreferrer">The Rio Times</a>, March 2026).</li>
+</ul>
+<p>The deeper point is that splitting one stream of work the user could follow into several parallel streams they can't multiplies the review burden at the same time as the throughput. Speed on the generation side can become a bottleneck on the human side.</p>
+<p><strong>For AIRO:</strong> the win from parallelism is real only if the review surface keeps up. Worth designing the "what came back and is it trustworthy" moment as carefully as the fan-out itself, so the user isn't left auditing several agents at once with no help.</p>
+<hr />
+<h2 id="part-3-airo-design-implications">Part 3 — AIRO design implications</h2>
+<table>
+<thead>
+<tr>
+<th>Competitor pain point</th>
+<th>What this could mean for AIRO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Multi-agent runs cost 15x a single chat (Anthropic), and credit burn surprises users (Manus, Genspark)</td>
+<td>Worth surfacing a cost estimate before a fan-out and a live per-agent running cost during it, rather than only on the invoice</td>
+</tr>
+<tr>
+<td>Parallel agents overwrite each other's work; Claude Code needed worktrees to prevent it</td>
+<td>Worth deciding early whether parallel agents get isolated scratch space or share live state on recipes, connections, and jobs</td>
+</tr>
+<tr>
+<td>Can't tell which agent did what or which one failed (CrewAI, Anthropic non-determinism)</td>
+<td>Worth a unified trace showing each agent's work, order, and result, building on AIRO's existing run-history surface</td>
+</tr>
+<tr>
+<td>No warning before a long autonomous run fails (Manus)</td>
+<td>Worth a health signal that distinguishes a long-but-working run from a stuck one, and a handoff log before a hard stop</td>
+</tr>
+<tr>
+<td>Reviewer/critic agents rubber-stamp the writer (sycophancy research)</td>
+<td>If AIRO offers role-based agents, worth defining what the reviewer actually challenges and how a disagreement reaches the user</td>
+</tr>
+<tr>
+<td>Coordinator agents loop, delegating back and forth forever (CrewAI, AutoGen)</td>
+<td>Worth a hard ceiling on rounds, delegations, and spend, plus an explicit terminal state when a crew gets stuck</td>
+</tr>
+<tr>
+<td>Supervising several parallel agents becomes its own job (Hacker News)</td>
+<td>Worth designing the review-and-verify moment so a user isn't auditing many agents at once unaided</td>
+</tr>
+<tr>
+<td>Most coding tasks have "fewer truly parallelizable tasks than research" (Anthropic), single agent wins for ~70% of cases (CrewAI review)</td>
+<td>Worth treating "should this fan out at all" as an explicit, visible decision rather than the default</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-biggest-gap-surfaced-by-this-research">The biggest gap surfaced by this research</h3>
+<p>The unsolved problem across every product is observability and trust across multiple agents at once. Every product can spawn agents. None of them gives the user a confident answer to "what did each agent do, what did it cost me, and can I trust the result" while the run is happening. CrewAI users add print statements, Manus gives no warning before it fails, and even Anthropic flags non-determinism as a debugging problem it hasn't fully solved.</p>
+<p>This is exactly the space MorphMind is betting its whole product on (inspectable work via WorldSeed, a trust score via Caliper), which suggests the market sees it as the open question too. For AIRO, the strategic call is less "can we run agents in parallel" and more "can we make a parallel or role-based run as legible and trustworthy as a single agent's." That connects directly to AIRO's run-history and activity-timeline work, and it's where a workflow automation product with a real audit-trail heritage could lead rather than follow.</p>
+<p>A related framing worth putting in front of the team: the two most credible labs published opposite conclusions in the same month. Anthropic (<a href="https://www.anthropic.com/engineering/multi-agent-research-system" target="_blank" rel="noopener noreferrer">multi-agent research system</a>) argues multi-agent wins for breadth-first, parallelizable work; Cognition (<a href="https://cognition.ai/blog/dont-build-multi-agents" target="_blank" rel="noopener noreferrer">Don't Build Multi-Agents</a>) argues to default to single-threaded agents because dispersed decisions produce incoherent output. Both are right within their domain. The design question for AIRO is which kind of work its users actually have, and the answer probably differs by task, which argues for making the fan-out a deliberate choice rather than an always-on behavior.</p>
+<hr />
+<h2 id="part-4-theoretical-framework-why-multi-agent-systems-fail-mast">Part 4 — Theoretical framework: why multi-agent systems fail (MAST)</h2>
+<p><strong>Source.</strong> <em>Why Do Multi-Agent LLM Systems Fail?</em>, Cemri et al. (UC Berkeley), <a href="https://arxiv.org/abs/2503.13657" target="_blank" rel="noopener noreferrer">arXiv 2503.13657</a> (March 2025).</p>
+<p>The first empirically grounded failure taxonomy for multi-agent LLM systems, built from 1,600+ annotated traces across 7 frameworks with strong inter-annotator agreement (Cohen's kappa 0.88). Its headline finding is the useful one for a product team: most failures come from poor system design and orchestration, not from the models being too weak. Bigger models don't fix it; better structure does.</p>
+<h3 id="how-the-framework-maps-to-airo">How the framework maps to AIRO</h3>
+<p>MAST sorts 14 failure modes into three categories, and each is a design surface AIRO controls:</p>
+<table>
+<thead>
+<tr>
+<th>MAST category</th>
+<th>What it covers</th>
+<th>AIRO design surface</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Specification issues</td>
+<td>Ambiguous roles, unclear task specs, bad system design</td>
+<td>How clearly each agent's role and scope is defined when a crew is set up</td>
+</tr>
+<tr>
+<td>Inter-agent misalignment</td>
+<td>Agents ignore each other, make conflicting assumptions, derail</td>
+<td>Shared context and conflict handling between parallel agents (Theme 2)</td>
+</tr>
+<tr>
+<td>Task verification</td>
+<td>Weak or missing checks on the final output</td>
+<td>Whether a reviewer role actually verifies, or just rubber-stamps (Theme 4)</td>
+</tr>
+</tbody>
+</table>
+<p>The "inter-agent misalignment" category is the academic version of Cognition's dispersed-decisions argument, and "task verification" is the academic version of the rubber-stamp reviewer problem. The two failure modes users complain about most are the two the research says matter most.</p>
+<p>For shared vocabulary when speccing this, Microsoft's <a href="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns" target="_blank" rel="noopener noreferrer">AI Agent Orchestration Patterns</a> names the common topologies cleanly: sequential, concurrent, group chat, handoff, and magentic (a manager that plans on the fly). Useful as a neutral naming scheme so design and engineering mean the same thing by "parallel" or "handoff."</p>
+<h3 id="constraints-worth-understanding">Constraints worth understanding</h3>
+<ul>
+<li>The taxonomy explains what goes wrong, not how to fix it. It points at design surfaces; it doesn't hand you the design.</li>
+<li>It studies developer frameworks, not end-user products, so the orchestration failures are well covered but the supervision-burden and cost-surprise pains (Themes 1 and 6) come from user reports, not the paper.</li>
+<li>"Better structure beats bigger models" is the load-bearing claim, and it's encouraging for a product team because the fixes are design decisions AIRO can make, not model capabilities it has to wait for.</li>
+<li>No rigorous HCI study yet exists on the cognitive load of supervising several agents at once, which is the gap directly under Theme 6. Worth watching for, or worth AIRO generating its own evidence on.</li>
+</ul>
+<hr />
+<h2 id="appendix-all-source-links">Appendix — All source links</h2>
+<h3 id="theoretical-framework">Theoretical framework</h3>
+<ul>
+<li><em>Why Do Multi-Agent LLM Systems Fail?</em> (MAST) — <a href="https://arxiv.org/abs/2503.13657" target="_blank" rel="noopener noreferrer">arXiv 2503.13657</a></li>
+<li>Anthropic, <em>How we built our multi-agent research system</em> — <a href="https://www.anthropic.com/engineering/multi-agent-research-system" target="_blank" rel="noopener noreferrer">anthropic.com</a></li>
+<li>Cognition, <em>Don't Build Multi-Agents</em> (Walden Yan) — <a href="https://cognition.ai/blog/dont-build-multi-agents" target="_blank" rel="noopener noreferrer">cognition.ai</a></li>
+<li>Cognition, <em>Multi-Agents: What's Actually Working</em> (later, softened position) — <a href="https://cognition.ai/blog/multi-agents-working" target="_blank" rel="noopener noreferrer">cognition.ai</a></li>
+<li>Microsoft Azure, <em>AI Agent Orchestration Patterns</em> — <a href="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns" target="_blank" rel="noopener noreferrer">learn.microsoft.com</a></li>
+<li><em>Mixture-of-Agents Enhances LLM Capabilities</em> — <a href="https://arxiv.org/abs/2406.04692" target="_blank" rel="noopener noreferrer">arXiv 2406.04692</a></li>
+<li><em>MetaGPT</em> (role-based SOPs) — <a href="https://arxiv.org/abs/2308.00352" target="_blank" rel="noopener noreferrer">arXiv 2308.00352</a></li>
+<li><em>Improving Factuality and Reasoning through Multiagent Debate</em> — <a href="https://arxiv.org/abs/2305.14325" target="_blank" rel="noopener noreferrer">arXiv 2305.14325</a></li>
+<li><em>Peacemaker or Troublemaker: How Sycophancy Shapes Multi-Agent Debate</em> — <a href="https://arxiv.org/html/2509.23055v1" target="_blank" rel="noopener noreferrer">arXiv 2509.23055</a></li>
+</ul>
+<h3 id="official-documentation">Official documentation</h3>
+<p><strong>MorphMind</strong>
+- <a href="https://morphmind.ai/" target="_blank" rel="noopener noreferrer">Homepage (WorldSeed, Caliper, Flowtrace)</a>
+- <a href="https://morphmind.ai/resources/blog/introducing-morphmind" target="_blank" rel="noopener noreferrer">Introducing MorphMind</a>
+- <a href="https://agentlab.morphmind.ai/" target="_blank" rel="noopener noreferrer">AgentLab marketplace</a></p>
+<p><strong>Claude Code</strong>
+- <a href="https://code.claude.com/docs/en/sub-agents" target="_blank" rel="noopener noreferrer">Subagents</a>
+- <a href="https://code.claude.com/docs/en/agent-teams" target="_blank" rel="noopener noreferrer">Agent teams (experimental)</a>
+- <a href="https://code.claude.com/docs/en/worktrees" target="_blank" rel="noopener noreferrer">Git worktrees for parallel agents</a></p>
+<p><strong>Devin / MultiDevin</strong>
+- <a href="https://cognition.ai/blog/devin-can-now-manage-devins" target="_blank" rel="noopener noreferrer">Devin can now manage Devins</a>
+- <a href="https://cognition.ai/blog/devin-2" target="_blank" rel="noopener noreferrer">Devin 2.0 (parallel Devins)</a></p>
+<p><strong>CrewAI</strong>
+- <a href="https://docs.crewai.com/en/concepts/agents" target="_blank" rel="noopener noreferrer">Agents (role/goal/backstory)</a>
+- <a href="https://docs.crewai.com/en/concepts/crews" target="_blank" rel="noopener noreferrer">Crews</a>
+- <a href="https://docs.crewai.com/en/concepts/processes" target="_blank" rel="noopener noreferrer">Processes (sequential vs hierarchical)</a>
+- <a href="https://docs.crewai.com/en/concepts/tasks" target="_blank" rel="noopener noreferrer">Tasks (async execution)</a></p>
+<p><strong>Manus</strong>
+- <a href="https://manus.im/blog/introducing-wide-research" target="_blank" rel="noopener noreferrer">Introducing Wide Research</a>
+- <a href="https://manus.im/blog/manus-wide-research-solve-context-problem" target="_blank" rel="noopener noreferrer">Wide Research: beyond the context window</a>
+- <a href="https://manus.im/docs/features/wide-research" target="_blank" rel="noopener noreferrer">Wide Research feature docs</a></p>
+<p><strong>Flowith</strong>
+- <a href="https://flowith.io/" target="_blank" rel="noopener noreferrer">Homepage</a>
+- <a href="https://flowith.io/blog/meet-agent-neo/" target="_blank" rel="noopener noreferrer">Meet Agent Neo</a>
+- <a href="https://doc.flowith.io/" target="_blank" rel="noopener noreferrer">Docs (Oracle, multi-thread canvas)</a></p>
+<p><strong>Ottogrid / Paradigm</strong>
+- <a href="https://docs.ottogrid.ai/" target="_blank" rel="noopener noreferrer">Ottogrid docs</a> (live but bot-gated to automated fetches)
+- <a href="https://paradigmai.com/" target="_blank" rel="noopener noreferrer">Paradigm</a> (JS-rendered; behavior corroborated below)
+- <a href="https://techcrunch.com/2025/08/18/why-paradigm-built-a-spreadsheet-with-an-ai-agent-in-every-cell/" target="_blank" rel="noopener noreferrer">TechCrunch: an AI agent in every cell</a>
+- <a href="https://venturebeat.com/ai/paradigm-launches-to-reinvent-the-spreadsheet-with-generative-ai-filling-in-500-cells-per-minute" target="_blank" rel="noopener noreferrer">VentureBeat: 500 cells per minute</a></p>
+<p><strong>Genspark</strong>
+- <a href="https://www.genspark.ai/blog/genspark-less-control-more-tools" target="_blank" rel="noopener noreferrer">Less Control, More Tools (Super Agent architecture)</a></p>
+<h3 id="complaint-sources">Complaint sources</h3>
+<p><strong>Manus (App Store, review blogs)</strong>
+- <a href="https://apps.apple.com/us/app/manus-ai/id6740909540?see-all=reviews" target="_blank" rel="noopener noreferrer">Apple App Store reviews</a>
+- <a href="https://www.riotimesonline.com/manus-a-i-review-14-failures-in-two-weeks-of-testing/" target="_blank" rel="noopener noreferrer">The Rio Times: 14 failures in two weeks</a>
+- <a href="https://www.labellerr.com/blog/my-experience-building-ai-agents-with-manus-and-genspark/" target="_blank" rel="noopener noreferrer">Labellerr: building agents with Manus and Genspark</a></p>
+<p><strong>Genspark (review blogs, Product Hunt)</strong>
+- <a href="https://note.com/satoshi_hayasaki/n/nb18a87331cc2?hl=en" target="_blank" rel="noopener noreferrer">satoshi hayasaki, note.com (credit burn)</a>
+- <a href="https://www.producthunt.com/products/genspark/reviews" target="_blank" rel="noopener noreferrer">Product Hunt reviews</a>
+- <a href="https://www.trustpilot.com/review/genspark.ai" target="_blank" rel="noopener noreferrer">Trustpilot</a> (bot-gated; quote verbatim but reviewer unattributed)</p>
+<p><strong>CrewAI (review, issue tracker)</strong>
+- <a href="https://www.agentrank.tech/blog/crewai-review-multi-agent-framework-2026" target="_blank" rel="noopener noreferrer">AgentRank: CrewAI review 2026</a>
+- <a href="https://github.com/crewAIInc/crewAI/issues/1355" target="_blank" rel="noopener noreferrer">GitHub #1355: agents stuck in loop</a>
+- <a href="https://community.crewai.com/t/agents-keeps-going-in-a-loop/1053" target="_blank" rel="noopener noreferrer">Community: agents keep looping</a></p>
+<p><strong>AutoGen</strong>
+- <a href="https://github.com/microsoft/autogen/issues/133" target="_blank" rel="noopener noreferrer">GitHub #133: group chat termination loops</a></p>
+<p><strong>General multi-agent (Hacker News)</strong>
+- <a href="https://news.ycombinator.com/item?id=45489884" target="_blank" rel="noopener noreferrer">Embracing the parallel coding agent lifestyle</a>
+- <a href="https://news.ycombinator.com/item?id=45096962" target="_blank" rel="noopener noreferrer">"Don't Build Multi-Agents" discussion</a>
+- <a href="https://news.ycombinator.com/item?id=46587478" target="_blank" rel="noopener noreferrer">Shared state breaks distributed multi-agent systems</a>
+- <a href="https://news.ycombinator.com/item?id=47761625" target="_blank" rel="noopener noreferrer">Multi-agentic dev is a distributed systems problem</a></p>
+<p><strong>Cost illustration (use with caution, unattributed)</strong>
+- <a href="https://www.aicosts.ai/blog/claude-code-subagent-cost-explosion-887k-tokens-minute-crisis" target="_blank" rel="noopener noreferrer">aicosts.ai: Claude Code subagent cost explosion</a>
+- <a href="https://findskill.ai/blog/claude-code-10-parallel-agents-week-1/" target="_blank" rel="noopener noreferrer">findskill.ai: Claude Code at 10 parallel agents</a></p>
+<p><em>Products with no findable user complaints (too new, and they market against these pains): MorphMind, Ottogrid, Paradigm. Flowith has thin, mostly secondhand complaint volume.</em></p>
+</body>
+</html>

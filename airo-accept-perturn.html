@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIRO — Accept in chat, per turn</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.34.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Roboto+Mono&display=swap">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;font-family:'Source Sans 3',-apple-system,sans-serif;color:#373d47}
+  .mono{font-family:'Roboto Mono',Menlo,monospace}
+  .frame{padding:14px;height:100vh}
+  .app{height:100%;background:#fff;border:1px solid #d5dbe4;border-radius:12px;overflow:hidden;display:flex}
+
+  .editor{flex:1;min-width:0;display:flex;flex-direction:column;background:#fbfcfe;border-right:1px solid #e5eaf1}
+  .ehead{display:flex;align-items:center;gap:12px;padding:9px 13px;border-bottom:1px solid #e5eaf1;flex-shrink:0;min-height:46px}
+  .ehead .fname{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600}
+  .ehead .fname i{color:#586373}
+  .ehead .grow{flex:1}
+  .rv{display:flex;align-items:center;gap:8px}
+  .rv .cnt{font-size:12px;color:#586373;font-family:'Roboto Mono',monospace}
+  .rv .nav{width:26px;height:26px;border-radius:7px;border:1px solid #d5dbe4;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#586373}
+  .rv .nav:hover{border-color:#1a57e5;color:#1a57e5}
+  .rv .vbar{width:1px;height:22px;background:#e5eaf1;margin:0 2px}
+  .rv .b{font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+  .rv .rej{border:1px solid #d5dbe4;background:#fff;color:#373d47}
+  .rv .rej:hover{border-color:#b42318;color:#b42318}
+  .rv .acc{border:1px solid #1a57e5;background:#1a57e5;color:#fff}
+  .rv .acc:hover{background:#1549c0}
+
+  .code{flex:1;overflow:auto;padding:8px 0;font-size:12.5px;line-height:1.95;color:#586373}
+  .cline{display:flex}
+  .cn{width:34px;text-align:right;padding-right:8px;color:#aab3c0;font-size:11px;flex-shrink:0}
+  .cg{width:16px;text-align:center;flex-shrink:0;color:#9aa4b2;font-size:11px}
+  .ct{white-space:pre}
+  .cline.add{background:#e9f7ee}.cline.del{background:#fdecec}
+  .cline.add .cg{color:#1a7f37;font-weight:700}.cline.del .cg{color:#b42318;font-weight:700}
+  .cline.add .ct{color:#19422a}.cline.del .ct{color:#b42318;text-decoration:line-through;opacity:.85}
+  .hunk{position:relative}
+  .hunk.pending{box-shadow:inset 3px 0 0 #cdab3a}
+  .hunk.cur{box-shadow:inset 3px 0 0 #1a57e5, inset 0 0 0 2px #bcd4ff;background:#f5f9ff}
+  @keyframes hkflash{0%,55%{box-shadow:inset 3px 0 0 #1a57e5, inset 0 0 0 400px rgba(26,87,229,.14)}100%{box-shadow:none}}
+  .hunk.flash{animation:hkflash 1.2s ease}
+  .hmeta{position:absolute;right:10px;top:4px;display:flex;align-items:center;gap:6px;z-index:3}
+  .hunkctl{display:none;gap:4px}
+  .hunk.pending:hover .hunkctl{display:flex}
+  .hbadge{display:none}
+  .hc{width:22px;height:22px;border-radius:6px;background:#fff;border:1px solid #d5dbe4;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:#586373;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .hc.acc:hover{border-color:#1a7f37;color:#1a7f37}
+  .hc.rej:hover{border-color:#b42318;color:#b42318}
+
+  .panel{width:392px;flex-shrink:0;display:flex;flex-direction:column;background:#fff}
+  .phead{display:flex;align-items:center;gap:6px;padding:9px 14px;border-bottom:1px solid #e5eaf1;flex-shrink:0;min-height:46px}
+  .dchev{color:#1a57e5;font-weight:700;letter-spacing:-3px;font-size:15px}
+  .pname{font-size:14px;font-weight:600;color:#1a57e5}
+  .beta{font-size:10px;padding:1px 6px;border-radius:6px;background:#dce6ff;color:#1a57e5}
+  .phead .grow{flex:1}
+  .phead .lk{font-size:12px;color:#586373;cursor:pointer;padding:5px 10px;border-radius:7px}
+  .phead .lk.pri{color:#1a57e5;font-weight:600}
+  .chat{flex:1;overflow:auto;padding:14px}
+  .urow{display:flex;justify-content:flex-end;margin-bottom:9px}
+  .ubub{background:#dce6ff;max-width:84%;padding:9px 12px;border-radius:13px 13px 4px 13px;font-size:13px;line-height:1.45}
+  .amsg{font-size:13px;line-height:1.5;color:#373d47;margin-bottom:8px}
+  .acceptrow{display:flex;gap:8px;align-items:center;margin:2px 0 6px}
+  .mini{font-size:12px;padding:6px 13px;border-radius:7px;cursor:pointer;border:1px solid #d5dbe4;background:#fff;display:inline-flex;align-items:center;gap:5px;color:#373d47}
+  .mini.acc{background:#1a57e5;border-color:#1a57e5;color:#fff}
+  .mini.acc:hover{background:#1549c0}
+  .mini.rej:hover{border-color:#b42318;color:#b42318}
+  .state{font-size:12px;display:inline-flex;align-items:center;gap:5px}
+  .state.accepted{color:#1a7f37}.state.rejected{color:#b42318}
+  .statelink{color:#1a57e5;cursor:pointer;font-size:12px;margin-left:2px}
+  .statelink:hover{text-decoration:underline}
+  .cpsaved{display:flex;align-items:center;gap:8px;margin:6px 0 16px;font-size:11.5px;color:#7a8694}
+  .cpsaved::before,.cpsaved::after{content:'';flex:1;border-top:1px dashed #d7dde6}
+  .cpsaved i{color:#9aa4b2;font-size:13px}
+  .composer{flex-shrink:0;padding:12px 14px;border-top:1px solid #e5eaf1}
+  .cbox{display:flex;align-items:center;gap:8px;border:1px solid #d5dbe4;border-radius:10px;padding:8px 11px;font-size:13px;color:#9aa4b2}
+  .cbox .send{margin-left:auto;width:28px;height:28px;border-radius:50%;background:#1a57e5;color:#fff;display:flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<div class="frame"><div class="app">
+  <div class="editor">
+    <div class="ehead">
+      <span class="fname"><i class="ti ti-vector-triangle"></i>hubspot_connector.rb</span>
+      <span class="grow"></span>
+      <span class="rv" id="rv"></span>
+    </div>
+    <div class="code" id="code"></div>
+  </div>
+  <div class="panel">
+    <div class="phead"><span class="dchev">&raquo;</span><span class="pname">AIRO</span><span class="beta">Beta</span><span class="grow"></span></div>
+    <div class="chat" id="chat"></div>
+    <div class="composer"><div class="cbox"><span>Ask AIRO anything</span><span class="send"><i class="ti ti-arrow-up"></i></span></div></div>
+  </div>
+</div></div>
+
+<script>
+const $=s=>document.querySelector(s); const E=s=>s.replace(/</g,'&lt;');
+const LINES=[
+ {k:'ctx', t:"connector = {"},
+ {k:'ctx', t:"  title: 'HubSpot',"},
+ {k:'ctx', t:"  connection: {"},
+ {k:'add', turn:1, t:"    fields: [{ name: 'api_token' }],"},
+ {k:'add', turn:1, t:"    base_uri: 'https://api.hubspot.com',"},
+ {k:'del', turn:4, t:"    authorization: { type: 'api_key' },"},
+ {k:'add', turn:4, t:"    authorization: { type: 'oauth2',"},
+ {k:'add', turn:4, t:"      token_url: '/oauth/token' } },"},
+ {k:'ctx', t:"  },"},
+ {k:'ctx', t:"  object_definitions: { deal, company, contact },"},
+ {k:'del', turn:3, t:"  legacy_paging: { vidOffset: true },"},
+ {k:'ctx', t:"  actions: {"},
+ {k:'add', turn:2, t:"    create_deal: {"},
+ {k:'add', turn:2, t:"      execute: ->(c,i){ post('/deals').payload(i) } },"},
+ {k:'ctx', t:"    create_or_update_deal, archive_deal },"},
+ {k:'ctx', t:"  triggers: { new_or_updated_deal },"},
+ {k:'ctx', t:"}"},
+];
+const TURNS=[
+ {id:1, user:"Build a connector for HubSpot to create or update deals.", ai:"Built the connector with an api_token connection.", cp:"HubSpot connector created"},
+ {id:2, user:"Add a way to create deals", ai:"Added a create_deal action that takes name, amount, and stage.", cp:"added create-deal action"},
+ {id:3, user:"The old vidOffset setting doesn't work anymore, take it out", ai:"Removed it. Pagination is automatic now.", cp:"removed old pagination"},
+ {id:4, user:"The auth is broken, switch it to OAuth2", ai:"Switched the connection to OAuth2 with automatic token refresh.", cp:"auth fixed"},
+];
+const HUNKS=[1,2,3,4];
+const order=[1,4,3,2];                 // file order top-to-bottom
+const st={}; HUNKS.forEach(h=>st[h]='pending');
+let cur=0;
+const pendingOrder=()=>order.filter(h=>st[h]==='pending');
+
+function renderCode(){
+  let html='', n=1, i=0; const po=pendingOrder();
+  const norm=t=>{ const h=`<div class="cline"><span class="cn">${n}</span><span class="cg"></span><span class="ct">${E(t)}</span></div>`; n++; return h; };
+  while(i<LINES.length){
+    const l=LINES[i];
+    if(l.k==='ctx'){ html+=norm(l.t); i++; continue; }
+    const turn=l.turn, g=[]; while(i<LINES.length && LINES[i].k!=='ctx' && LINES[i].turn===turn){ g.push(LINES[i]); i++; }
+    const s=st[turn];
+    if(s==='accepted'){ g.forEach(x=>{ if(x.k==='add') html+=norm(x.t); }); }
+    else if(s==='rejected'){ g.forEach(x=>{ if(x.k==='del') html+=norm(x.t); }); }
+    else {
+      const isCur=po[cur]===turn, hn=po.indexOf(turn)+1;
+      html+=`<div class="hunk pending${isCur?' cur':''}" id="hunk-${turn}"><div class="hmeta"><div class="hunkctl"><span class="hc acc" data-acc="${turn}" title="Accept"><i class="ti ti-check"></i></span><span class="hc rej" data-rej="${turn}" title="Reject"><i class="ti ti-x"></i></span></div><span class="hbadge">#${hn}</span></div>`;
+      g.forEach(x=>{ const sym=x.k==='add'?'+':'−', num=x.k==='add'?n:''; html+=`<div class="cline ${x.k}"><span class="cn">${num}</span><span class="cg">${sym}</span><span class="ct">${E(x.t)}</span></div>`; if(x.k==='add')n++; });
+      html+=`</div>`;
+    }
+  }
+  $('#code').innerHTML=html;
+}
+function renderBar(){
+  const po=pendingOrder(), total=po.length; let h='';
+  if(total){
+    h+=`<i class="ti ti-chevron-up nav" data-step="-1"></i><span class="cnt">${Math.min(cur+1,total)} / ${total}</span><i class="ti ti-chevron-down nav" data-step="1"></i><span class="vbar"></span>`;
+    h+=`<span class="b rej" data-rejall><i class="ti ti-x"></i>Reject all</span><span class="b acc" data-accall><i class="ti ti-check"></i>Accept all</span>`;
+  } else h+=`<span class="cnt" style="color:#1a7f37">All turns resolved</span>`;
+  $('#rv').innerHTML=h;
+}
+function ctrl(t){
+  const s=st[t.id];
+  if(s==='accepted') return `<div class="acceptrow"><span class="state accepted"><i class="ti ti-check"></i>Accepted</span><span class="statelink" data-rej="${t.id}">Undo</span></div>`;
+  if(s==='rejected') return `<div class="acceptrow"><span class="state rejected"><i class="ti ti-x"></i>Rejected</span><span class="statelink" data-acc="${t.id}">Re-accept</span></div>`;
+  return `<div class="acceptrow"><button class="mini acc" data-acc="${t.id}"><i class="ti ti-check"></i>Accept</button><button class="mini rej" data-rej="${t.id}"><i class="ti ti-x"></i>Reject</button></div>`;
+}
+function renderChat(){
+  let html='';
+  TURNS.forEach(t=>{ const ne=LINES.filter(l=>l.turn===t.id).length; html+=`<div class="urow"><div class="ubub">${E(t.user)}</div></div><div class="amsg">${E(t.ai)}</div>`+ctrl(t)+`<div class="cpsaved"><i class="ti ti-clock"></i>Checkpoint saved · ${ne} edit${ne>1?'s':''}</div>`; });
+  $('#chat').innerHTML=html;
+}
+function render(){ const po=pendingOrder(); if(cur>=po.length) cur=Math.max(0,po.length-1); renderCode(); renderBar(); renderChat(); }
+function jumpCur(){ const po=pendingOrder(); const el=document.getElementById('hunk-'+po[cur]); if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),1200); } }
+document.addEventListener('click',e=>{
+  const step=e.target.closest('[data-step]'); if(step){ const po=pendingOrder(); if(po.length){ cur=(cur+ +step.dataset.step + po.length)%po.length; render(); jumpCur(); } return; }
+  const a=e.target.closest('[data-acc]'); if(a){ st[+a.dataset.acc]='accepted'; render(); return; }
+  const r=e.target.closest('[data-rej]'); if(r){ st[+r.dataset.rej]='rejected'; render(); return; }
+  if(e.target.closest('[data-accall]')){ HUNKS.forEach(h=>{ if(st[h]==='pending') st[h]='accepted'; }); render(); return; }
+  if(e.target.closest('[data-rejall]')){ HUNKS.forEach(h=>{ if(st[h]==='pending') st[h]='rejected'; }); render(); return; }
+});
+render();
+</script>
+</body>
+</html>

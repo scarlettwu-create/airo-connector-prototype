@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIRO code agent: activity summary — problem, principles, design alternatives</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  color: #1f2328;
+  line-height: 1.65;
+  font-size: 16px;
+  background: #fff;
+}
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; color: #424a53; }
+p { margin: 0.6em 0; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+blockquote {
+  border-left: 4px solid #d1d9e0;
+  margin: 1em 0;
+  padding: 0.2em 1em;
+  color: #424a53;
+  background: #f8fafc;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f6f8fa; font-weight: 600; }
+td ul { margin: 0; padding-left: 1.2em; }
+td li { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #d1d9e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.25em 0; }
+strong { font-weight: 600; }
+
+/* Sticky-ish nav */
+.toc {
+  background: #f6f8fa;
+  border: 1px solid #d1d9e0;
+  border-radius: 6px;
+  padding: 16px 24px;
+  margin: 0 0 32px 0;
+  font-size: 0.95em;
+}
+.toc strong { display: block; margin-bottom: 8px; }
+.toc a { display: block; padding: 2px 0; color: #424a53; }
+
+/* Callout for the goal */
+.callout {
+  background: #eff6ff;
+  border: 1px solid #bcd6ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 6px;
+  padding: 16px 22px;
+  margin: 1.2em 0;
+}
+.callout h4 { margin-top: 0; color: #1e40af; }
+
+/* Principle blocks */
+.principle {
+  border: 1px solid #d1d9e0;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin: 12px 0;
+}
+.principle .n { color: #6c5ce7; font-weight: 700; margin-right: 6px; }
+.principle p { margin: 0.3em 0; }
+.principle .src { font-size: 0.88em; color: #57606a; }
+
+/* Alternative cards */
+.alt { margin-top: 2.2em; }
+.alt h3 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.badge {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; padding: 2px 9px; border-radius: 999px;
+}
+.b-target { background: #dcfce7; color: #166534; }
+.b-core   { background: #e0e7ff; color: #3730a3; }
+.b-avoid  { background: #fee2e2; color: #991b1b; }
+.b-later  { background: #fef3c7; color: #92400e; }
+.whatitis { color: #424a53; margin: 0.2em 0 0.6em; }
+.rationale { font-size: 0.93em; background: #fafbfc; border: 1px solid #eaecef; border-radius: 6px; padding: 10px 16px; }
+.lead { font-size: 1.08em; color: #424a53; }
+</style>
+</head>
+<body>
+
+<h1>AIRO code agent: the activity summary</h1>
+<p class="lead">A definition doc for the live activity summary (the "stream of thoughts") shown while Arrow edits connector code in the SDK editor. Problem, principles, and the design alternatives on the table. Research-stage, before constraints lock. PMO-2980.</p>
+
+<div class="toc">
+  <strong>On this page</strong>
+  <a href="#problem">1. The real problem and the goal</a>
+  <a href="#principles">2. Principles we want to follow</a>
+  <a href="#alternatives">3. Design alternatives (pros, cons, who does it)</a>
+</div>
+
+<h2 id="problem">1. The real problem and the goal</h2>
+
+<p>When Arrow edits a connector, the user has to be able to follow what it is doing to their code. Today the panel says one thing while it works: "Arrow is thinking." That is the starting point we are replacing, and it is the reason this is worth defining carefully rather than copying a coding tool's stream wholesale.</p>
+
+<h3>The real problem</h3>
+
+<p>A connector developer watching Arrow work needs to answer two questions, continuously, and the current UI answers neither:</p>
+
+<ul>
+  <li><strong>"What is it doing to my code right now?"</strong> A blank "thinking" spinner gives no content. The opposite move, dumping the full reasoning and tool stream inline the way Claude Code does by default, over-answers it and buries the signal in noise (filed by users as "significant visual noise" with no way to collapse, <a href="https://github.com/anthropics/claude-code/issues/52640">Claude Code #52640</a>).</li>
+  <li><strong>"Is this going the right way, or do I stop it?"</strong> This is the one that actually matters, and it is the hardest. By the time a wrong edit has finished landing in a 1,000-line connector, the cheap moment to intervene has passed.</li>
+</ul>
+
+<p>It matters more for this product than for a general coding agent for three concrete reasons. Connectors reach 1,000+ lines, so a wrong edit is easy to miss. Arrow writes diffs directly into the working file, so a bad turn has immediate consequences. And the audience is a developer who owns the connector and will be blamed if it breaks, so the tolerance for "I didn't see that change happen" is low. The two failure modes from the <a href="activity-timeline-competitive-research.html">activity timeline research</a> bracket the design: too noisy (the stream buries the signal) and too quiet (the user reads silence as a crash, like Replit Agent 3 users describing it "just POOF" stopping, <a href="https://replit.discourse.group/t/agent-3-is-slow-broken-and-unusable-it-just-stops-working-any-work-arounds/7061">Replit forum</a>).</p>
+
+<div class="callout">
+  <h4>The goal</h4>
+  <p>An activity summary that is:</p>
+  <ul>
+    <li><strong>Glanceable.</strong> One line of intent per step, in plain language, so the user understands what is happening without reading a transcript.</li>
+    <li><strong>Interruptible at the cheapest moment.</strong> The user can stop mid-step the instant a wrong direction shows, not only after the edit lands.</li>
+    <li><strong>Trustworthy enough to look away.</strong> The summary and the resulting diff are good enough to review afterward, so the user does not have to babysit the stream.</li>
+  </ul>
+  <p style="margin-bottom:0">In one line: the activity summary is a <strong>control surface, not a log</strong>. That reframe (from the research's "biggest gap" finding) shapes the panel more than the visual layout does.</p>
+</div>
+
+<h3>Non-goals</h3>
+<ul>
+  <li>A full reasoning transcript. Reasoning is available on demand, not the default.</li>
+  <li>Re-rendering the connector code. The editor already shows the code and the diff; the activity summary narrates the <em>process</em> happening to it, not the blueprint.</li>
+  <li>Post-run execution history and debugging. That is a separate surface with its own retention and search problems.</li>
+</ul>
+
+<h2 id="principles">2. Principles we want to follow</h2>
+
+<p>Six principles, each grounded in how Cursor, Claude Code, and others got it right or wrong.</p>
+
+<div class="principle">
+  <p><span class="n">1.</span><strong>Intent before narration.</strong></p>
+  <p>Announce what each step is about to do in one line, before or as the edit lands ("Editing connection auth", "Adding get_user action"). This is what lets the user catch a wrong direction at the cheapest point. The SDK backend tools (<code>getLatestConnectorCode</code>, <code>validateCode</code>, <code>writeLatestCode</code>) already map to readable step verbs, so the vocabulary is close to free.</p>
+  <p class="src">Pattern: <a href="https://www.shapeof.ai/patterns/stream-of-thought">Shape of AI, Stream of Thought</a>. Closest shipped example: <a href="https://docs.cursor.com/agent/planning">Cursor Plan Mode</a> states the plan before writing code.</p>
+</div>
+
+<div class="principle">
+  <p><span class="n">2.</span><strong>One default density, with an escape hatch in both directions.</strong></p>
+  <p>Verbosity is not "too many words," it is "no chosen default." Default to one line per action, collapse reasoning, and let users expand for detail or dial it down further. Ship the collapse from day one rather than retrofitting it.</p>
+  <p class="src">Claude Code shipped inline thinking with no toggle and users called it noise (<a href="https://github.com/anthropics/claude-code/issues/52640">#52640</a>). Cursor retrofitted a compact / balanced / detailed control (<a href="https://cursor.com/changelog/2-0">Cursor 2.0</a>). Anthropic's own "reduce verbosity" change backfired on quality and was reverted in four days (<a href="https://www.anthropic.com/engineering/april-23-postmortem">April 23 postmortem</a>), so the answer is user control, not a fixed terse default.</p>
+</div>
+
+<div class="principle">
+  <p><span class="n">3.</span><strong>The change summary is computed from the diff, not the model's claim.</strong></p>
+  <p>Derive each summary line from the actual computed diff (which block changed, lines added and removed) and let the model only phrase it. A summary that cannot disagree with the editor is the feature.</p>
+  <p class="src">In the <a href="airo-sdk-editor-diff-lifecycle-competitive-research.html">diff lifecycle research</a>, users in three products caught the agent claiming changes that never happened. <a href="https://arxiv.org/abs/2510.04494">NaturalEdit (arXiv 2510.04494)</a> found summaries help most when clickably linked to the code they describe, which also doubles as long-file navigation.</p>
+</div>
+
+<div class="principle">
+  <p><span class="n">4.</span><strong>Always interruptible, mid-step, with a heartbeat.</strong></p>
+  <p>A persistent stop that halts mid-step, plus a live current-action line so silence never reads as frozen. A stream you cannot cancel mid-step is just a slow log.</p>
+  <p class="src">Claude Code users asked to cancel early on buffered long-running output (<a href="https://github.com/anthropics/claude-code/issues/14280">#14280</a>). The interrupt-mid-action affordance is the load-bearing part of the activity timeline research's "show me AND let me steer" theme.</p>
+</div>
+
+<div class="principle">
+  <p><span class="n">5.</span><strong>Earn the right to look away.</strong></p>
+  <p>The point of a trustworthy summary is that the user does not have to watch. A clean per-turn summary plus a reviewable highlighted diff means the user can disengage and come back, instead of monitoring every token.</p>
+  <p class="src"><a href="https://microsoft.design/articles/ux-design-for-agents/">Microsoft, UX Design for Agents</a> (agent status visible at all times, progressive disclosure of reasoning). Past 10 seconds of wait, determinate progress plus an interrupt is the baseline (<a href="https://www.nngroup.com/articles/response-times-3-important-limits/">NN/g response-time limits</a>).</p>
+</div>
+
+<div class="principle">
+  <p><span class="n">6.</span><strong>Narrate the process, show the code in the editor.</strong></p>
+  <p>The activity summary's job is the steps, handoffs, tools, and status, not a second rendering of the connector. The editor owns the code and the diff; the summary owns the story of what is being done to it.</p>
+  <p class="src">Carried over from the AIRO working-view principle: the "agent working" view shows the multi-agent process, not the recipe or connector blueprint.</p>
+</div>
+
+<h2 id="alternatives">3. Design alternatives</h2>
+
+<p>Five ways to display the live activity, from thinnest to richest. Each has pros, cons, who ships it, and where it would land for AIRO. These are not mutually exclusive; the realistic path is to build a strong core and grow it.</p>
+
+<div class="alt">
+  <h3>A. Raw streaming transcript <span class="badge b-avoid">Avoid as default</span></h3>
+  <p class="whatitis">Stream reasoning text and full tool input/output inline, in order, as it happens.</p>
+  <table>
+    <tr><th>Pros</th><th>Cons</th></tr>
+    <tr>
+      <td><ul>
+        <li>Maximum transparency, nothing hidden</li>
+        <li>Cheapest to build (just render the event stream)</li>
+        <li>Power users can see exactly what the model did</li>
+      </ul></td>
+      <td><ul>
+        <li>Buries intent in noise; hard to scan</li>
+        <li>The signal a user needs ("what changed, is it right") is drowned out</li>
+        <li>Long sessions become an unscrollable wall</li>
+      </ul></td>
+    </tr>
+  </table>
+  <p class="rationale"><strong>Seen in:</strong> <a href="https://code.claude.com/docs/en/vs-code">Claude Code</a> default. <strong>Rationale:</strong> users filed the inline thinking as visual noise with no collapse (<a href="https://github.com/anthropics/claude-code/issues/52640">#52640</a>). Fine as the expanded detail view behind a toggle, wrong as the default surface.</p>
+</div>
+
+<div class="alt">
+  <h3>B. Rolling one-line status only <span class="badge b-avoid">Too thin</span></h3>
+  <p class="whatitis">A single current-action line with a spinner, e.g. "Arrow is editing connection auth…", replaced as it moves on.</p>
+  <table>
+    <tr><th>Pros</th><th>Cons</th></tr>
+    <tr>
+      <td><ul>
+        <li>Zero noise, very glanceable</li>
+        <li>Trivial to build; a direct upgrade to today's "Arrow is thinking"</li>
+        <li>Satisfies the heartbeat principle on its own</li>
+      </ul></td>
+      <td><ul>
+        <li>No history; the user cannot see what already happened this turn</li>
+        <li>No per-step record to review or to anchor a stop decision</li>
+        <li>If it stalls on one step, still reads as frozen</li>
+      </ul></td>
+    </tr>
+  </table>
+  <p class="rationale"><strong>Seen in:</strong> most chat assistants' "typing…" state. <strong>Rationale:</strong> it is the smallest step up from the current failure, but it only answers "right now," not "what did it just do," so it cannot carry the control-surface goal alone. Useful as the always-visible heartbeat layer on top of option C or D.</p>
+</div>
+
+<div class="alt">
+  <h3>C. Collapsed step list with status badges <span class="badge b-core">Strong core</span></h3>
+  <p class="whatitis">An ordered list of steps, each a verb plus target block plus an explicit state (queued, running, done, error). Reasoning hidden behind a per-step expander.</p>
+  <table>
+    <tr><th>Pros</th><th>Cons</th></tr>
+    <tr>
+      <td><ul>
+        <li>Scannable and intent-forward; reads like a checklist</li>
+        <li>Each step is an intervention point, which serves "stop mid-step"</li>
+        <li>Maps cleanly onto the SDK tool calls</li>
+        <li>Completed steps collapse, so long sessions stay compact</li>
+      </ul></td>
+      <td><ul>
+        <li>Needs the backend to emit structured step events, not just a token stream</li>
+        <li>Vague labels ("Working…") would waste the format</li>
+        <li>Planning surfaces are fragile in practice and must be reliable to be trusted</li>
+      </ul></td>
+    </tr>
+  </table>
+  <p class="rationale"><strong>Seen in:</strong> <a href="https://www.shapeof.ai/patterns/stream-of-thought">Shape of AI, Stream of Thought</a>; <a href="https://docs.devin.ai/work-with-devin/interactive-planning">Devin's Planner</a>; <a href="https://docs.lovable.dev/features/agent-mode">Lovable visible tasks</a>. <strong>Rationale:</strong> Cursor's todo list sometimes fails to appear or update, and users notice when planning is theater (<a href="https://forum.cursor.com/t/plan-mode-todo-list-does-not-update/137115">Cursor forum</a>); Devin's planner is well-built but reviewers call it under-leveraged (<a href="https://ppaolo.substack.com/p/in-depth-product-analysis-devin-cognition-labs">analysis</a>). The structure is right; the risk is reliability, not concept.</p>
+</div>
+
+<div class="alt">
+  <h3>D. Step list plus per-turn change summary linked to the diff <span class="badge b-target">Target direction</span></h3>
+  <p class="whatitis">Option C while it works, then on completion a one-line summary derived from the diff ("Added get_user action, updated auth. +34 / −6"), where each summary line jumps to its hunk in the editor.</p>
+  <table>
+    <tr><th>Pros</th><th>Cons</th></tr>
+    <tr>
+      <td><ul>
+        <li>Digestible live, reviewable after; supports looking away</li>
+        <li>The diff-derived summary satisfies the kickoff should-have honestly</li>
+        <li>Clickable summary lines double as long-file navigation (the 1,000-line problem)</li>
+        <li>One feature covers three needs: summary, trust, navigation</li>
+      </ul></td>
+      <td><ul>
+        <li>More to build than C, and two surfaces (live steps, final summary) to keep coherent</li>
+        <li>Summary-from-diff requires the diff computed where the summary is generated</li>
+      </ul></td>
+    </tr>
+  </table>
+  <p class="rationale"><strong>Seen in:</strong> <a href="https://docs.lovable.dev/features/agent-mode">Lovable's per-message summaries</a>; the linking idea from <a href="https://arxiv.org/abs/2510.04494">NaturalEdit</a>. <strong>Rationale:</strong> the <a href="airo-sdk-editor-diff-lifecycle-competitive-research.html">diff lifecycle research</a> names "no product ships a summary guaranteed to match the code" as the biggest open gap, so this is where AIRO can lead rather than catch up.</p>
+</div>
+
+<div class="alt">
+  <h3>E. Full "watch it work" workspace with a scrubber <span class="badge b-later">Later</span></h3>
+  <p class="whatitis">A multi-pane workspace (editor, validation, browser) with a time slider to scrub backward and forward through the whole session.</p>
+  <table>
+    <tr><th>Pros</th><th>Cons</th></tr>
+    <tr>
+      <td><ul>
+        <li>Powerful for long, autonomous, multi-environment runs</li>
+        <li>Strong "look backward" support without re-reading the chat</li>
+      </ul></td>
+      <td><ul>
+        <li>Overkill for v1 single-file connector editing</li>
+        <li>High build cost; the connector session is short next to Devin-scale runs</li>
+        <li>Risks the same under-leveraged fate when the task does not need it</li>
+      </ul></td>
+    </tr>
+  </table>
+  <p class="rationale"><strong>Seen in:</strong> <a href="https://docs.devin.ai/get-started/devin-intro">Devin's Workspace and time slider</a> (200-minute autonomous runs). <strong>Rationale:</strong> the activity timeline research flags scrubbing as probably overkill at v1; the lighter version of the same need is "jump to step N," which option D already gives via linked summary lines. Worth revisiting only if connector sessions grow long enough that the linear list stops being enough.</p>
+</div>
+
+<hr>
+
+<h3>Where this points</h3>
+<p>The realistic path is to build option C as the core and grow it into D, with the option B status line riding on top as the always-visible heartbeat. Option A becomes the expanded detail view behind a toggle, not the default. Option E is a later bet that only pays off if sessions get long. The open question worth pressuring with the team, straight from the research: when a user sees something they dislike in the stream, what exactly can they do about it without cancelling the whole run? That answer shapes the panel more than the layout does.</p>
+
+</body>
+</html>

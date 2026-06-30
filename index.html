@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Library</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --ink: #1d2330;
+    --muted: #6b7280;
+    --line: #e4e7ec;
+    --accent: #6c5ce7;
+    --accent-soft: #efecfd;
+    --shadow: 0 1px 3px rgba(16,24,40,.08), 0 1px 2px rgba(16,24,40,.04);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink); background: var(--bg);
+    display: flex; height: 100vh; overflow: hidden;
+  }
+  /* Sidebar */
+  aside {
+    width: 340px; min-width: 340px; height: 100%;
+    background: var(--panel); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column;
+  }
+  .brand { padding: 20px 20px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .brand:hover h1 { color: var(--accent); }
+  .brand h1 { font-size: 16px; margin: 0 0 3px; letter-spacing: -.01em; transition: color .12s; }
+  .brand .sub { font-size: 12px; color: var(--muted); }
+  .search { padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .search input {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--line);
+    border-radius: 8px; font-size: 13px; outline: none; background: #fbfbfd;
+  }
+  .search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .list { flex: 1; overflow-y: auto; padding: 8px 10px 24px; }
+  .group-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--muted);
+    padding: 16px 10px 6px;
+  }
+  .item {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    border: 1px solid transparent; background: transparent;
+    border-radius: 9px; padding: 10px 12px; margin: 2px 0;
+    font: inherit; color: inherit; transition: background .12s, border-color .12s;
+  }
+  .item:hover { background: #f7f7fb; }
+  .item.active { background: var(--accent-soft); border-color: #d9d3fb; }
+  .item .t { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+  .item .meta { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 1px 7px; border-radius: 999px; vertical-align: middle;
+    background: #eef2ff; color: #4338ca;
+  }
+  .badge.complaints { background: #fef3f2; color: #b42318; }
+  .count { font-size: 11px; color: var(--muted); padding: 4px 12px 0; }
+  /* Main */
+  main { flex: 1; height: 100%; display: flex; flex-direction: column; min-width: 0; }
+  .topbar {
+    height: 56px; min-height: 56px; background: var(--panel);
+    border-bottom: 1px solid var(--line); display: flex; align-items: center;
+    gap: 12px; padding: 0 18px;
+  }
+  .topbar .doc-title { font-size: 14px; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar a.btn {
+    font-size: 12.5px; text-decoration: none; color: var(--accent);
+    border: 1px solid #d9d3fb; padding: 6px 12px; border-radius: 8px;
+    background: var(--panel); white-space: nowrap;
+  }
+  .topbar a.btn:hover { background: var(--accent-soft); }
+  .viewer { flex: 1; position: relative; background: var(--bg); }
+  iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+  /* Home */
+  .home { position: absolute; inset: 0; overflow-y: auto; padding: 32px 36px; }
+  .home h2 { font-size: 20px; margin: 0 0 6px; }
+  .home p.lead { color: var(--muted); font-size: 13.5px; margin: 0 0 24px; max-width: 640px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 16px 14px; cursor: pointer; box-shadow: var(--shadow);
+    transition: transform .12s, box-shadow .12s; display: flex; flex-direction: column;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(16,24,40,.1); }
+  .card .t { font-size: 14.5px; font-weight: 700; line-height: 1.35; margin: 8px 0 6px; }
+  .card .d { font-size: 12.5px; color: #475467; line-height: 1.5; flex: 1; }
+  .card .p { font-size: 11.5px; color: var(--muted); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .empty { color: var(--muted); font-size: 13px; padding: 20px 12px; }
+</style>
+</head>
+<body>
+  <aside>
+    <div class="brand" id="brandHome" title="Back to overview">
+      <h1>Research Library</h1>
+      <div class="sub">27 competitive UX research docs · built Jun 25, 2026</div>
+    </div>
+    <div class="search">
+      <input id="q" type="search" placeholder="Search title, products, topic…" autocomplete="off">
+    </div>
+    <div class="count" id="resultCount"></div>
+    <nav class="list" id="list"></nav>
+  </aside>
+  <main>
+    <div class="topbar">
+      <a class="btn" id="goHome" href="#" style="display:none">← All research</a>
+      <div class="doc-title" id="docTitle">All research</div>
+      <a class="btn" id="revealBtn" href="#" style="display:none">📂 Reveal in Finder</a>
+      <a class="btn" id="openTab" href="#" target="_blank" rel="noopener" style="display:none">Open in new tab ↗</a>
+    </div>
+    <div class="viewer">
+      <div class="home" id="home"></div>
+      <iframe id="frame" title="Document viewer" style="display:none"></iframe>
+    </div>
+  </main>
+
+<script>
+const DOCS = [{"file": "airo-sdk-editor-activity-summary-definition.html", "title": "AIRO code agent: activity summary — problem, principles, design alternatives", "fullTitle": "AIRO code agent: activity summary — problem, principles, design alternatives", "type": "Competitive research", "group": "AIRO SDK Editor (PMO-2980)", "description": "AIRO code agent: the activity summary A definition doc for the live activity summary (the \"stream of thoughts\") shown while Arrow edits connector code in the SDK editor. Problem, principles, and the design alternatives on the table. Research-stage, before constraints lock…", "products": ""}, {"file": "airo-sdk-editor-activity-summary.html", "title": "AIRO code agent: the activity summary — definition + live prototype", "fullTitle": "AIRO code agent: the activity summary — definition + live prototype", "type": "Competitive research", "group": "AIRO SDK Editor (PMO-2980)", "description": "AIRO code agent: the activity summary The live activity summary (the \"stream of thoughts\") shown while Arrow edits connector code in the SDK editor. This page pairs the written definition (problem, principles, design alternatives) with a live, clickable prototype of those…", "products": ""}, {"file": "airo-sdk-editor-diff-lifecycle-competitive-research.html", "title": "AIRO SDK editor: diff lifecycle and review controls", "fullTitle": "AIRO SDK editor: diff lifecycle and review controls (competitive research)", "type": "Competitive research", "group": "AIRO SDK Editor (PMO-2980)", "description": "Research for the AIRO SDK editor integration (PMO-2980), following the UX kickoff. The kickoff settled on a working model: AIRO writes into the editor as inline highlights, highlights accumulate across chat turns (diff baseline is the last saved version), an Accept/Keep control…", "products": "Cursor, GitHub Copilot in VS Code (agent mode / Edits), JetBrains AI Assistant + Junie, Windsurf (Cascade), Claude Code, Replit Agent."}, {"file": "airo-sdk-editor-code-insertion-competitive-research.html", "title": "AIRO SDK editor: in-editor AI code insertion and diff", "fullTitle": "AIRO SDK editor: in-editor AI code insertion and diff — Competitive Research", "type": "Competitive research", "group": "AIRO SDK Editor (PMO-2980)", "description": "Research for the AIRO SDK editor migration (PMO-2980), where AIRO inserts generated code directly into the SDK editor at the correct lines within the relevant SDK blocks and shows the user a before-and-after comparison to accept or reject. This is the research-stage artifact…", "products": "Cursor, GitHub Copilot Edits, Fivetran Connector SDK (with Claude in VS Code), Tray.ai (Claude CDK), Celigo (Copilot / Ora), Boomi (Agentstudio + Suggest)."}, {"file": "coding-testing-version-control-competitive-research.html", "title": "Coding, testing, and version control: how AI products wire the flow", "fullTitle": "Coding, testing, and version control: how AI products wire the flow — Competitive Research", "type": "Competitive research", "group": "AIRO SDK Editor (PMO-2980)", "description": "Research for the AIRO SDK editor (PMO-2980) and recipe building, looking at the relationship between three steps that used to be separate tools and are now collapsing into one agent loop: writing code, testing it, and committing it to version control. This is a research-stage…", "products": "Fivetran Connector SDK, Cursor, GitHub Copilot (VS Code agent mode), Claude Code, Devin, OpenAI Codex (cloud agent). Google Jules, Replit, and Workato's own baseline are referenced where they sharpen…"}, {"file": "checkpoints-rollbacks-competitive-research.html", "title": "Checkpoints and Rollbacks", "fullTitle": "Checkpoints and Rollbacks — Competitive Research", "type": "Competitive research", "group": "Agent control & rollback", "description": "Early-stage research for AIRO (Workato's agentic builder), to inform how an AIRO agent should let users roll back after it has made a series of edits in a session. No PRD yet; this is the research that comes before constraints are set.", "products": "Cursor, Claude Code, GitHub Copilot, Replit Agent, Lovable, n8n. Workato's recipe versioning and Windsurf/Cascade come in as baseline and contrast."}, {"file": "stop-generation-competitive-research.html", "title": "Stop Generation UX", "fullTitle": "Stop Generation UX — Competitive Research", "type": "Competitive research", "group": "Agent control & rollback", "description": "Research to inform the AIRO Stop Generation feature (PRD: AIRO UX improvements — Batch 1, Section 1.3). First compiled May 2026, refreshed June 10, 2026. The feature has since moved to its own ticket, AAI-1501 under PMO-2975, targeting June 2026.", "products": "Relay.app, Zapier Agents, n8n, Replit Agent, Lovable, v0 (Vercel). Figma Make was covered in the May version; its key findings are retained in Part 2 with a June update."}, {"file": "activity-timeline-competitive-research.html", "title": "Activity Timeline", "fullTitle": "Activity Timeline — Competitive Research", "type": "Competitive research", "group": "Agent activity & loading", "description": "Research compiled to inform a future AIRO PRD on real-time agent activity UI (what users see while AIRO is working). No PRD exists yet; this research is at the discovery stage. Updated June 2026 to add the workflow-automation tier (n8n, Zapier, Make), which is AIRO's direct…", "products": "Cursor, Claude Code, Replit Agent, Devin, Lovable (AI coding agents). n8n, Zapier, Make (workflow automation, Tier 1 for AIRO)."}, {"file": "airo-activity-timeline.html", "title": "AIRO Activity Timeline", "fullTitle": "AIRO Activity Timeline", "type": "Competitive research", "group": "Agent activity & loading", "description": "", "products": ""}, {"file": "loading-status-competitive-research.html", "title": "Loading Status / Progress Indicators in AI Coding Tools", "fullTitle": "Loading Status / Progress Indicators in AI Coding Tools — Competitive Research", "type": "Competitive research", "group": "Agent activity & loading", "description": "Research into how AI coding and app-building agents show the user what's happening during the wait between sending a prompt and getting a result. For the AIRO loading/progress experience while the agent plans and builds automations.", "products": "Cursor, GitHub Copilot (VS Code agent mode), Claude Code, Replit Agent, Lovable, Devin."}, {"file": "agent-discoverability-complaints.html", "title": "Agent Discoverability", "fullTitle": "Agent Discoverability — Customer Complaints", "type": "Customer complaints", "group": "Agent placement & discoverability", "description": "Agent Discoverability — Customer Complaints Products: Notion AI, Microsoft 365 Copilot, ServiceNow Now Assist, Salesforce Agentforce Focus: Entry points, trigger surfaces, adoption friction May 2026 Contents How discoverability breaks down Notion AI Microsoft 365 Copilot…", "products": ""}, {"file": "agent-placement-competitive-research.html", "title": "Agent Placement", "fullTitle": "Agent Placement — Competitive Research", "type": "Competitive research", "group": "Agent placement & discoverability", "description": "Research compiled to inform AIRO product decisions on where and how to surface AI agents in the UI. Covers how enterprise and productivity platforms handle agent entry points, interaction surfaces, and the visual distinction between an autonomous agent and a conversational…", "products": "Notion, Slack, ServiceNow, Salesforce (Agentforce), Microsoft 365 Copilot, Linear"}, {"file": "multi-agent-governance-competitive-research.html", "title": "Multi-Agent Governance", "fullTitle": "Multi-Agent Governance — Competitive Research", "type": "Competitive research", "group": "Multi-agent orchestration", "description": "For AIRO's agentic surface at Workato, looking at how other products govern fleets of agents: who an agent is, what it's allowed to do, who approved it, and how you reconstruct what happened. Companion to the multi-agent-orchestration research (this repo); that doc covered how…", "products": "Microsoft (Copilot Studio + Entra Agent ID + Agent 365), Salesforce Agentforce, AWS Bedrock AgentCore, Kong (AI Gateway / Agent Gateway), Claude Code, Okta / WorkOS (agent identity), Galileo / Arize…"}, {"file": "multi-agent-orchestration-competitive-research.html", "title": "Multi-Agent Orchestration", "fullTitle": "Multi-Agent Orchestration — Competitive Research", "type": "Competitive research", "group": "Multi-agent orchestration", "description": "For AIRO's agentic surface at Workato, looking at how other AI products let one task run across several agents. Two use cases drive this: (1) splitting a task across multiple agents to finish faster (parallel decomposition), and (2) different agents playing different roles like…", "products": "MorphMind, Claude Code (subagents), Devin / MultiDevin, CrewAI, Manus, Flowith, Ottogrid / Paradigm, Genspark Super Agent."}, {"file": "airo-sdk-connector-timeline-mockup.html", "title": "AIRO SDK Connector — Activity Timeline Mockup", "fullTitle": "AIRO SDK Connector — Activity Timeline Mockup", "type": "Competitive research", "group": "Other research", "description": "Create or update deals Save Exit connector.rb » AIRO editing 41 archive_deal: { 42 title: 'Archive deal', 43 input_fields: lambda do 44 [{ name: 'id', optional: false }] 45 end, 46 execute: lambda do |conn, input| 47 delete(\"/crm/v3/objects/deals/\") 48 end, 49 }, » AIRO Beta New…", "products": ""}, {"file": "airo-sdk-connector-prototype.html", "title": "AIRO SDK Connector — Clickable Prototype", "fullTitle": "AIRO SDK Connector — Clickable Prototype", "type": "Competitive research", "group": "Other research", "description": "Create or update deals Save Exit connector.rb idle » AIRO Beta New chat Chat Test code Recent tests »", "products": ""}, {"file": "airo-agent-governance copy.html", "title": "AIRO · Agent Operations", "fullTitle": "AIRO · Agent Operations", "type": "Competitive research", "group": "Other research", "description": "✦ AIRO · Agent Operations Dashboard Playbooks Observability Policies 📄 ✦ Ask AIRO Overview Recent runs Run Owner Status Grants Flags When ‹ Overview › Onboarding Onboarding run ▶ Replay Explorer · this run | idle Run summary Run something from the AIRO panel to see the lineage…", "products": ""}, {"file": "airo-agent-governance.html", "title": "AIRO · Agent Operations", "fullTitle": "AIRO · Agent Operations", "type": "Competitive research", "group": "Other research", "description": "A AIRO / Agent Operations ✦ Ask AIRO SW Dashboard Fleet map Policies Overview Recent runs Run Owner Status Grants Flags When ‹ Overview › Onboarding Onboarding run ▶ Replay Explorer · this run | idle Run summary Run something from the AIRO panel to see the lineage and a…", "products": ""}, {"file": "airo-governance-demo-pre-redesign.html", "title": "AIRO · Agent Operations", "fullTitle": "AIRO · Agent Operations", "type": "Competitive research", "group": "Other research", "description": "✦ AIRO · Agent Operations Overview Agents Policies Activity Log ✦ Ask AIRO Overview Runs Run Owner Status Grants Flags When Click any run to drill into its lineage and gate. Flagged rows hit a policy. ‹ Overview › Onboarding Onboarding run Explorer · this run | idle Run summary…", "products": ""}, {"file": "airo-governance-demo.html", "title": "AIRO · Agent Operations", "fullTitle": "AIRO · Agent Operations", "type": "Competitive research", "group": "Other research", "description": "✦ AIRO · Agent Operations Dashboard Fleet map Policies ✦ Ask AIRO Overview Recent runs Run Owner Status Grants Flags When ‹ Overview › Onboarding Onboarding run ▶ Replay Explorer · this run | idle Run summary Run something from the AIRO panel to see the lineage and a…", "products": ""}, {"file": "airo-governance-transit.html", "title": "AIRO · Agent Operations (Transit)", "fullTitle": "AIRO · Agent Operations (Transit)", "type": "Competitive research", "group": "Other research", "description": "✦ AIRO · Agent Operations Explorer Policies Activity Log ✦ Ask AIRO Runs › Onboarding Onboarding run Transit map · this run · idle AccountGenie AccessGenie NotifyGenie Run summary Run something from the AIRO panel to watch the lines travel through your systems. Grants used 0 / 8…", "products": ""}, {"file": "airo-governance-demo-radial.html", "title": "AIRO · Agent Operations — Radial", "fullTitle": "AIRO · Agent Operations — Radial", "type": "Competitive research", "group": "Other research", "description": "✦ AIRO · Agent Operations Explorer Policies Activity audit ✦ Ask AIRO Runs › Onboarding Onboarding run Explorer · this run | idle ‹ Back Run: this run Genie: All ▾ Status: All × Run summary Run something from the AIRO panel to see the blast radius and a plain-language summary…", "products": ""}, {"file": "projects-canvas-live.html", "title": "Projects · Workspace Canvas", "fullTitle": "Projects · Workspace Canvas", "type": "Competitive research", "group": "Other research", "description": "W Workato Workspace › Projects + New project Projects 6 Templates 7 Agent activity × Drag to pan · scroll to move · click a project to open its canvas − 100% + ← 1 Project ▾ 100% ▾ ✏️ Edit canvas » AIRO Beta ＋ ‒ Chat Optimize 90 Ask. Find. Build. All with Airo » Make this flow…", "products": ""}, {"file": "projects-canvas-story.html", "title": "Projects · Workspace Canvas", "fullTitle": "Projects · Workspace Canvas", "type": "Competitive research", "group": "Other research", "description": "W Workato Workspace › Projects ▶ Play demo + New project Projects 6 Templates 7 Agent activity × Drag to pan · scroll to move · click a project to open its canvas − 100% + » Ask AIRO » AIRO workspace ‒ What should AIRO work on across your workspace? » Audit every live project…", "products": ""}, {"file": "projects-canvas.html", "title": "Projects · Workspace Canvas", "fullTitle": "Projects · Workspace Canvas", "type": "Competitive research", "group": "Other research", "description": "W Workato Workspace › Projects + New project Projects 6 Templates 7 Drag to pan · scroll to move · click a project to open its canvas − 100% + ← 1 Project ▾ 100% ▾ ✏️ Edit canvas » AIRO Beta ＋ ‒ Chat Optimize 90 Ask. Find. Build. All with Airo » Make this flow audit-ready ➤ »…", "products": ""}, {"file": "projects-canvas-templates-mixed.html", "title": "Projects · Workspace Canvas (templates mixed in)", "fullTitle": "Projects · Workspace Canvas (templates mixed in)", "type": "Competitive research", "group": "Other research", "description": "W Workato Workspace › Projects ✨ Browse templates + New project 6 Projects 4 /5 Functions automated Marketing has no automation yet — see what teams like yours run there. Drag to pan · scroll to move · click a project to open its canvas − 100% +", "products": ""}, {"file": "airo-governance-problem-definition.html", "title": "Why we're building AIRO agent governance", "fullTitle": "Why we're building AIRO agent governance", "type": "Competitive research", "group": "Other research", "description": "Why we're building AIRO agent governance The shift Everyone is racing to make agents easier to build . The bottleneck has moved. The hard part now is trusting an agent enough to let it act in real systems, and it's usually a whole crew of agents handing work to each other, which…", "products": ""}];
+const list = document.getElementById('list');
+const home = document.getElementById('home');
+const frame = document.getElementById('frame');
+const docTitle = document.getElementById('docTitle');
+const openTab = document.getElementById('openTab');
+const goHome = document.getElementById('goHome');
+const brandHome = document.getElementById('brandHome');
+const revealBtn = document.getElementById('revealBtn');
+const qbox = document.getElementById('q');
+const resultCount = document.getElementById('resultCount');
+const GROUP_ORDER = ["AIRO SDK Editor (PMO-2980)", "Agent control & rollback", "Agent activity & loading", "Agent placement & discoverability", "Multi-agent orchestration", "Other research"];
+const BASE_DIR = "/Users/scarlettwu/Documents/GitHub/Claude Code Project";
+let currentDoc = null;
+
+function flash(el, msg) {
+  const prev = el.dataset.label || el.textContent;
+  el.dataset.label = prev;
+  el.textContent = msg;
+  setTimeout(() => { el.textContent = el.dataset.label; }, 1800);
+}
+
+async function revealCurrent() {
+  if (!currentDoc) return;
+  try {
+    const res = await fetch('/reveal?file=' + encodeURIComponent(currentDoc.file));
+    if (!res.ok) throw new Error('http ' + res.status);
+    const data = await res.json();
+    if (!data.ok) throw new Error('not found');
+    flash(revealBtn, 'Opened in Finder ✓');
+  } catch (e) {
+    const abs = BASE_DIR + '/' + currentDoc.file;
+    try {
+      await navigator.clipboard.writeText(abs);
+      flash(revealBtn, 'Path copied · run serve.py to reveal');
+    } catch (_) {
+      window.prompt('Copy this file path:', abs);
+    }
+  }
+}
+
+function groupBadge(t) {
+  return t === 'Customer complaints'
+    ? '<span class="badge complaints">Complaints</span>'
+    : '<span class="badge">Research</span>';
+}
+
+function show(doc) {
+  home.style.display = 'none';
+  frame.style.display = 'block';
+  frame.src = doc.file;
+  docTitle.textContent = doc.title;
+  openTab.style.display = 'inline-block';
+  openTab.href = doc.file;
+  goHome.style.display = 'inline-block';
+  revealBtn.style.display = 'inline-block';
+  currentDoc = doc;
+  document.querySelectorAll('.item').forEach(el =>
+    el.classList.toggle('active', el.dataset.file === doc.file));
+  if (location.hash.slice(1) !== doc.file) history.replaceState(null, '', '#' + doc.file);
+}
+
+function showHome() {
+  frame.style.display = 'none';
+  frame.removeAttribute('src');
+  home.style.display = 'block';
+  docTitle.textContent = 'All research';
+  openTab.style.display = 'none';
+  goHome.style.display = 'none';
+  revealBtn.style.display = 'none';
+  currentDoc = null;
+  document.querySelectorAll('.item').forEach(el => el.classList.remove('active'));
+  history.replaceState(null, '', location.pathname);
+}
+
+function renderHome(docs) {
+  const cards = docs.map(d => `
+    <div class="card" data-file="${d.file}">
+      ${groupBadge(d.type)}
+      <div class="t">${d.title}</div>
+      <div class="d">${d.description || ''}</div>
+      ${d.products ? `<div class="p"><strong>Covers:</strong> ${d.products}</div>` : ''}
+    </div>`).join('');
+  home.innerHTML = `
+    <h2>Competitive UX Research Library</h2>
+    <p class="lead">Every research doc in one place. Click any card or use the sidebar to open it here; the search box filters across titles, products, and topics.</p>
+    <div class="cards">${cards || '<div class="empty">No documents found.</div>'}</div>`;
+  home.querySelectorAll('.card').forEach(c =>
+    c.addEventListener('click', () => show(DOCS.find(d => d.file === c.dataset.file))));
+}
+
+function renderList(filter) {
+  const f = (filter || '').toLowerCase().trim();
+  const matched = DOCS.filter(d =>
+    !f || (d.title + ' ' + d.description + ' ' + d.products + ' ' + d.group).toLowerCase().includes(f));
+  list.innerHTML = '';
+  let shown = 0;
+  GROUP_ORDER.forEach(group => {
+    const inGroup = matched.filter(d => d.group === group);
+    if (!inGroup.length) return;
+    const label = document.createElement('div');
+    label.className = 'group-label';
+    label.textContent = group;
+    list.appendChild(label);
+    inGroup.forEach(d => {
+      shown++;
+      const btn = document.createElement('button');
+      btn.className = 'item';
+      btn.dataset.file = d.file;
+      btn.innerHTML = `<div class="t">${d.title}</div>
+        <div class="meta">${groupBadge(d.type)} ${d.products ? '· ' + d.products.split(',')[0] + '…' : ''}</div>`;
+      btn.addEventListener('click', () => show(d));
+      list.appendChild(btn);
+    });
+  });
+  resultCount.textContent = f ? `${shown} of ${DOCS.length} match` : '';
+  if (!shown) list.innerHTML = '<div class="empty">No matches.</div>';
+  renderHome(matched);
+}
+
+qbox.addEventListener('input', () => renderList(qbox.value));
+goHome.addEventListener('click', e => { e.preventDefault(); showHome(); });
+brandHome.addEventListener('click', () => showHome());
+revealBtn.addEventListener('click', e => { e.preventDefault(); revealCurrent(); });
+
+renderList('');
+const initial = location.hash.slice(1);
+const startDoc = initial && DOCS.find(d => d.file === decodeURIComponent(initial));
+if (startDoc) show(startDoc); else showHome();
+</script>
+</body>
+</html>

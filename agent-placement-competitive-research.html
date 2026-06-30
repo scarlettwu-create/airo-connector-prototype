@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Placement — Competitive Research</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  color: #1f2328;
+  line-height: 1.65;
+  font-size: 16px;
+  background: #fff;
+}
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; color: #424a53; }
+p { margin: 0.6em 0; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+pre code { background: transparent; padding: 0; }
+blockquote {
+  border-left: 4px solid #d1d9e0;
+  margin: 1em 0;
+  padding: 0.2em 1em;
+  color: #424a53;
+  background: #f8fafc;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f6f8fa; font-weight: 600; }
+img {
+  max-width: 100%;
+  border: 1px solid #d1d9e0;
+  border-radius: 6px;
+  margin: 0.5em 0;
+}
+hr {
+  border: none;
+  border-top: 1px solid #d1d9e0;
+  margin: 2em 0;
+}
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.25em 0; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+
+/* Make missing screenshot placeholders less ugly */
+img[alt] {
+  position: relative;
+}
+img:not([src=""]):after {
+  content: attr(alt);
+  display: block;
+  padding: 24px;
+  background: #f6f8fa;
+  color: #57606a;
+  font-size: 0.85em;
+  text-align: center;
+  border: 1px dashed #d1d9e0;
+  border-radius: 6px;
+}
+
+/* Sticky nav at top */
+.toc {
+  background: #f6f8fa;
+  border: 1px solid #d1d9e0;
+  border-radius: 6px;
+  padding: 16px 24px;
+  margin: 0 0 32px 0;
+  font-size: 0.95em;
+}
+.toc strong { display: block; margin-bottom: 8px; }
+.toc a { display: block; padding: 2px 0; color: #424a53; }
+</style>
+</head>
+<body>
+<h1 id="agent-placement-competitive-research">Agent Placement — Competitive Research</h1>
+<p><strong>Context.</strong> Research compiled to inform AIRO product decisions on where and how to surface AI agents in the UI. Covers how enterprise and productivity platforms handle agent entry points, interaction surfaces, and the visual distinction between an autonomous agent and a conversational assistant.</p>
+<p><strong>Products covered.</strong> Notion, Slack, ServiceNow, Salesforce (Agentforce), Microsoft 365 Copilot, Linear</p>
+<p><strong>Scope.</strong> Where in each product's UI the agent appears (entry point, surface, panel type), how users invoke it, whether it is context-triggered or user-initiated, and how the agent interaction differs from simpler inline AI features.</p>
+<hr />
+<h2 id="part-1-agent-placement-per-product">Part 1 — Agent placement per product</h2>
+<h3 id="11-notion">1.1 Notion</h3>
+<p>Notion separates AI into three tiers: inline editing assist, Q&amp;A search, and agents. Each has a distinct entry point.</p>
+<p><strong>Inline editor AI</strong> is triggered by pressing the spacebar on an empty line (opens an inline prompt bar in the page body), using <code>/AI Block</code> (inserts a persistent AI-generated block), or highlighting text (surfaces a floating toolbar with options like rewrite, shorten, or translate). Output appears inline as a new block below the cursor. There is no modal or panel for this tier.</p>
+<p><strong>Notion AI Q&amp;A</strong> lives in two places: the Search entry in the left sidebar (opens a full-page chat view) and a sparkle icon in the bottom-right corner of any page (opens a side panel alongside the current page). The keyboard shortcut Shift+Cmd/Ctrl+J opens the Q&amp;A side panel without leaving the page. Responses stream in with source links. The side panel variant is the closer analog to what most platforms call an "agent chat" surface.</p>
+<p><strong>Notion Agents</strong> (launched September 2025) are manually invoked for now. Each agent has a profile page where the user sets instructions, data sources, and output location. Agents can create pages, populate databases, and pull from connected tools (Slack, Google Drive, GitHub) for up to 20+ minutes autonomously. Custom Agents (February 2026) run on a schedule without manual prompting; every run is logged and reversible.</p>
+<p>The design decision worth noting: there is no standalone "AI" tab in the left nav. AI is contextual. The bottom-right sparkle icon is the closest thing to a persistent global entry point, and it only opens the side panel, not the agents product.</p>
+<ul>
+<li>Notion Help: <a href="https://www.notion.com/help/guides/everything-you-can-do-with-notion-ai">Everything you can do with Notion AI</a></li>
+<li>Notion Blog: <a href="https://www.notion.com/blog/introducing-q-and-a">Introducing Q&amp;A</a></li>
+<li>Notion 3.0 changelog: <a href="https://www.notion.com/releases/2025-09-18">Agents launch, September 2025</a></li>
+<li>Notion 3.3 changelog: <a href="https://www.notion.com/releases/2026-02-24">Custom Agents, February 2026</a></li>
+</ul>
+<hr />
+<h3 id="12-slack">1.2 Slack</h3>
+<p>Slack's approach is structurally different from every other platform here: agents are not panels, they are teammates.</p>
+<p><strong>Slack AI</strong> (the built-in assistant) is invoked via the "sunroof" -- a persistent icon in the top-right corner of the header bar. Clicking it opens a right-side split-plane panel where you interact with Slack AI or any enabled agent. This is the only product in this research where AI has a dedicated spot in the global header (not a sidebar icon, not a bottom button). Thread summaries appear inside the thread via a "Summarize" button at the top; channel summaries are triggered from the three-dot channel menu. Huddle transcriptions and summaries are delivered automatically after a huddle ends.</p>
+<p><strong>Third-party agents</strong> are installed from the Slack Marketplace and then surface as bot users in DMs and channels. Once installed, they appear in the sunroof panel so users can browse and add them. Agents can be @-mentioned in any channel or DM and respond in-thread like a team member. An Agentforce Hub (launched early 2026) acts as a directory inside Slack where users browse available agents, start new conversations, and review prior interactions. Each agent also gets its own DM-style conversation view with consistent UI including streaming text and suggested prompts.</p>
+<p><strong>Agentforce agents in Slack</strong> use the same DM/panel system -- there is no separate Einstein-branded button. Users @-mention the specific Agentforce agent (Sales, IT Service, HR Service) in a DM or channel.</p>
+<p>The design bet: treating agents as teammates (addressable by @-mention, appearing in the sidebar like coworkers) rather than as utility panels makes them feel ambient and persistent. The tradeoff is discoverability -- users may not know which agents are installed or what they can do without going to the Agentforce Hub.</p>
+<ul>
+<li>Slack Help: <a href="https://slack.com/help/articles/25076892548883-Guide-to-AI-features-in-Slack">Guide to AI features in Slack</a></li>
+<li>Slack Dev Docs: <a href="https://docs.slack.dev/ai/agent-entry-and-interaction/">Agent entry points and interaction surfaces</a></li>
+<li>Slack Blog: <a href="https://slack.com/blog/news/ai-innovations-in-slack">AI innovations in Slack</a></li>
+<li>Salesforce Admins Blog: <a href="https://admin.salesforce.com/blog/2025/getting-started-with-slack-and-agentforce-integration">Getting started with Slack and Agentforce</a></li>
+<li>Slack Dev Blog: <a href="https://slack.dev/slack-platform-reimagined-for-the-agentic-era/">Slack platform reimagined for the agentic era</a></li>
+</ul>
+<hr />
+<h3 id="13-servicenow">1.3 ServiceNow</h3>
+<p>ServiceNow has the most segmented placement strategy in this group: the surface changes entirely depending on whether you are an end user (employee), an IT technician, or an admin.</p>
+<p><strong>For employees</strong>, Now Assist appears as a floating action button (FAB) with a sparkle icon on the Employee Center portal page. Clicking it opens a full conversational window with multi-turn dialogue, prior conversation history, and a live agent handoff option. This replaces the older floating chat bubble.</p>
+<p><strong>For IT technicians in Agent Workspace</strong>, the same sparkle icon lives in the top-right corner of the platform header. Clicking it opens a right-side slide-out panel that auto-populates with a contextual incident summary and suggested next steps when the agent opens a ticket. They see AI that is proactive and scoped to the ticket in front of them. Additionally, a sparkle context menu icon appears inside text fields (work notes, email replies) anywhere AI writing assist is enabled -- clicking it opens an inline popover with writing options.</p>
+<p><strong>Virtual Agent</strong> (the older rule-based chatbot) uses a floating chat widget on Service Portal and Employee Center. Now Assist can layer GenAI responses inside Virtual Agent conversations, but the widget itself stays in place. These are separate products sharing one channel.</p>
+<p><strong>AI Agent Studio</strong> is the admin-facing builder where multi-step autonomous agents are configured. End users never see this UI; they see agentic workflows surface through the right-side Now Assist panel when a task requires multi-step automation. The panel can show the agent's reasoning and pause to ask a clarifying question.</p>
+<p><strong>Otto</strong> (announced late 2025) is a unified conversational AI layer across the platform, accessible via chat, voice, mobile, and web. It routes requests to the right underlying agent. Think of it as the meta-layer above individual Now Assist skills.</p>
+<p>The pattern: ServiceNow has three distinct UI surfaces (floating FAB for employees, header panel for technicians, inline context menu for field-level assist) that share the same AI backend. The entry point changes based on the user's role and context.</p>
+<ul>
+<li>ServiceNow Docs: <a href="https://www.servicenow.com/docs/bundle/yokohama-intelligent-experiences/page/administer/now-assist-platform/concept/now-assist-panel-overview.html">Now Assist panel overview (Yokohama)</a></li>
+<li>ServiceNow Docs: <a href="https://www.servicenow.com/docs/bundle/zurich-it-service-management/page/product/now-assist-itsm/concept/now-assist-itsm.html">Now Assist for ITSM (Zurich)</a></li>
+<li>Horizon Design System: <a href="https://horizon.servicenow.com/workspace/components/sn-now-assist-context-menu">Now Assist context menu component</a></li>
+<li>ServiceNow Community: <a href="https://www.servicenow.com/community/developer-forum/difference-between-ai-agent-now-assist-and-virtual-agent/m-p/3329000">Virtual Agent vs. Now Assist explained</a></li>
+<li>ServiceNow Press: <a href="https://www.servicenow.com/company/media/press-room/ai-agents-studio.html">AI Agent Studio announcement</a></li>
+</ul>
+<hr />
+<h3 id="14-salesforce-agentforce">1.4 Salesforce (Agentforce)</h3>
+<p>Salesforce draws a hard distinction between a conversational assistant (Agentforce Default) and autonomous agents that operate without a human in the loop. That distinction shows up directly in the UI.</p>
+<p><strong>Agentforce Default</strong> (the direct successor to Einstein Copilot) is a right-side chat panel that overlays the current Lightning page without navigating away. It is user-initiated: the rep clicks an icon in the Lightning nav bar (utility bar or bottom-left area depending on org configuration) to open it. In Service Cloud's Agent Workspace, this panel is always present on the right side alongside the case feed and proactively surfaces contextual suggestions -- warranty checks, suggested next steps -- when a case record loads.</p>
+<p><strong>Autonomous Agentforce agents</strong> are largely invisible to internal Salesforce users while running. They execute tasks, respond to customers (via messaging channels or portals), and log outcomes. Internal users see results in record updates and conversation history transcripts, not in an interactive chat panel. This is a deliberate design decision: the agent takes action, the human reviews outputs.</p>
+<p><strong>Agent Shortcuts</strong> (Summer 2025) are a third entry point: admins can add AI-powered action buttons directly into Lightning record page layouts. A Quick Action button triggers an agent task without opening the chat panel at all. This collapses the multi-step "open panel, type request, wait" flow into a single click for common workflows.</p>
+<p><strong>For external users</strong> in Experience Cloud portals, Agentforce deploys as a chat widget (messenger-style, embedded via Omni-Channel). It can also be embedded on external websites via a script snippet.</p>
+<p><strong>Agentforce Builder</strong> (admin tool) has a three-column layout: a left navigator/explorer pane, a center canvas for editing agent instructions and topics, and a right preview panel where admins test live conversations and view the Plan Tracer to inspect agent reasoning steps.</p>
+<ul>
+<li>Trailhead: <a href="https://trailhead.salesforce.com/content/learn/modules/introduction-to-agent-builder/get-to-know-agent-builder">Explore Agentforce Builder</a></li>
+<li>Salesforce Admins Blog: <a href="https://admin.salesforce.com/blog/2025/revolutionize-record-pages-ai-powered-agent-shortcuts-are-here">Agent Shortcuts on record pages</a></li>
+<li>Salesforce Release Notes: <a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_copilot_new_name_agentforce_default.htm&amp;language=en_US&amp;release=252&amp;type=5">Einstein Copilot renamed to Agentforce</a></li>
+<li>Salesforce Ben: <a href="https://www.salesforceben.com/agentforce-and-experience-cloud-how-to-leverage-ai-to-improve-customer-service/">Agentforce and Experience Cloud</a></li>
+<li>Salesforce Developers Blog: <a href="https://developer.salesforce.com/blogs/2025/07/enhance-the-agent-ui-with-custom-lwcs-and-lightning-types">Enhance the agent UI with custom LWCs</a></li>
+</ul>
+<hr />
+<h3 id="15-microsoft-365-copilot">1.5 Microsoft 365 Copilot</h3>
+<p>Microsoft distributes Copilot across every surface in M365 rather than centering it in one place. The entry point changes by app.</p>
+<p><strong>In Teams</strong>, Copilot appears as a persistent icon in the left rail app bar. Inside chats, an "Open Copilot" button sits in the upper-right corner of the thread. During meetings, Copilot is an in-meeting overlay panel; post-meeting, it surfaces in the recap tab to summarize transcripts and generate action items.</p>
+<p><strong>In Outlook</strong>, Copilot lives as a side panel accessible from the toolbar. For email compose, a Copilot icon in the compose toolbar offers draft assist. In the reading pane, it summarizes long threads. A 2026 rollout is adding agentic actions (scheduling follow-ups, managing inbox priorities) from within this panel.</p>
+<p><strong>M365 Chat</strong> (formerly BizChat) is the primary cross-app entry point: it is a dedicated Teams app in the left rail and is accessible at microsoft365.com/chat. It handles queries that span emails, files, meetings, and calendar. On Windows 11, Win+C or the dedicated Copilot hardware key on newer keyboards opens a floating prompt box. Custom agents are @-mentioned inside M365 Chat, not surfaced as separate DMs.</p>
+<p><strong>Custom Copilot Agents</strong> are built in Copilot Studio and published to the Teams + M365 Copilot channel. Admins review and approve them through the Microsoft 365 Admin Center. Once approved, they appear as addressable entries inside M365 Chat.</p>
+<p>The pattern across M365: Copilot is never in the center of the screen. It is always a panel, overlay, or secondary column that sits beside the content the user is already working on.</p>
+<ul>
+<li>Microsoft Support: <a href="https://support.microsoft.com/en-us/office/use-copilot-in-microsoft-teams-chat-and-channels-cccccca2-9dc8-49a9-ab76-b1a8ee21486c">Use Copilot in Teams chat and channels</a></li>
+<li>Microsoft Learn: <a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/publish">Publish agents for Microsoft 365 Copilot</a></li>
+<li>M365 Blog: <a href="https://www.microsoft.com/en-us/microsoft-365/blog/2025/11/18/microsoft-ignite-2025-copilot-and-agents-built-to-power-the-frontier-firm/">Microsoft Ignite 2025: Copilot and agents built to power the Frontier Firm</a></li>
+<li>Windows IT Pro Blog: <a href="https://techcommunity.microsoft.com/blog/windows-itpro-blog/new-experiences-coming-to-the-copilot-key/4406802">Copilot key experiences, Win+C shortcut</a></li>
+</ul>
+<hr />
+<h3 id="16-linear">1.6 Linear</h3>
+<p>Linear started with inline AI writing assist and is now building toward a full conversational agent.</p>
+<p><strong>Inline AI</strong> is triggered contextually. In the issue editor, a Copilot-style toolbar button opens a chat overlay for spec drafting or writing help. There is no persistent side panel -- it is modal/overlay-based and dismissed after use.</p>
+<p><strong>Triage Intelligence</strong> runs automatically on incoming issues. Suggested properties (team, assignee, labels, priority) surface directly on the issue card or list view without user invocation. As of September 2025, auto-apply can be enabled so suggestions are applied without manual review at all. This is the closest Linear gets to an ambient agent that acts before the user asks.</p>
+<p><strong>Code Intelligence</strong> connects Linear to GitHub: it auto-attaches relevant files and functions to issues, auto-drafts PR descriptions from issue specs, and surfaces issue context on new pull requests. PR numbers appear inline in list and board views. No UI panel needed -- the linkage is automatic.</p>
+<p><strong>Linear Agent</strong> (launched March 2026) is the full conversational interface. It opens as a maximized overlay from a toolbar chat button -- described by Linear as "a natural extension of the toolbar rather than a separate page." Available in web, desktop, mobile, and as a plugin for Slack, Teams, and Zendesk. Users can save repeated agent conversations as reusable "Skills" for recurring workflows (e.g., draft issues from meeting notes, generate project catch-ups).</p>
+<p>The Linear approach is the most conservative in this group for UI surface: there is no persistent panel, no left-rail AI entry, and no role-based surface segmentation. AI is triggered contextually from wherever the user already is.</p>
+<ul>
+<li>Linear Changelog: <a href="https://linear.app/changelog/2026-03-24-introducing-linear-agent">Introducing Linear Agent, March 2026</a></li>
+<li>Linear Docs: <a href="https://linear.app/docs/triage-intelligence">Triage Intelligence</a></li>
+<li>Linear Changelog: <a href="https://linear.app/changelog/2025-09-19-auto-apply-triage-suggestions">Auto-apply triage suggestions, September 2025</a></li>
+<li>Linear: <a href="https://linear.app/ai">AI workflows for product teams</a></li>
+</ul>
+<hr />
+<h2 id="part-2-cross-cutting-patterns">Part 2 — Cross-cutting patterns</h2>
+<h3 id="pattern-1-the-sparkle-icon-is-the-universal-shorthand-for-ai-is-here">Pattern 1: The sparkle icon is the universal shorthand for "AI is here"</h3>
+<p>Every product in this research uses a sparkle/star icon as the visual cue that AI is available: Notion's bottom-right sparkle, ServiceNow's header sparkle and field-level sparkle, Salesforce's Copilot icon (which is a constellation variant). Slack uses the "sunroof" button (its own branded icon) but it occupies the same header-right position. This has reached the point of a de facto convention. Users moving between enterprise products already know that the sparkle = AI entry point.</p>
+<h3 id="pattern-2-the-right-side-panel-is-the-dominant-interaction-surface">Pattern 2: The right-side panel is the dominant interaction surface</h3>
+<p>With the exception of Slack (which treats agents as bot users) and Linear (which uses a maximized overlay), every product here puts the agent in a right-side slide-out or persistent panel that appears beside -- but does not replace -- the content the user is working on. ServiceNow (right-side panel in Agent Workspace), Salesforce (right-side overlay panel in Lightning), Microsoft 365 (side panel in every app). The shared design assumption: the agent is a collaborator on the work you are doing, not the primary task.</p>
+<h3 id="pattern-3-context-triggered-agents-are-differentiated-from-user-initiated-assistants">Pattern 3: Context-triggered agents are differentiated from user-initiated assistants</h3>
+<p>Three products in this group have moved to proactive, context-triggered AI:
+- ServiceNow's Now Assist panel auto-populates with a ticket summary and suggested steps the moment an IT technician opens an incident.
+- Salesforce's Service Rep Assistant proactively surfaces next-step recommendations when a case loads.
+- Linear's Triage Intelligence applies labels and routing suggestions automatically before the user touches the issue.</p>
+<p>The user-initiated pattern (click the icon, type a request) is the default for general assistants (Notion Q&amp;A, Slack AI, Microsoft Copilot). Context-triggered AI is appearing in narrower, high-frequency workflows where the latency of "open panel, type request" is friction enough to matter.</p>
+<h3 id="pattern-4-autonomous-agents-are-mostly-invisible-to-internal-users-while-running">Pattern 4: Autonomous agents are mostly invisible to internal users while running</h3>
+<p>Salesforce's autonomous agents don't surface a chat panel to the rep while executing -- the rep sees record updates and transcripts after the fact. ServiceNow's agentic workflows appear in the Now Assist panel only when they need to pause and ask a clarifying question. Notion agents run in the background and are reviewed by looking at their profile page logs.</p>
+<p>This is a meaningful divergence from the coding agent space (Devin, Replit, Cursor) where the whole product is built around watching the agent work. Enterprise SaaS platforms are treating agent output as a record system concern (show me what happened) rather than a live observation concern (watch it happen). Whether that is a product philosophy or a technical constraint is unclear, but the pattern is consistent.</p>
+<h3 id="pattern-5-there-is-no-solved-model-for-distinguishing-assistant-from-agent-in-a-single-ui">Pattern 5: There is no solved model for distinguishing "assistant" from "agent" in a single UI</h3>
+<p>Salesforce has made the sharpest distinction: Agentforce Default (conversational, human-in-loop) shows up as an interactive chat panel; autonomous agents are invisible while running and surface only in logs. Every other product blurs the line. Notion's Q&amp;A side panel and Notion Agents are both reached via the same sparkle icon but have very different autonomy levels. ServiceNow's Now Assist panel handles both short inline writing assist and multi-step agentic workflows without clearly flagging which mode you are in.</p>
+<p>Users currently have no visual vocabulary for "this thing is acting autonomously right now" versus "this thing is waiting for my next message." That gap creates both a design opportunity and a trust/oversight risk.</p>
+<h3 id="pattern-6-agent-discoverability-is-an-unsolved-problem">Pattern 6: Agent discoverability is an unsolved problem</h3>
+<p>Slack's Agentforce Hub and Teams' @-mention model both assume users know what agents exist. Salesforce's Agent Shortcuts put common agent actions directly in record page layouts. ServiceNow's Otto tries to be the meta-router so users don't have to know which underlying agent to invoke. None of these are fully satisfying: Slack's hub requires the user to go looking, Teams @-mentions require knowing the agent's name, Agent Shortcuts require admin configuration per use case. The products that have invested in proactive/contextual surfacing (ServiceNow, Salesforce Service Console) seem to have the cleaner UX but at the cost of very narrow scope.</p>
+<hr />
+<h2 id="part-3-design-implications">Part 3 — Design implications</h2>
+<table>
+<thead>
+<tr>
+<th>Cross-cutting pattern</th>
+<th>What this could mean for AIRO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sparkle icon is universal shorthand</td>
+<td>If AIRO has a persistent entry point in the UI, the sparkle/constellation iconography is already legible to enterprise users and probably the right choice rather than inventing a new symbol</td>
+</tr>
+<tr>
+<td>Right-side panel is the dominant surface</td>
+<td>A right-side panel that appears beside the user's current context (a recipe, a build, a dashboard) is the most conventional choice. Worth deciding early whether this panel is always visible or slide-out-on-demand</td>
+</tr>
+<tr>
+<td>Context-triggered vs. user-initiated</td>
+<td>If AIRO can detect that a user has just opened a specific type of resource or triggered a specific event, a proactively populated panel (pre-summarized, with suggested next steps) could reduce the "what do I ask?" cold start. Most platforms only do this in narrow, high-frequency workflows</td>
+</tr>
+<tr>
+<td>Autonomous agents are invisible while running</td>
+<td>For AIRO, deciding whether users should watch the agent work (the Devin/Cursor model) or just see the output (the Salesforce model) is a foundational product question. Enterprise SaaS is converging on the latter</td>
+</tr>
+<tr>
+<td>No solved model for assistant vs. agent in one UI</td>
+<td>If AIRO has both a conversational mode and an autonomous mode, the UI surface for each should probably be visually distinct. Using the same panel for both creates confusion about what the system is doing and whether it needs a response</td>
+</tr>
+<tr>
+<td>Agent discoverability is unsolved</td>
+<td>Pre-populating the panel with suggested actions when users land on a relevant context (instead of leaving an empty text box) is more discoverable than relying on users knowing what to type. Salesforce's Agent Shortcuts and ServiceNow's proactive ticket summary are the best examples of this pattern</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-biggest-gap-across-all-six-products">The biggest gap across all six products</h3>
+<p>Every platform has a solution for where the agent lives. None of them have a clean solution for communicating what the agent is doing or has done in a way that builds user trust over time. Enterprise platforms surface results in logs and record updates; developer tools surface everything but create noise. AIRO probably lands in between: users who care about recipes, builds, and automation flows will want to see meaningful steps (not every token), understand when and why the agent made a decision, and have a clear trail without sifting through a raw activity feed.</p>
+<hr />
+<h2 id="appendix-all-source-links">Appendix — All source links</h2>
+<h3 id="notion">Notion</h3>
+<ul>
+<li><a href="https://www.notion.com/help/guides/everything-you-can-do-with-notion-ai">Everything you can do with Notion AI</a></li>
+<li><a href="https://www.notion.com/help/notion-ai-faqs">Notion AI FAQs</a></li>
+<li><a href="https://www.notion.com/blog/introducing-q-and-a">Introducing Notion Q&amp;A</a></li>
+<li><a href="https://www.notion.com/releases/2025-09-18">Notion 3.0 Agents changelog (September 2025)</a></li>
+<li><a href="https://www.notion.com/releases/2026-02-26">Notion 3.3 Custom Agents changelog (February 2026)</a></li>
+<li><a href="https://techcrunch.com/2025/09/18/notion-launches-agents-for-data-analysis-and-task-automation/">TechCrunch: Notion launches agents</a></li>
+</ul>
+<h3 id="slack">Slack</h3>
+<ul>
+<li><a href="https://slack.com/help/articles/25076892548883-Guide-to-AI-features-in-Slack">Guide to AI features in Slack (Help)</a></li>
+<li><a href="https://docs.slack.dev/ai/agent-entry-and-interaction/">Agent entry points and interaction surfaces (Slack Dev Docs)</a></li>
+<li><a href="https://slack.com/blog/news/ai-innovations-in-slack">AI innovations in Slack (Slack Blog)</a></li>
+<li><a href="https://admin.salesforce.com/blog/2025/getting-started-with-slack-and-agentforce-integration">Getting started with Slack and Agentforce (Salesforce Admins)</a></li>
+<li><a href="https://slack.dev/slack-platform-reimagined-for-the-agentic-era/">Slack platform reimagined for the agentic era</a></li>
+</ul>
+<h3 id="servicenow">ServiceNow</h3>
+<ul>
+<li><a href="https://www.servicenow.com/docs/bundle/yokohama-intelligent-experiences/page/administer/now-assist-platform/concept/now-assist-panel-overview.html">Now Assist panel overview (Yokohama docs)</a></li>
+<li><a href="https://www.servicenow.com/docs/bundle/zurich-it-service-management/page/product/now-assist-itsm/concept/now-assist-itsm.html">Now Assist for ITSM (Zurich docs)</a></li>
+<li><a href="https://horizon.servicenow.com/workspace/components/sn-now-assist-context-menu">Now Assist context menu component (Horizon Design System)</a></li>
+<li><a href="https://www.servicenow.com/community/developer-forum/difference-between-ai-agent-now-assist-and-virtual-agent/m-p/3329000">Virtual Agent vs. Now Assist (Community)</a></li>
+<li><a href="https://www.servicenow.com/company/media/press-room/ai-agents-studio.html">AI Agent Studio press release</a></li>
+<li><a href="https://www.servicenow.com/platform/otto.html">ServiceNow Otto product page</a></li>
+</ul>
+<h3 id="salesforce">Salesforce</h3>
+<ul>
+<li><a href="https://trailhead.salesforce.com/content/learn/modules/introduction-to-agent-builder/get-to-know-agent-builder">Explore Agentforce Builder (Trailhead)</a></li>
+<li><a href="https://admin.salesforce.com/blog/2025/revolutionize-record-pages-ai-powered-agent-shortcuts-are-here">Agent Shortcuts on record pages (Salesforce Admins Blog)</a></li>
+<li><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_copilot_new_name_agentforce_default.htm&amp;language=en_US&amp;release=252&amp;type=5">Einstein Copilot renamed to Agentforce (Release Notes)</a></li>
+<li><a href="https://www.salesforceben.com/agentforce-and-experience-cloud-how-to-leverage-ai-to-improve-customer-service/">Agentforce and Experience Cloud (Salesforce Ben)</a></li>
+<li><a href="https://developer.salesforce.com/blogs/2025/07/enhance-the-agent-ui-with-custom-lwcs-and-lightning-types">Enhance the agent UI with custom LWCs (Salesforce Developers)</a></li>
+<li><a href="https://trailhead.salesforce.com/content/learn/modules/new-agentforce-builder-quick-look/explore-the-new-agentforce-builder">New Agentforce Builder features (Trailhead)</a></li>
+</ul>
+<h3 id="microsoft-365-copilot">Microsoft 365 Copilot</h3>
+<ul>
+<li><a href="https://support.microsoft.com/en-us/office/use-copilot-in-microsoft-teams-chat-and-channels-cccccca2-9dc8-49a9-ab76-b1a8ee21486c">Use Copilot in Teams chat and channels (Microsoft Support)</a></li>
+<li><a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/publish">Publish agents for Microsoft 365 Copilot (Microsoft Learn)</a></li>
+<li><a href="https://www.microsoft.com/en-us/microsoft-365/blog/2025/11/18/microsoft-ignite-2025-copilot-and-agents-built-to-power-the-frontier-firm/">Microsoft Ignite 2025: Copilot and agents (M365 Blog)</a></li>
+<li><a href="https://techcommunity.microsoft.com/blog/windows-itpro-blog/new-experiences-coming-to-the-copilot-key/4406802">Copilot key and Win+C shortcut (Windows IT Pro Blog)</a></li>
+</ul>
+<h3 id="linear">Linear</h3>
+<ul>
+<li><a href="https://linear.app/changelog/2026-03-24-introducing-linear-agent">Introducing Linear Agent (Changelog, March 2026)</a></li>
+<li><a href="https://linear.app/docs/triage-intelligence">Triage Intelligence (Linear Docs)</a></li>
+<li><a href="https://linear.app/changelog/2025-09-19-auto-apply-triage-suggestions">Auto-apply triage suggestions (Changelog, September 2025)</a></li>
+<li><a href="https://linear.app/ai">AI workflows for product teams (Linear)</a></li>
+</ul>
+</body>
+</html>

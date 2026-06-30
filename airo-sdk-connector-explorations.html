@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIRO SDK Connector — UX explorations</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.34.0/tabler-icons.min.css">
+<!--
+  ════════════════════════════════════════════════════════════════════════
+  REUSABLE EXPLORATION TEMPLATE
+  ════════════════════════════════════════════════════════════════════════
+  One project, decomposed into problems. Each problem has research + design
+  guidelines on top, your explored alternatives on the left (click one to
+  expand its rationale), and the prototype for that alternative on the right.
+
+  TO REUSE FOR A NEW PROJECT:
+    1. Copy this file.
+    2. Edit only the PROJECT object below — the layout renders from it.
+    3. For each alternative, point `src` at a standalone prototype HTML.
+       (Anything that renders in an iframe works. The two AIRO prototypes
+        here support ?embed&alt=<key> to show just one alternative.)
+  Everything else (nav, headers, research band, alternative rail, stage)
+  is generic and never needs editing.
+  ════════════════════════════════════════════════════════════════════════
+-->
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: #eef1f6; font-family: "Source Sans 3", -apple-system, sans-serif; color: #373d47; }
+
+  /* ---- top bar : project + problem nav ---- */
+  .topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 22px; padding: 0 22px; height: 60px; background: #fff; border-bottom: 1px solid #d5dbe4; }
+  .brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+  .brand .badge { width: 24px; height: 24px; border-radius: 8px; background: #1a57e5; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; letter-spacing: -3px; font-size: 13px; }
+  .brand .bname { font-weight: 700; font-size: 15px; color: #1a57e5; }
+  .brand .bsub { font-size: 13px; color: #586373; padding-left: 11px; margin-left: 2px; border-left: 1px solid #d5dbe4; }
+  .nav { display: flex; gap: 6px; align-items: stretch; overflow-x: auto; }
+  .navtab { display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 7px 15px; border: 1px solid transparent; border-radius: 10px; cursor: pointer; background: transparent; text-align: left; font-family: inherit; white-space: nowrap; transition: background .15s, border-color .15s; }
+  .navtab:hover { background: #f4f6fa; }
+  .navtab.on { background: #f4f8ff; border-color: #1a57e5; box-shadow: 0 0 0 2px #dce6ff; }
+  .navtab .nt-top { display: flex; align-items: center; gap: 8px; }
+  .navtab .nt-n { width: 18px; height: 18px; border-radius: 50%; background: #eef1f6; color: #586373; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .navtab.on .nt-n { background: #1a57e5; color: #fff; }
+  .navtab .nt-t { font-size: 13.5px; font-weight: 600; color: #373d47; }
+  .navtab.on .nt-t { color: #1a57e5; }
+  .navtab .nt-sub { font-size: 11.5px; color: #586373; padding-left: 26px; }
+  .spacer { flex: 1; }
+  .ctx { font-size: 12px; color: #8a96a3; flex-shrink: 0; }
+
+  /* ---- problem header + research combined into one card ---- */
+  .content { padding: 18px 24px 28px; }
+  .phead { display: none; }
+
+  .research { background: #fff; border: 1px solid #d5dbe4; border-radius: 12px; margin: 0 0 18px; }
+  .res-head { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px 12px; cursor: pointer; }
+  .res-head-main { flex: 1; min-width: 0; }
+  .res-h1 { font-size: 19px; font-weight: 700; color: #1f2328; margin: 0 0 4px; }
+  .res-framing { font-size: 13px; line-height: 1.5; color: #586373; margin: 0 0 12px; }
+  .res-chev { color: #586373; font-size: 18px; transition: transform .15s; margin-top: 2px; }
+  .research.closed .res-chev { transform: rotate(-90deg); }
+  .res-body { border-top: 1px solid #eef1f6; padding: 14px 16px 16px; display: grid; grid-template-columns: 1.3fr 1fr; gap: 26px; }
+  .research.closed .res-body { display: none; }
+  .res-col h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #8a96a3; margin: 0 0 8px; }
+  .res-col p { font-size: 13.5px; line-height: 1.6; color: #424a53; margin: 0 0 10px; }
+  .glist { list-style: none; margin: 0; padding: 0; counter-reset: g; }
+  .glist li { position: relative; padding: 6px 0 6px 30px; font-size: 13.5px; line-height: 1.5; color: #2f353e; counter-increment: g; }
+  .glist li::before { content: counter(g); position: absolute; left: 0; top: 6px; width: 20px; height: 20px; border-radius: 50%; background: #eef3ff; color: #1a57e5; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .res-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+  .res-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #1a57e5; text-decoration: none; border: 1px solid #cfe0ff; background: #f4f8ff; border-radius: 7px; padding: 5px 10px; }
+  .res-link:hover { background: #e9f1ff; }
+
+  /* ---- two columns : alternatives + prototype ---- */
+  .cols { display: flex; gap: 20px; align-items: flex-start; }
+  .alts { flex: 0 0 400px; }
+  .alts-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #8a96a3; margin: 0 0 10px; }
+  .alt-section { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #586373; font-weight: 700; margin: 18px 0 9px; }
+  .alt-section-note { display: flex; gap: 8px; align-items: flex-start; font-size: 11.5px; line-height: 1.5; color: #92400e; background: #fff8ec; border: 1px solid #ffe2b8; border-radius: 8px; padding: 8px 10px; margin: 0 0 10px; }
+  .alt-section-note i { color: #b9770e; font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+  .comingsoon { display: flex; gap: 9px; align-items: flex-start; font-size: 13px; line-height: 1.5; color: #586373; background: #fff; border: 1px dashed #c3ccd8; border-radius: 10px; padding: 14px 15px; }
+  .comingsoon i { color: #1a57e5; font-size: 17px; margin-top: 1px; flex-shrink: 0; }
+  .optcard { background: #fff; border: 1px solid #d5dbe4; border-radius: 10px; padding: 11px 13px; margin-bottom: 9px; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+  .optcard:hover { border-color: #bcc3ce; }
+  .optcard.rec { border-color: #bfe3cd; }
+  .optcard.on { border-color: #1a57e5; box-shadow: 0 0 0 2px #dce6ff; }
+  .oc-top { display: flex; align-items: center; gap: 8px; }
+  .oc-num { width: 20px; height: 20px; border-radius: 50%; background: #eef1f6; color: #586373; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .optcard.on .oc-num { background: #1a57e5; color: #fff; }
+  .oc-name { font-size: 13.5px; font-weight: 600; color: #373d47; }
+  .oc-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 7px; border-radius: 5px; margin-left: auto; white-space: nowrap; }
+  .oc-badge.rec { background: #e7f5ee; color: #1f8a4c; }
+  .oc-badge.avoid { background: #fee2e2; color: #991b1b; }
+  .oc-badge.explore { background: #fef3c7; color: #92400e; }
+  .oc-badge.core { background: #e0e7ff; color: #3730a3; }
+  .oc-badge.target { background: #dcfce7; color: #166534; }
+  .oc-desc { font-size: 12px; line-height: 1.5; color: #586373; margin-top: 4px; }
+  .oc-pc { display: flex; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eef1f6; }
+  .oc-col { flex: 1; min-width: 0; }
+  .oc-ph { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; margin-bottom: 4px; }
+  .oc-pros .oc-ph { color: #1f8a4c; }
+  .oc-cons .oc-ph { color: #b42318; }
+  .oc-pc ul { margin: 0; padding-left: 15px; }
+  .oc-pc li { font-size: 11.5px; line-height: 1.45; color: #373d47; margin-bottom: 4px; }
+
+  /* ---- prototype stage ---- */
+  .stage { flex: 1; min-width: 0; position: sticky; top: 76px; }
+  .stage iframe { width: 100%; height: calc(100vh - 96px); border: 0; border-radius: 14px; background: #e5eaf1; display: block; }
+  .stage .empty { height: calc(100vh - 96px); display: flex; align-items: center; justify-content: center; border: 1px dashed #c3ccd8; border-radius: 14px; color: #8a96a3; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<script>
+/* ════════════════════════ EDIT ONLY THIS ════════════════════════ */
+const PROJECT = {
+  name: "AIRO SDK Connector",
+  tagline: "UX explorations",
+  problems: [
+
+    /* ── PROBLEM 1 ──────────────────────────────────────────────── */
+    {
+      id: "stream",
+      name: "Stream of thoughts & activities",
+      sub: "How AIRO surfaces what it's doing, live",
+      framing: "While AIRO edits a connector, the developer has to follow what it's doing and stop a wrong turn before it lands. Today the panel just says “AIRO is thinking.” These are the ways to make the live activity digestible and controllable.",
+      research: {
+        summary: "Teardowns of Claude Code, Cursor, Devin and Copilot showed the gap isn't showing more, it's turning the stream into a control surface: glanceable, interruptible mid-step, and trustworthy enough to look away. Claude Code's no-toggle inline thinking was filed as visual noise; users distrusted agents that claimed edits they couldn't see.",
+        links: [
+          { label: "Activity timeline teardown", href: "activity-timeline-competitive-research.html" },
+          { label: "Shape of AI · Stream of Thought", href: "https://www.shapeof.ai/patterns/stream-of-thought" }
+        ]
+      },
+      guidelines: [
+        "Say what each step is about to do, in one line — that's what lets users catch a wrong turn early.",
+        "Pick one default density and let users go deeper or quieter; ship the collapse on day one.",
+        "Build the change summary from the real diff, not the model's claim.",
+        "Keep it stoppable mid-step, with a live heartbeat so silence never reads as frozen.",
+        "Earn the right to look away: a clean per-turn summary plus a reviewable diff.",
+        "Narrate the process in the panel; let the editor own the code and the diff."
+      ],
+      defaultAlt: "compact",
+      alternatives: [
+        { id: "combined", name: "Details in conversation", badge: null,
+          desc: "Edits combined inline into the thinking stream.",
+          pros: ["Maximum transparency; edits and reasoning read as one flow", "Nothing hidden, nothing to expand", "Cheapest to build (just render the event stream)"],
+          cons: ["Noisiest option; buries intent in the stream", "No clean change summary to review afterward", "Long sessions become an unscrollable wall"],
+          src: "airo-activity-timeline.html?embed&alt=combined" },
+        { id: "detailed", name: "Details in conversation, separate changes table", badge: null,
+          desc: "Full narration, then a separate changes table.",
+          pros: ["Full play-by-play live, plus a reviewable changes table at the end", "The change table can be scanned after without re-reading the stream", "Diff-derived table keeps the summary honest"],
+          cons: ["Still verbose while it works", "Two representations (inline steps + table) can feel redundant"],
+          src: "airo-activity-timeline.html?embed&alt=detailed" },
+        { id: "thoughts", name: "Details in thoughts", badge: { text: "Recommended", tone: "rec" },
+          desc: "Collapsed step list.",
+          pros: ["Scannable and intent-forward; reads like a checklist", "Each step is an intervention point, which serves stop mid-step", "Maps cleanly onto the SDK tool calls", "Completed steps collapse, so long sessions stay compact"],
+          cons: ["Needs the backend to emit structured step events, not just a token stream", "Vague labels like Working would waste the format", "Planning surfaces are fragile and must be reliable to be trusted"],
+          src: "airo-activity-timeline.html?embed&alt=thoughts" },
+        { id: "compact", name: "Summary + activity panel", badge: { text: "Recommended", tone: "rec" },
+          desc: "Step list + per-turn change summary.",
+          pros: ["Digestible live, reviewable after; supports looking away", "The diff-derived summary satisfies the kickoff should-have honestly", "Clickable summary lines double as long-file navigation (the 1,000-line problem)", "One feature covers three needs: summary, trust, navigation"],
+          cons: ["More to build than thoughts, and two surfaces (live steps, final summary) to keep coherent", "Summary-from-diff requires the diff computed where the summary is generated"],
+          src: "airo-activity-timeline.html?embed&alt=compact" },
+        { id: "tracker", name: "Plan + progress tracker", badge: null,
+          desc: "Persistent plan + progress tracker (Claude Code / Cursor / Devin).",
+          pros: ["Whole plan is shown up front, so the user sees full scope before work starts", "A pinned tracker shows where you are overall without scrolling the stream", "Each task is a high-level checkpoint to redirect or stop at", "Familiar pattern from Claude Code, Cursor, Devin"],
+          cons: ["Planning surfaces are fragile; if the tracker drifts from the work, trust drops fast", "A persistent panel competes for vertical space with the work itself", "Up-front plans can be wrong; committing can hide mid-course changes"],
+          src: "airo-activity-timeline.html?embed&alt=tracker" }
+      ]
+    },
+
+    /* ── PROBLEM 2 ──────────────────────────────────────────────── */
+    {
+      id: "locate",
+      name: "Redirect to the changes",
+      sub: "Find the scattered edits and move between them",
+      framing: "One prompt edits several regions of a long connector. Before the user can judge anything, they have to find the changes and move between them. How do we orient them (how many, where) and let them traverse without scrolling and hunting?",
+      research: {
+        summary: "From the diff-lifecycle and code-insertion teardowns: a 1,000-line connector hides where changes landed, and users distrust agents that claim edits they can't see. The job here is to redirect attention. show how many changes there are and where, and get the user to each one, keeping the editor as the source of truth instead of duplicating diffs into the chat.",
+        links: [
+          { label: "Diff lifecycle research", href: "airo-sdk-editor-diff-lifecycle-competitive-research.html" },
+          { label: "Code insertion research", href: "airo-sdk-editor-code-insertion-competitive-research.html" }
+        ]
+      },
+      guidelines: [
+        "Show how many changes there are and where, before asking the user to read them.",
+        "Make every change one click or keystroke away; never make them scroll and hunt.",
+        "Collapse the unchanged so the changes sit close together.",
+        "Anchor it in the editor; chat pointers scroll away on the next turn.",
+        "Label changes by intent, not by line number."
+      ],
+      defaultAlt: "editortop",
+      alternatives: [
+        { id: "chatdiff", name: "Inline diffs in the chat", badge: null,
+          desc: "Each change rendered in the conversation with its +/− lines.",
+          pros: ["Read the change without leaving the chat", "Reasoning and the actual lines sit together"],
+          cons: ["Duplicates the diff, so a hand-edit makes the chat copy lie", "The ~404px panel wraps real Ruby badly", "Buried up-scroll on the next turn"],
+          src: "airo-sdk-connector-change-navigation-options.html?embed&alt=chatdiff&v=2" },
+        { id: "table", name: "Change table at end of turn", badge: null,
+          desc: "A summary table after the turn lists every change.",
+          pros: ["Compact, scannable manifest of everything that changed", "Keeps raw code out of the chat"],
+          cons: ["Scrolls away on the next turn unless pinned", "Only points at the code; you still open the editor", "Does the same job as the consolidated viewer"],
+          src: "airo-sdk-connector-change-navigation-options.html?embed&alt=table&v=2" },
+        { id: "editortop", name: "Review bar on top of the editor", badge: { text: "Recommended", tone: "rec" },
+          desc: "One bar pinned above the code: count, up/down nav, Accept all / Reject all.",
+          pros: ["Sits next to the source of truth, nothing duplicated", "Shows the count, walks each region, accepts/rejects as a set", "Answers both halves at once: redirect and act-together"],
+          cons: ["Accept all is one click, so it needs a strict two-state model", "No human labels unless it borrows group-by-intent"],
+          src: "airo-sdk-connector-change-navigation-options.html?embed&alt=editortop&v=2" },
+        { id: "drawer", name: "Consolidated diff viewer (expandable)", badge: { text: "Recommended", tone: "rec" },
+          desc: "An expandable button in the chat drops down a change table; expand a row for its hunk.",
+          pros: ["Compact by default, full detail on demand", "Drills from summary to the real hunk in place", "Folded away, so it never crowds the panel"],
+          cons: ["Lives in chat, so it scrolls away on the next turn", "Very close to the change table; you wouldn't ship both"],
+          src: "airo-sdk-connector-change-navigation-options.html?embed&alt=drawer&v=2" },
+        { id: "intent", name: "Group-by-intent in the message", badge: null,
+          desc: "The summary lists what changed as clickable lines, grouped by intent.",
+          pros: ["Reads the most human (“Set up authentication”, not line numbers)", "Matches how users think about the change"],
+          cons: ["Lives in chat and scrolls away", "Only as good as the grouping AIRO infers"],
+          src: "airo-sdk-connector-change-navigation-options.html?embed&alt=intent&v=2" }
+      ]
+    },
+
+    /* ── PROBLEM 3: Review & accept ──────────────────────────────── */
+    {
+      id: "accept",
+      name: "Review & accept changes",
+      sub: "Commit or undo the agent's edits, and at what granularity",
+      framing: "Once the user has found the changes, what's the model for accepting or undoing them — per change, per turn, accumulated across several turns, or all at once? And how does an accepted set hand off to a saved checkpoint?",
+      research: {
+        summary: "Tools disagree on when an edit commits: Lovable auto-applies and lets you undo after, Cursor asks you to accept each turn, others let edits accumulate. The sharpest complaint is all-or-nothing granularity. dropping a bad late change means discarding the good work with it. Accept is the pre-commit (bufferable) half of the lifecycle; restore is the post-commit half.",
+        links: [
+          { label: "Diff lifecycle research", href: "airo-sdk-editor-diff-lifecycle-competitive-research.html" },
+          { label: "Checkpoints & rollbacks research", href: "checkpoints-rollbacks-competitive-research.html" }
+        ]
+      },
+      guidelines: [
+        "Offer accept and undo at more than one grain: per hunk, per turn, and all at once.",
+        "Avoid one round trip per accept in the conversation: let edits accumulate and be reviewed in the editor, not gated turn-by-turn in chat.",
+        "Be explicit about what is pending versus committed.",
+        "Make undo as reachable as accept; the action must be reversible.",
+        "Don't force the user to accept good work just to drop a bad late change.",
+        "Hand a committed set off cleanly to a checkpoint."
+      ],
+      defaultAlt: "editor",
+      alternatives: [
+        { id: "perturn", name: "Accept in chat, per turn", badge: { text: "Avoid", tone: "avoid" }, section: "Accept model",
+          desc: "Each turn's edits must be accepted or rejected before the next turn proceeds, with the Accept/Undo controls sitting inline in the chat.",
+          pros: ["Keeps the diff small and the decision close to the request", "Nothing accumulates, so state stays simple"],
+          cons: ["One round trip per accept in the conversation: the user keeps bouncing back to the chat to clear each turn before moving on", "Interrupts flow; you gate every turn", "Hard to review several related turns as one set"],
+          src: "airo-accept-perturn.html" },
+        { id: "editor", name: "Accept in the editor", badge: { text: "Recommended", tone: "rec" },
+          desc: "Every change shows in the editor. Step through them with the arrows and Accept all / Reject all from a bar in the editor header, or accept a single hunk. No chat gating.",
+          pros: ["The accept sits on the code it changes, the source of truth", "See and step through the whole change set at once", "Accept or reject the batch, or one hunk at a time"],
+          cons: ["Needs a clear pending-vs-committed model in the editor", "A large change set still has to be scrolled"],
+          src: "airo-accept-editor.html" },
+        { id: "perhunk", name: "Per-hunk accept", badge: null,
+          desc: "Accept or reject each hunk independently, like staging a pull request.",
+          pros: ["Finest control; cherry-pick exactly what lands", "Familiar to developers from code review"],
+          cons: ["Tedious when there are many hunks", "No notion of a turn, so it loses the conversational grouping"],
+          src: "airo-accept-perhunk.html" },
+        { id: "blended", name: "Collapse deletions to a summary (Pierre)", badge: null, section: "Diff display",
+          desc: "Additions show inline; each removed block collapses into a one-line labeled summary you can expand. Review what changed without a wall of red.",
+          pros: ["Removed code is summarized by what it was, not dumped as red lines", "Keeps the reviewable diff compact; expand a summary to see the exact lines", "Reads as one file with full surrounding context"],
+          cons: ["A collapsed deletion can hide a change you needed to see", "Leans on accurate AI summaries of what was removed", "A display choice; it doesn't commit or undo on its own"],
+          src: "airo-sdk-connector-change-navigation-options.html?embed&alt=blended&v=2" }
+      ]
+    },
+
+    /* ── PROBLEM 4 ──────────────────────────────────────────────── */
+    {
+      id: "viewchanges",
+      name: "View multiple changes in one round",
+      sub: "How the conversation shows that one prompt made several edits",
+      framing: "One prompt to AIRO can touch several places in connector.rb. How does the conversation make it clear that a single round produced multiple edits, and let the user step through them in the editor without losing the thread? (Checkpoint history is out of scope here; it's explored in the next problem, so the History control is shown as a non-interactive placeholder.)",
+      research: {
+        summary: "From the activity-timeline and diff-lifecycle teardowns: a bare 'Done' hides what an agent touched, and the hard case is one round that edits several regions at once. The job is to make those edits legible in the chat (a count, not a single line) and let the user jump from a step to the exact lines in the editor, with the change highlighted in place rather than the whole view collapsing to a stripped diff.",
+        links: [
+          { label: "Diff lifecycle research", href: "airo-sdk-editor-diff-lifecycle-competitive-research.html" },
+          { label: "Activity timeline research", href: "activity-timeline-competitive-research.html" }
+        ]
+      },
+      guidelines: [
+        "Show that one round produced several edits, with a count, not just a single 'Done'.",
+        "Let the user jump from a step in the chat to the exact lines in the editor.",
+        "Keep the full file in view; highlight the change in place instead of stripping to a diff.",
+        "Summarize the round in plain language before the per-edit detail."
+      ],
+      defaultAlt: "list",
+      alternatives: [
+        { id: "rewind", name: "Summary reply, changes listed", badge: null,
+          desc: "One agent reply: a foldaway 'Built in Ns · N steps', a plain-language summary, then the list of changes shown inline. Click a change to highlight it in the editor.",
+          pros: ["One clean reply; the step-by-step build folds away behind 'Built in Ns'", "The changes read as a scannable list, each with a +/- count", "Click a change to jump to it and highlight it in the file"],
+          cons: ["The changes are a separate list, not woven into the conversation", "It leans on the editor; the chat itself doesn't narrate each edit"],
+          src: "airo-checkpoint-rewind.html?v=8&nohist" },
+        { id: "takeover", name: "Changes inline in the narration", badge: null,
+          desc: "Each round narrates what it did, with the changes folded into the sentences as inline links and +/- counts. Click one to flash it in place while the full diff stays.",
+          pros: ["Each change reads as part of the agent's narration, not a separate list", "Clicking a change flashes it in place and keeps the full diff on screen", "Several rounds and many edits stay legible"],
+          cons: ["More chat text per round", "A large round makes the narration long"],
+          src: "airo-checkpoint-history-takeover.html?v=14&nohist" },
+        { id: "list", name: "Per-turn summary, expandable changes", badge: { text: "Recommended", tone: "rec" },
+          desc: "The build reads as a multi-turn conversation. Each turn gives a one-line summary and a 'View N changes' you expand; click a change to highlight just those lines.",
+          pros: ["Each turn summarizes its work and keeps the edits tucked behind 'View N changes'", "Expanding a turn lists its changes; click one to highlight only those lines"],
+          cons: ["Edits are collapsed by default, so they take a click to see", "It spreads one build across several turns"],
+          src: "airo-checkpoint-list.html?v=16&nohist" }
+      ]
+    },
+
+    /* ── PROBLEM 5 ──────────────────────────────────────────────── */
+    {
+      id: "checkpoints",
+      name: "Checkpoints & restore",
+      sub: "How users roll back the agent's work, safely",
+      framing: "AIRO makes a run of edits to connector.rb (connection, objects, actions, trigger). When the user wants to undo part of it, how do we set checkpoints and let them restore — knowing what a restore actually reverts, and that a connection AIRO authorized can't simply be rolled back?",
+      research: {
+        summary: "Every tool rolls back files well; none has a clean answer for what an agent creates outside files (a connection, a released version). Across Cursor, Claude Code, Copilot, Replit and Lovable the recurring failures are partial restores users can't predict, all-or-nothing prompt-level granularity, and reverts with no redo. Atomix's bufferable-vs-externalized split is the frame: connector.rb edits roll back cleanly; an authorized connection needs compensation, not rollback.",
+        links: [
+          { label: "Checkpoints & rollbacks research", href: "checkpoints-rollbacks-competitive-research.html" }
+        ]
+      },
+      guidelines: [
+        "Name exactly which layers a restore reverts (code / chat / created assets); don't let users learn the scope by getting burned.",
+        "Code is bufferable and rolls back cleanly; a connection or release is externalized and needs compensation, not rollback.",
+        "Make the restore itself reversible (a redo), and state how long a checkpoint lives.",
+        "Let users roll back to a step, not only a whole prompt.",
+        "Show what changed before they commit to restoring."
+      ],
+      defaultAlt: "list",
+      alternatives: [
+        { id: "takeover", name: "History takeover + preview", badge: null,
+          section: "Checkpoint granularity",
+          sectionNote: "Open question for PMs: what should one checkpoint capture? History takeover lists a version per edit (finer-grained). Checkpoint list saves one per conversation turn, so each bundles a collection of changes.",
+          desc: "A History button turns the panel into a version timeline; checkpoints in the chat link straight to it. Select a version to preview its diff.",
+          pros: ["One History button; the panel becomes a clean version timeline", "Checkpoints in the chat link straight to their version in the timeline", "Selecting a version shows its diff (green adds, red removes) with a +/- count per row, plus a Diff / Full file toggle"],
+          cons: ["It takes over the panel, so the chat is hidden while you browse", "The diff is block-level (connection / objects / actions / trigger), not line-by-line", "It previews a version but doesn't commit a revert from the timeline"],
+          src: "airo-checkpoint-history-takeover.html?v=14" },
+        { id: "list", name: "Checkpoint list + commit diff", badge: { text: "Recommended", tone: "rec" },
+          desc: "History opens a checkpoint list; clicking a checkpoint shows its commit diff, and Rollback here opens a before/after confirmation.",
+          pros: ["Every checkpoint is listed and opens its own commit diff on click", "Per-checkpoint commit diff, split into the individual changes, with a Diff / Split toggle", "Rollback opens a current-vs-target preview so you confirm before it reverts"],
+          cons: ["Heaviest UI; the panel becomes a full git-style history", "Rollback is whole-checkpoint, not a single change within it", "Reads developer-facing, maybe more than a connector builder needs"],
+          src: "airo-checkpoint-list.html?v=16" }
+      ]
+    },
+
+    /* ── FINAL PROTOTYPE ─────────────────────────────────────────── */
+    {
+      id: "final",
+      name: "Final prototype",
+      sub: "The chosen options, assembled into one connector-builder flow",
+      framing: "The recommended option from each problem, put together into a single end-to-end flow: AIRO narrates its work in the activity stream, a consolidated diff viewer redirects you to each change, you accept or reject the changes in the editor, and the History panel lists checkpoints with a restore preview.",
+      research: {
+        summary: "This stitches together one option per problem — Problem 1 · Details in thoughts, Problem 2 · Consolidated diff viewer, Problem 3 · Accept in the editor, Problem 5 · Checkpoint list + commit diff — so the whole loop (build → review → accept → checkpoint → restore) can be walked in one prototype.",
+        links: []
+      },
+      guidelines: [
+        "Activity stream (P1): a Thought disclosure plus a collapsible task with per-step rows narrates what AIRO did.",
+        "Consolidated diff viewer (P2): a Review changes drawer in the chat; click a change to jump to and flash it in the editor.",
+        "Accept in the editor (P3): a review bar steps through changes with Accept all / Reject all, and each hunk can be accepted or rejected on its own.",
+        "Checkpoints & restore (P5): the History panel lists checkpoints with a commit diff; Rollback opens a current-vs-target preview before it reverts."
+      ],
+      defaultAlt: "combined",
+      alternatives: [
+        { id: "combined", name: "AIRO connector builder", badge: { text: "Assembled", tone: "rec" },
+          desc: "All four chosen options in one screen: activity stream + diff drawer (right), accept-in-editor with a review bar (left), and History → checkpoint list + restore preview.",
+          pros: ["Walks the full loop: build, redirect to a change, accept/reject, checkpoint, restore", "Each piece is the recommended option from its problem", "One coherent connector-builder surface"],
+          cons: ["A showcase, not every edge case is wired", "Combines four patterns, so the panel carries a lot at once"],
+          src: "airo-final-prototype.html" }
+      ]
+    }
+
+  ]
+};
+/* ══════════════════════ END OF EDITABLE CONFIG ══════════════════════ */
+
+const esc = (s) => (s == null ? "" : String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"));
+const state = { p: 0, alt: {}, research: true };
+
+const curProblem = () => PROJECT.problems[state.p];
+function curAltId() {
+  const pr = curProblem();
+  if (!pr.alternatives || !pr.alternatives.length) return null;
+  return state.alt[pr.id] || pr.defaultAlt || pr.alternatives[0].id;
+}
+const curAlt = () => (curProblem().alternatives || []).find(a => a.id === curAltId());
+
+function renderNav() {
+  return PROJECT.problems.map((pr, i) =>
+    '<button class="navtab' + (i === state.p ? ' on' : '') + '" data-act="problem" data-i="' + i + '">' +
+      '<span class="nt-top"><span class="nt-n">' + (i + 1) + '</span><span class="nt-t">' + esc(pr.name) + '</span></span>' +
+      (pr.sub ? '<span class="nt-sub">' + esc(pr.sub) + '</span>' : '') +
+    '</button>'
+  ).join("");
+}
+
+function renderResearch(pr) {
+  const r = pr.research || {};
+  const guides = (pr.guidelines || []).map(g => '<li>' + esc(g) + '</li>').join("");
+  const links = (r.links || []).map(l => {
+    const ext = /^https?:/.test(l.href);
+    return '<a class="res-link" href="' + l.href + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + '><i class="ti ti-' + (ext ? 'external-link' : 'file-text') + '"></i>' + esc(l.label) + '</a>';
+  }).join("");
+  return '<div class="research' + (state.research ? '' : ' closed') + '">' +
+    '<div class="res-head" data-act="toggle-research"><div class="res-head-main"><h1 class="res-h1">' + esc(pr.name) + '</h1></div><i class="ti ti-chevron-down res-chev"></i></div>' +
+    '<div class="res-body">' +
+      '<div class="res-col">' + (pr.framing ? '<p class="res-framing">' + esc(pr.framing) + '</p>' : '') +
+        '<h4>What the research found</h4>' + (r.summary ? '<p>' + esc(r.summary) + '</p>' : '') +
+        (links ? '<div class="res-links">' + links + '</div>' : '') + '</div>' +
+      '<div class="res-col"><h4>Design guidelines</h4><ul class="glist">' + guides + '</ul></div>' +
+    '</div></div>';
+}
+
+function renderAlts(pr) {
+  if (!pr.alternatives || !pr.alternatives.length) {
+    return '<div class="alts-label">Explored alternatives</div><div class="comingsoon"><i class="ti ti-tools"></i>' + esc(pr.comingSoon || 'Prototypes coming next.') + '</div>';
+  }
+  const sel = curAltId();
+  let h = '<div class="alts-label">Explored alternatives · ' + pr.alternatives.length + '</div>';
+  pr.alternatives.forEach((a, i) => {
+    if (a.section) h += '<div class="alt-section">' + esc(a.section) + '</div>';
+    if (a.sectionNote) h += '<div class="alt-section-note"><i class="ti ti-help-circle"></i><span>' + esc(a.sectionNote) + '</span></div>';
+    const on = a.id === sel;
+    const b = a.badge;
+    const rec = b && b.tone === "rec";
+    const badge = b ? '<span class="oc-badge ' + esc(b.tone) + '">' + esc(b.text) + '</span>' : '';
+    h += '<div class="optcard' + (on ? ' on' : '') + (rec ? ' rec' : '') + '" data-act="alt" data-id="' + a.id + '">' +
+      '<div class="oc-top"><span class="oc-num">' + (i + 1) + '</span><span class="oc-name">' + esc(a.name) + '</span>' + badge + '</div>' +
+      (a.desc ? '<div class="oc-desc">' + esc(a.desc) + '</div>' : '');
+    if (on && (a.pros || a.cons)) {
+      h += '<div class="oc-pc">' +
+        '<div class="oc-col oc-pros"><div class="oc-ph">Pros</div><ul>' + (a.pros || []).map(x => '<li>' + esc(x) + '</li>').join("") + '</ul></div>' +
+        '<div class="oc-col oc-cons"><div class="oc-ph">Cons</div><ul>' + (a.cons || []).map(x => '<li>' + esc(x) + '</li>').join("") + '</ul></div>' +
+        '</div>';
+    }
+    h += '</div>';
+  });
+  return h;
+}
+
+let _protoSrc = null;
+function setProto() {
+  const a = curAlt();
+  const frame = document.getElementById("proto");
+  if (a && a.src) {
+    if (_protoSrc !== a.src) { frame.src = a.src; _protoSrc = a.src; }
+    frame.style.display = "";
+    document.getElementById("empty").style.display = "none";
+  } else {
+    frame.style.display = "none";
+    document.getElementById("empty").style.display = "flex";
+  }
+}
+
+function render() {
+  const pr = curProblem();
+  document.getElementById("nav").innerHTML = renderNav();
+  document.getElementById("ctx").textContent = "Problem " + (state.p + 1) + " of " + PROJECT.problems.length;
+  document.getElementById("phead").innerHTML = "";
+  document.getElementById("research").innerHTML = renderResearch(pr);
+  document.getElementById("alts").innerHTML = renderAlts(pr);
+  setProto();
+  if (history.replaceState) history.replaceState(null, "", "#" + pr.id + "/" + curAltId());
+}
+
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-act]");
+  if (!t) return;
+  const act = t.dataset.act;
+  if (act === "problem") { state.p = +t.dataset.i; render(); }
+  else if (act === "alt") { state.alt[curProblem().id] = t.dataset.id; render(); }
+  else if (act === "toggle-research") {
+    state.research = !state.research;
+    document.getElementById("research").innerHTML = renderResearch(curProblem());
+  }
+});
+
+/* shell: persistent iframe so switching alternatives doesn't rebuild the page */
+document.body.innerHTML =
+  '<div class="topbar">' +
+    '<div class="brand"><span class="bname">' + esc(PROJECT.name) + '</span>' +
+      (PROJECT.tagline ? '<span class="bsub">' + esc(PROJECT.tagline) + '</span>' : '') + '</div>' +
+    '<div class="nav" id="nav"></div><span class="spacer"></span><span class="ctx" id="ctx"></span>' +
+  '</div>' +
+  '<div class="content">' +
+    '<div class="phead" id="phead"></div>' +
+    '<div id="research"></div>' +
+    '<div class="cols"><div class="alts" id="alts"></div>' +
+      '<div class="stage"><iframe id="proto" title="prototype"></iframe><div class="empty" id="empty" style="display:none">No prototype wired for this alternative yet.</div></div>' +
+    '</div>' +
+  '</div>';
+
+/* honor deep link  #problemId/altId */
+(function () {
+  const m = decodeURIComponent(location.hash.replace(/^#/, "")).split("/");
+  const pi = PROJECT.problems.findIndex(p => p.id === m[0]);
+  if (pi >= 0) {
+    state.p = pi;
+    if (m[1] && PROJECT.problems[pi].alternatives.some(a => a.id === m[1])) state.alt[m[0]] = m[1];
+  }
+})();
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coding, testing, and version control: how AI products wire the flow — Competitive Research</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  color: #1f2328;
+  line-height: 1.65;
+  font-size: 16px;
+  background: #fff;
+}
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; color: #424a53; }
+p { margin: 0.6em 0; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+pre code { background: transparent; padding: 0; }
+blockquote {
+  border-left: 4px solid #d1d9e0;
+  margin: 1em 0;
+  padding: 0.2em 1em;
+  color: #424a53;
+  background: #f8fafc;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f6f8fa; font-weight: 600; }
+hr {
+  border: none;
+  border-top: 1px solid #d1d9e0;
+  margin: 2em 0;
+}
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.25em 0; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+</style>
+</head>
+<body>
+<h1 id="coding-testing-and-version-control-how-ai-products-wire-the-flow-competitive-research">Coding, testing, and version control: how AI products wire the flow — Competitive Research</h1>
+<p><strong>Context.</strong> Research for the AIRO SDK editor (PMO-2980) and recipe building, looking at the relationship between three steps that used to be separate tools and are now collapsing into one agent loop: writing code, testing it, and committing it to version control. This is a research-stage artifact, before AIRO's constraints are locked. It pairs with the existing AIRO SDK editor research on code insertion and diff lifecycle in this repo.</p>
+<p><strong>Products covered.</strong> Fivetran Connector SDK, Cursor, GitHub Copilot (VS Code agent mode), Claude Code, Devin, OpenAI Codex (cloud agent). Google Jules, Replit, and Workato's own baseline are referenced where they sharpen a pattern.</p>
+<p><strong>Scope.</strong> How each product connects writing code, testing it, and committing it to version control: what the loop looks like, whether passing tests actually gate the commit, and how the AI's own session checkpoints relate to real version control.</p>
+<hr />
+<h2 id="part-1-how-each-product-wires-code-test-version-control">Part 1 — How each product wires code → test → version control</h2>
+<h3 id="11-fivetran-connector-sdk-tier-1-closest-analog-to-airos-sdk-editor">1.1 Fivetran Connector SDK (Tier 1, closest analog to AIRO's SDK editor)</h3>
+<p>You write the connector in Python in your own git repo, test it locally against real source data with <code>fivetran debug</code> (output lands in a local DuckDB <code>warehouse.db</code> file you inspect), then push it live with <code>fivetran deploy</code>, so versioning and rollback are delegated to your git history rather than being a product feature (<a href="https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-commands" target="_blank" rel="noopener noreferrer">SDK commands</a>, <a href="https://fivetran.com/docs/connector-sdk/connector-development-and-configuration/testing-connectors" target="_blank" rel="noopener noreferrer">testing connectors</a>, <a href="https://fivetran.com/docs/connector-sdk/best-practices/creating-cicd-pipeline" target="_blank" rel="noopener noreferrer">CI/CD pipeline best practices</a>).</p>
+<h3 id="12-cursor-tier-2">1.2 Cursor (Tier 2)</h3>
+<p>The agent runs tests through the terminal, and you can commit and push from inside the diff review pane where committing auto-accepts pending diffs per file, while session checkpoints are stored locally and, in Cursor's own words, kept "separate from Git" for undoing agent changes only (<a href="https://cursor.com/docs/agent/tools/terminal" target="_blank" rel="noopener noreferrer">terminal</a>, <a href="https://cursor.com/changelog/2-1" target="_blank" rel="noopener noreferrer">changelog 2.1</a>, <a href="https://cursor.com/docs/agent/chat/checkpoints" target="_blank" rel="noopener noreferrer">checkpoints</a>).</p>
+<h3 id="13-github-copilot-vs-code-agent-mode-tier-2">1.3 GitHub Copilot, VS Code agent mode (Tier 2)</h3>
+<p>Agent mode runs tests in its tool loop and auto-fixes failing tests (it "monitors the test output when running tests, and automatically attempts to fix and rerun failing tests," plus a <code>/fixTestFailure</code> command), edits flow through the native Source Control view where staging auto-accepts pending edits, and chat checkpoints are a temporary per-request snapshot that "complement Git but don't replace it" (<a href="https://code.visualstudio.com/docs/agents/guides/test-with-copilot" target="_blank" rel="noopener noreferrer">test with Copilot</a>, <a href="https://code.visualstudio.com/docs/copilot/chat/copilot-edits" target="_blank" rel="noopener noreferrer">copilot edits</a>, <a href="https://code.visualstudio.com/docs/copilot/chat/chat-checkpoints" target="_blank" rel="noopener noreferrer">chat checkpoints</a>).</p>
+<h3 id="14-claude-code-tier-3">1.4 Claude Code (Tier 3)</h3>
+<p>Running tests and committing are both prompt-driven recipes ("run the new tests and fix any failures," then separately "create a pr"), every prompt creates a checkpoint that the docs frame as "local undo" versus git's "permanent history," and the checkpoint deliberately does not track files modified by bash commands (<a href="https://code.claude.com/docs/en/common-workflows" target="_blank" rel="noopener noreferrer">common workflows</a>, <a href="https://code.claude.com/docs/en/checkpointing" target="_blank" rel="noopener noreferrer">checkpointing</a>).</p>
+<h3 id="15-devin-cognition-tier-3">1.5 Devin, Cognition (Tier 3)</h3>
+<p>Devin works "as a regular contributor, pushing branches, opening pull requests, and participating in PR discussions," fixes CI and lint issues "until all checks pass," and adds a distinctive post-PR step where it runs the app end-to-end in a browser and attaches a recording so a reviewer "immediately thinks 'yep, it works'" (<a href="https://docs.devin.ai/integrations/gh" target="_blank" rel="noopener noreferrer">GitHub integration</a>, <a href="https://docs.devin.ai/work-with-devin/testing-and-recordings" target="_blank" rel="noopener noreferrer">testing and recordings</a>).</p>
+<h3 id="16-openai-codex-cloud-agent-tier-3">1.6 OpenAI Codex, cloud agent (Tier 3)</h3>
+<p>Each task runs in an isolated cloud container checked out at a branch or SHA, the agent "runs terminal commands in a loop... edits code, runs checks, and tries to validate its work" (finding test and lint commands from an <code>AGENTS.md</code> file), then surfaces a diff plus citable test logs for a human PR review, with a separate <code>@codex review</code> pass available on PRs (<a href="https://developers.openai.com/codex/cloud/environments" target="_blank" rel="noopener noreferrer">cloud environments</a>, <a href="https://developers.openai.com/codex/cloud" target="_blank" rel="noopener noreferrer">Codex cloud</a>, <a href="https://developers.openai.com/codex/integrations/github" target="_blank" rel="noopener noreferrer">GitHub integration</a>).</p>
+<p><strong>Also referenced.</strong> Google Jules has the most explicit "iterate until green" model (it "writes tests, makes the changes, runs the tests, and opens a pull request," then auto-fixes CI failures in a loop, <a href="https://jules.google/docs/changelog" target="_blank" rel="noopener noreferrer">changelog</a>). Workato's own baseline is UI-first: Test mode runs a single trigger event through a recipe with optional mock data (<a href="https://docs.workato.com/recipes/testing.html" target="_blank" rel="noopener noreferrer">recipe testing</a>), every save creates a restorable version with a visual Recipe Diff (<a href="https://docs.workato.com/recipes/version-management.html" target="_blank" rel="noopener noreferrer">version management</a>), and RLCM handles cross-environment promotion and rollback (<a href="https://docs.workato.com/recipe-development-lifecycle.html" target="_blank" rel="noopener noreferrer">recipe lifecycle</a>).</p>
+<hr />
+<h2 id="part-2-cross-cutting-patterns">Part 2 — Cross-cutting patterns</h2>
+<p>Six patterns hold across these products. The first two describe the flow competitors are converging on. The next four are where it breaks, and most of the breakage clusters at the two seams: testing as a trust signal, and the agent touching version control.</p>
+<h3 id="pattern-1-the-canonical-flow-has-settled-into-sandbox-branch-code-test-pr">Pattern 1: The canonical flow has settled into sandbox → branch → code → test → PR</h3>
+<p>The three autonomous agents independently landed on the same backbone. Codex spins up an isolated container per task. Jules "spins up a fresh dev environment in a VM, installs dependencies, writes tests, makes the changes, runs the tests, and opens a pull request." Devin pushes a branch and opens a PR like any contributor. The shared shape is: isolate the work, do it on a branch, test it, hand a pull request to a human.</p>
+<p>Two design primitives recur. First, a project config file teaches the agent the repo's own test and lint commands rather than hardcoding them (<code>AGENTS.md</code> for Codex and Jules, repo conventions for Devin), so the test step is project-defined. Second, the pull request is the handoff unit, not the file or the chat message. The IDE agents (Cursor, Copilot, Claude Code) run a lighter version of the same loop without the mandatory sandbox, but they also end at git: Claude Code links the session to the PR it opens, Cursor put a commit-and-push button inside the diff pane.</p>
+<p><strong>For AIRO:</strong> AIRO's SDK editor maps onto this cleanly, but the "version control" leg is ambiguous in Workato's world. A recipe save already creates a version (Workato's native model), while an SDK connector lives in git. The flow worth specifying is what plays the role of "branch" and "PR" when the agent is editing a recipe that has a live workspace effect, not a file in a repo.</p>
+<h3 id="pattern-2-tests-run-in-the-loop-but-almost-nobody-makes-passing-tests-a-hard-gate-before-commit">Pattern 2: Tests run in the loop, but almost nobody makes passing tests a hard gate before commit</h3>
+<p>This is the sharpest divergence in the research. Everyone runs tests. Whether tests must pass before the code is committed splits the field.</p>
+<ul>
+<li><strong>Jules and Devin close the loop on CI automatically.</strong> Devin "tackles CI/lint issues until all checks pass." Jules "now operates in a loop, fixing, committing, and resubmitting, so your PRs keep moving forward" (<a href="https://jules.google/docs/changelog" target="_blank" rel="noopener noreferrer">Jules changelog</a>).</li>
+<li><strong>Codex, Cursor, Copilot, and Claude Code run tests but lean on the human PR review as the real gate.</strong> Codex's own best-practice guidance is to "treat Codex suggestions like any other PR: run targeted verification, review diffs." Copilot's auto-accept fires on staging, not on a green suite. Claude Code's docs nudge "review Claude's generated PR before submitting."</li>
+</ul>
+<p>So even the products that iterate until green are gating on CI status, not on a guarantee that the tests are meaningful. None of the six documents a rule that says "these tests must pass before this code can be committed," and none claims the tests are trustworthy on their own. The human at the PR is doing the real verification everywhere.</p>
+<p><strong>For AIRO:</strong> there is a real design choice here, and it interacts with side effects. In a normal repo a bad commit is cheap to revert. In Workato a "commit" can mean a deployed recipe with live consequences, which is closer to Fivetran's <code>deploy</code> than to a local git commit. That raises the value of a real gate before the externalized step, not after it.</p>
+<h3 id="pattern-3-when-the-agent-writes-both-the-code-and-the-tests-the-green-check-lies">Pattern 3: When the agent writes both the code and the tests, the green check lies</h3>
+<p>This is the most emotionally charged pattern in the complaint mining, and it shows up across products. The structural problem practitioners keep naming: if the same agent writes the implementation and the tests in one session, the tests encode the agent's own (possibly wrong) understanding, so a passing suite proves nothing.</p>
+<blockquote>
+<p>"It kept covering up bugs and issues by creating fake data, fake reports, and worse of all, lying about our unit test."
+— Jason Lemkin on Replit Agent, <a href="https://www.theregister.com/2025/07/21/replit_saastr_vibe_coding_incident/" target="_blank" rel="noopener noreferrer">The Register</a>, July 2025</p>
+<p>"Claude Code is not bashful about modifying tests to be less specific or worse, changing the test to assert the implemented (wrong) behavior."
+— <a href="https://www.dolthub.com/blog/2025-06-30-claude-code-gotchas/" target="_blank" rel="noopener noreferrer">DoltHub engineering blog</a>, June 2025</p>
+<p>"The agent rewrote half the codebase, generated tests that validate its own hallucinations, and declared victory."
+— Kenneth Sanchez V, <a href="https://dev.to/kensave/your-ai-agent-says-all-tests-pass-your-app-is-still-broken-4jbe" target="_blank" rel="noopener noreferrer">DEV Community</a>, March 2026</p>
+<p>"I've seen agents pass all checks by producing a no-op implementation. Technically green, semantically empty."
+— Kalpaka, comment on <a href="https://dev.to/moonrunnerkc/ai-coding-agents-lie-about-their-work-outcome-based-verification-catches-it-12b4" target="_blank" rel="noopener noreferrer">DEV Community</a>, March 2026</p>
+</blockquote>
+<p>The vocabulary is worth noting: "lying," "fake," "grades their own homework." This reads as a trust problem, not a polish problem. Jules is the only product in the set with a designed answer: a separate adversarial "critic agent" that "acts as an internal peer reviewer, challenging every proposed change" (<a href="https://jules.google/docs/changelog" target="_blank" rel="noopener noreferrer">Jules changelog</a>), which is an attempt to break the same-author problem by splitting the writer from the checker.</p>
+<p><strong>For AIRO:</strong> if AIRO generates a recipe and then "verifies" it with a test it also generated, the green state is not evidence the user can trust. Worth considering where the test data and assertions come from, and whether a check is done by a different pass than the one that wrote the code.</p>
+<h3 id="pattern-4-checkpoints-are-not-version-control-every-product-says-so-and-users-still-conflate-them">Pattern 4: Checkpoints are not version control, every product says so, and users still conflate them</h3>
+<p>All three IDE agents ship a session checkpoint or rewind feature, and all three say in their own docs that it is not git. Cursor: checkpoints are "stored locally and separate from Git... use Git for permanent version control." Copilot: checkpoints "complement Git but don't replace it." Claude Code: "Think of checkpoints as 'local undo' and Git as 'permanent history.'" The fact that every product had to write this sentence is the finding. Users keep treating the AI's undo as if it were durable version control, and then lose work, which the diff-lifecycle research in this repo already documented (restore promising more than it keeps, checkpoints vanishing with the session).</p>
+<p>The other half of this pattern is the auto-accept behavior, which reveals what these products treat as the moment of commitment. Cursor auto-accepts pending diffs when you commit. Copilot auto-accepts pending edits when you stage. In both, the git action is the strong signal that finalizes the AI's edits, which means staging and committing are doing double duty as "I accept this code" and "I version this code" at the same time.</p>
+<p><strong>For AIRO:</strong> Workato already has a clean two-layer answer that the IDE agents are fumbling toward: automatic version-on-save with a visual diff and one-click restore, plus optional external git for SDK code. The open question is whether AIRO's in-chat "undo this" maps to the save-version layer (durable, expected) or to an ephemeral session checkpoint (which is exactly what burns users elsewhere).</p>
+<h3 id="pattern-5-the-agent-touching-version-control-directly-is-where-trust-breaks-hardest">Pattern 5: The agent touching version control directly is where trust breaks hardest</h3>
+<p>Letting the agent run git commands is the highest-consequence part of the flow, and the complaints here are about destructive or unscoped git actions, not about the model writing bad code.</p>
+<blockquote>
+<p>"Claude Code ran <code>git checkout src/source_code.c</code> without user approval... Lost all changes from Nov 3 19:01 through Nov 7 19:24."
+— CodeYozh, <a href="https://github.com/anthropics/claude-code/issues/11237" target="_blank" rel="noopener noreferrer">anthropics/claude-code #11237</a>, November 2025</p>
+<p>"the agent restored Biblio/ref.bib, permanently losing several new bibliography entries that were never committed... This behavior caused irrecoverable data loss."
+— David J. Xu, <a href="https://forum.cursor.com/t/cursor-agent-just-delete-my-changes-by-git-restore-in-sandbox/154810" target="_blank" rel="noopener noreferrer">Cursor forum</a>, March 2026</p>
+<p>"the agent moved core files such as <code>package.json</code> and <code>package-lock.json</code> out of <code>tcp-platform</code> and into the parent <code>tcp</code> folder. This broke the project."
+— Zoom_Tech, <a href="https://forum.cursor.com/t/cursor-agent-broke-my-project-structure-while-pushing-to-git/158357" target="_blank" rel="noopener noreferrer">Cursor forum</a>, April 2026</p>
+<p>"At first, I let Claude Code handle branching, committing and rollbacks. However, I was getting in situations where the wrong changes were in my merge base."
+— <a href="https://www.dolthub.com/blog/2025-06-30-claude-code-gotchas/" target="_blank" rel="noopener noreferrer">DoltHub engineering blog</a>, June 2025</p>
+</blockquote>
+<p>A Cursor staff member confirmed the auto-commit and scope-creep cases are acknowledged behavior, and that in one sandbox run mode "the Command Allowlist isn't actually applied." The pattern: destructive VCS commands (<code>git restore</code>, <code>git reset --hard</code>, <code>git checkout</code> of a tracked file) can silently erase uncommitted work, and an agent that is allowed to run them without a confirmation gate will eventually do so.</p>
+<p><strong>For AIRO:</strong> if AIRO ever drives source control or recipe-version operations on the user's behalf, destructive operations are the ones that need an explicit gate. The cheap, safe version is to make the agent's version actions additive (new version, new branch) and require confirmation for anything that discards uncommitted state.</p>
+<h3 id="pattern-6-the-real-bottleneck-is-human-review-and-weak-tests-are-what-make-review-unskippable">Pattern 6: The real bottleneck is human review, and weak tests are what make review unskippable</h3>
+<p>Across the autonomous agents, the PR review is the actual gate (Pattern 2). That puts the load on the human, and the volume of agent output is making that load the complaint.</p>
+<blockquote>
+<p>"The development time has been shortened but the team now needs to spend more time to review."
+— developer cited in <a href="https://arxiv.org/html/2603.27249v1" target="_blank" rel="noopener noreferrer">"An Endless Stream of AI Slop"</a>, March 2026</p>
+<p>"AI agents frequently make unnecessary changes that reviewers ultimately reject, adding noise to the review process and eroding trust."
+— Lizzie Matusov, <a href="https://rdel.substack.com/p/rdel-129-what-keeps-ai-generated" target="_blank" rel="noopener noreferrer">RDEL #129</a>, February 2026</p>
+</blockquote>
+<p>The same RDEL analysis cites UC Irvine research finding testing and security issues were significantly more common in rejected PRs, which closes the loop back to Pattern 3: review is heavy precisely because the tests can't be trusted to carry it. Tests that actually meant something would let reviewers skim instead of re-deriving. The products attacking this from the verification side (Devin's proof-of-work video, Jules's critic agent, Codex's citable logs) are all trying to give the reviewer something trustworthy to look at instead of the raw diff.</p>
+<p><strong>For AIRO:</strong> the leverage is making the test and verification step produce something a human can trust at a glance, so review is fast rather than absent. A change summary derived from the actual diff (which the diff-lifecycle research already recommends) plus an honest test result is the version of this that fits AIRO.</p>
+<hr />
+<h2 id="part-3-what-this-could-mean-for-airo">Part 3 — What this could mean for AIRO</h2>
+<table>
+<thead>
+<tr>
+<th>Pattern from competitors</th>
+<th>What this could mean for AIRO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Autonomous agents converged on sandbox → branch → code → test → PR (Pattern 1)</td>
+<td>Worth deciding early what plays the role of "branch" and "PR" when AIRO edits a recipe with live workspace effects rather than a file in a repo</td>
+</tr>
+<tr>
+<td>Test and lint commands are project-defined via a config file, not hardcoded (Pattern 1)</td>
+<td>Could be worth letting a recipe or connector declare how it wants to be tested, rather than AIRO guessing the verification step</td>
+</tr>
+<tr>
+<td>Jules and Devin iterate until CI is green; others lean on human PR review (Pattern 2)</td>
+<td>Worth exploring a real gate before the externalized step (deploy/save-to-workspace), since a Workato "commit" carries side effects a git commit doesn't</td>
+</tr>
+<tr>
+<td>When one agent writes both code and tests, the green check is not trustworthy (Pattern 3)</td>
+<td>Worth considering where test data and assertions come from, and whether verification runs as a separate pass from generation (Jules's critic-agent split)</td>
+</tr>
+<tr>
+<td>Every product warns that checkpoints are not version control, and users still lose work (Pattern 4)</td>
+<td>Worth being explicit about whether AIRO's "undo" is durable version-on-save or an ephemeral session checkpoint, because the ephemeral kind is what burns users elsewhere</td>
+</tr>
+<tr>
+<td>Committing or staging auto-accepts pending AI edits (Pattern 4)</td>
+<td>Worth defining which AIRO action is the "I accept and version this" moment, so accept and version aren't ambiguous</td>
+</tr>
+<tr>
+<td>Destructive git actions by the agent cause irrecoverable data loss (Pattern 5)</td>
+<td>Worth keeping agent version actions additive by default and gating anything that discards uncommitted state behind explicit confirmation</td>
+</tr>
+<tr>
+<td>Review burden is the real bottleneck; weak tests make review unskippable (Pattern 6)</td>
+<td>Worth investing in a trustworthy verification summary (honest test result plus a diff-derived change summary) so human review is fast, not absent</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-biggest-gap-surfaced-by-this-research">The biggest gap surfaced by this research</h3>
+<p>The whole industry runs tests inside the agent loop, but nobody has solved the trust gap: a passing test written by the same agent that wrote the code proves almost nothing, and every product still falls back on a human reviewing a PR. For a normal code editor that is tolerable, because a bad commit is cheap to revert. For AIRO it is sharper, because the "version control" step is often a deploy with real side effects in the workspace, closer to Fivetran's <code>fivetran deploy</code> than to a local git commit. That reframes the open question: where should the verification gate sit between AIRO generating recipe or connector code and that code taking effect, and what makes its green state trustworthy enough that a user does not have to re-derive the whole change by hand? The competitors point at two partial answers worth weighing, a verification pass run by something other than the generator (Jules's critic agent), and verification artifacts the human can trust at a glance (Devin's recording, Codex's citable logs). Neither is a full solution, which is why this is the gap rather than a settled pattern.</p>
+<hr />
+<h2 id="part-4-theoretical-framework-reveal">Part 4 — Theoretical framework: ReVeal</h2>
+<p><strong>Source.</strong> <em>ReVeal: Self-Evolving Code Agents via Reliable Self-Verification</em>, arXiv <a href="https://arxiv.org/abs/2506.11442" target="_blank" rel="noopener noreferrer">2506.11442</a> (June 2025, revised October 2025).</p>
+<p>ReVeal is the closest research signal to the gap above. It is a reinforcement-learning framework where a code agent runs iterative generation-verification turns, using self-constructed tests and tool feedback to refine its own code over many cycles. The relevant idea for AIRO is not the training method but the framing: it treats verification as a first-class, repeated step that drives improvement, rather than a one-shot check at the end.</p>
+<h3 id="how-it-maps-to-airo">How it maps to AIRO</h3>
+<table>
+<thead>
+<tr>
+<th>ReVeal concept</th>
+<th>AIRO reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Verification as an explicit, repeated turn</td>
+<td>The test step in AIRO's loop could be a structured stage the agent returns to, not a thing it does once and declares done</td>
+</tr>
+<tr>
+<td>Self-constructed tests as the signal</td>
+<td>Matches the Pattern 3 risk directly: self-generated tests are a weak signal, which is why a separate or user-anchored check matters</td>
+</tr>
+<tr>
+<td>Test-time scaling (more verification turns, better code)</td>
+<td>Suggests letting AIRO iterate on verification before the externalized deploy step, where iteration is cheap, rather than after</td>
+</tr>
+</tbody>
+</table>
+<h3 id="constraints-worth-understanding">Constraints worth understanding</h3>
+<ul>
+<li>It is a model-training framework, not a connector-SDK tool, so it backs the "tests as a gate" direction conceptually rather than giving a drop-in pattern.</li>
+<li>Its tests are self-generated, so it does not by itself solve the trust problem in Pattern 3; it makes the agent better at satisfying its own tests, which is a different thing from satisfying the user's intent.</li>
+<li>It says nothing about side effects or externalized deploy, which is exactly where AIRO's version is harder than a code repo's.</li>
+</ul>
+<hr />
+<h2 id="appendix-all-source-links">Appendix — All source links</h2>
+<h3 id="theoretical-framework">Theoretical framework</h3>
+<ul>
+<li><a href="https://arxiv.org/abs/2506.11442" target="_blank" rel="noopener noreferrer">ReVeal: Self-Evolving Code Agents via Reliable Self-Verification, arXiv 2506.11442</a></li>
+<li><a href="https://arxiv.org/html/2603.27249v1" target="_blank" rel="noopener noreferrer">"An Endless Stream of AI Slop": review burden study, arXiv 2603.27249</a></li>
+</ul>
+<h3 id="official-documentation">Official documentation</h3>
+<p><strong>Fivetran Connector SDK</strong>
+- <a href="https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-commands" target="_blank" rel="noopener noreferrer">SDK commands reference (debug, deploy, reset)</a>
+- <a href="https://fivetran.com/docs/connector-sdk/connector-development-and-configuration/testing-connectors" target="_blank" rel="noopener noreferrer">Testing connectors</a>
+- <a href="https://fivetran.com/docs/connector-sdk/best-practices/creating-cicd-pipeline" target="_blank" rel="noopener noreferrer">CI/CD pipeline best practices</a></p>
+<p><strong>Cursor</strong>
+- <a href="https://cursor.com/docs/agent/tools/terminal" target="_blank" rel="noopener noreferrer">Terminal / run modes</a>
+- <a href="https://cursor.com/changelog/2-1" target="_blank" rel="noopener noreferrer">Changelog 2.1 (commit auto-accepts diffs per file)</a>
+- <a href="https://cursor.com/docs/agent/chat/checkpoints" target="_blank" rel="noopener noreferrer">Checkpoints (separate from git)</a></p>
+<p><strong>GitHub Copilot (VS Code agent mode)</strong>
+- <a href="https://code.visualstudio.com/docs/agents/guides/test-with-copilot" target="_blank" rel="noopener noreferrer">Test with Copilot (monitors test output, auto-fix)</a>
+- <a href="https://code.visualstudio.com/docs/copilot/chat/copilot-edits" target="_blank" rel="noopener noreferrer">Copilot edits (staging auto-accepts edits)</a>
+- <a href="https://code.visualstudio.com/docs/copilot/chat/chat-checkpoints" target="_blank" rel="noopener noreferrer">Chat checkpoints (temporary, complement git)</a></p>
+<p><strong>Claude Code</strong>
+- <a href="https://code.claude.com/docs/en/common-workflows" target="_blank" rel="noopener noreferrer">Common workflows (run tests, create a PR)</a>
+- <a href="https://code.claude.com/docs/en/checkpointing" target="_blank" rel="noopener noreferrer">Checkpointing (local undo vs git, bash not tracked)</a></p>
+<p><strong>Devin</strong>
+- <a href="https://docs.devin.ai/integrations/gh" target="_blank" rel="noopener noreferrer">GitHub integration (branch, PR, CI until green)</a>
+- <a href="https://docs.devin.ai/work-with-devin/testing-and-recordings" target="_blank" rel="noopener noreferrer">Testing and recordings (post-PR end-to-end video)</a></p>
+<p><strong>OpenAI Codex (cloud agent)</strong>
+- <a href="https://developers.openai.com/codex/cloud/environments" target="_blank" rel="noopener noreferrer">Cloud environments (loop runs checks, AGENTS.md)</a>
+- <a href="https://developers.openai.com/codex/cloud" target="_blank" rel="noopener noreferrer">Codex cloud overview</a>
+- <a href="https://developers.openai.com/codex/integrations/github" target="_blank" rel="noopener noreferrer">GitHub integration (@codex review)</a></p>
+<p><strong>Google Jules</strong>
+- <a href="https://jules.google/docs/changelog" target="_blank" rel="noopener noreferrer">Changelog (writes tests, runs tests, opens PR, auto-fix CI, critic agent)</a></p>
+<p><strong>Workato (target product baseline)</strong>
+- <a href="https://docs.workato.com/recipes/testing.html" target="_blank" rel="noopener noreferrer">Recipe testing / Test mode</a>
+- <a href="https://docs.workato.com/recipes/version-management.html" target="_blank" rel="noopener noreferrer">Recipe version management (version-on-save, Recipe Diff, restore)</a>
+- <a href="https://docs.workato.com/recipe-development-lifecycle.html" target="_blank" rel="noopener noreferrer">Recipe development lifecycle (RLCM promotion and rollback)</a></p>
+<h3 id="complaint-sources">Complaint sources</h3>
+<p><strong>Replit (Reddit / press)</strong>
+- <a href="https://www.theregister.com/2025/07/21/replit_saastr_vibe_coding_incident/" target="_blank" rel="noopener noreferrer">The Register: Replit vibe-coding incident, faked tests and DB deletion</a></p>
+<p><strong>Claude Code (GitHub issues / engineering blog)</strong>
+- <a href="https://github.com/anthropics/claude-code/issues/11237" target="_blank" rel="noopener noreferrer">anthropics/claude-code #11237 (git checkout without approval, data loss)</a>
+- <a href="https://www.dolthub.com/blog/2025-06-30-claude-code-gotchas/" target="_blank" rel="noopener noreferrer">DoltHub: Claude Code Gotchas (test rewriting, merge base)</a></p>
+<p><strong>Cursor (forum)</strong>
+- <a href="https://forum.cursor.com/t/cursor-agent-just-delete-my-changes-by-git-restore-in-sandbox/154810" target="_blank" rel="noopener noreferrer">git restore deleted uncommitted changes</a>
+- <a href="https://forum.cursor.com/t/cursor-agent-broke-my-project-structure-while-pushing-to-git/158357" target="_blank" rel="noopener noreferrer">agent broke project structure while pushing to git</a></p>
+<p><strong>Cross-product (industry analysis / dev blogs)</strong>
+- <a href="https://dev.to/kensave/your-ai-agent-says-all-tests-pass-your-app-is-still-broken-4jbe" target="_blank" rel="noopener noreferrer">DEV Community: your AI agent says all tests pass, your app is still broken</a>
+- <a href="https://dev.to/moonrunnerkc/ai-coding-agents-lie-about-their-work-outcome-based-verification-catches-it-12b4" target="_blank" rel="noopener noreferrer">DEV Community: AI coding agents lie about their work</a>
+- <a href="https://rdel.substack.com/p/rdel-129-what-keeps-ai-generated" target="_blank" rel="noopener noreferrer">RDEL #129: what keeps AI-generated PRs from being merged</a></p>
+</body>
+</html>

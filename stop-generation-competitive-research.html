@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stop Generation UX — Competitive Research</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  color: #1f2328;
+  line-height: 1.65;
+  font-size: 16px;
+  background: #fff;
+}
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; color: #424a53; }
+p { margin: 0.6em 0; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+pre code { background: transparent; padding: 0; }
+blockquote {
+  border-left: 4px solid #d1d9e0;
+  margin: 1em 0;
+  padding: 0.2em 1em;
+  color: #424a53;
+  background: #f8fafc;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f6f8fa; font-weight: 600; }
+img {
+  max-width: 100%;
+  border: 1px solid #d1d9e0;
+  border-radius: 6px;
+  margin: 0.5em 0;
+}
+hr {
+  border: none;
+  border-top: 1px solid #d1d9e0;
+  margin: 2em 0;
+}
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.25em 0; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+
+/* Make missing screenshot placeholders less ugly */
+img[alt] {
+  position: relative;
+}
+img:not([src=""]):after {
+  content: attr(alt);
+  display: block;
+  padding: 24px;
+  background: #f6f8fa;
+  color: #57606a;
+  font-size: 0.85em;
+  text-align: center;
+  border: 1px dashed #d1d9e0;
+  border-radius: 6px;
+}
+
+/* Sticky nav at top */
+.toc {
+  background: #f6f8fa;
+  border: 1px solid #d1d9e0;
+  border-radius: 6px;
+  padding: 16px 24px;
+  margin: 0 0 32px 0;
+  font-size: 0.95em;
+}
+.toc strong { display: block; margin-bottom: 8px; }
+.toc a { display: block; padding: 2px 0; color: #424a53; }
+</style>
+</head>
+<body>
+<h1 id="stop-generation-ux-competitive-research">Stop Generation UX — Competitive Research</h1>
+<p><strong>Context:</strong> Research to inform the AIRO Stop Generation feature (PRD: <a href="https://workato.atlassian.net/wiki/spaces/PM/pages/2508750890/PRD+AIRO+UX+improvements+Batch+1+PMO-3029#1.3-Stop-generation">AIRO UX improvements — Batch 1, Section 1.3</a>). First compiled May 2026, refreshed June 10, 2026. The feature has since moved to its own ticket, <a href="https://workato.atlassian.net/browse/AAI-1501">AAI-1501</a> under <a href="https://workato.atlassian.net/browse/PMO-2975">PMO-2975</a>, targeting June 2026.</p>
+<p><strong>Products covered:</strong> Relay.app, Zapier Agents, n8n, Replit Agent, Lovable, v0 (Vercel). Figma Make was covered in the May version; its key findings are retained in Part 2 with a June update.</p>
+<p><strong>Scope:</strong> How each product handles user-initiated stop mid-generation, covering what happens to the artifact, the state, the credits, and the user trust.</p>
+<p><strong>What changed in this refresh:</strong></p>
+<ul>
+<li>Added three Tier 1 workflow automation competitors (Zapier Agents, n8n, alongside Relay.app). The May version skewed toward AI coding agents. The Tier 1 finding is significant: stop is underbuilt across AIRO's own category (new Theme 5).</li>
+<li>Corrected v0: the stop button reliability bug was patched by Vercel on March 20, 2026. The May version recorded it as unresolved.</li>
+<li>Lovable shipped explicit stop semantics on May 21, 2026 ("file edits now persist when stopping the agent").</li>
+<li>Figma Make added queued messages and plan mode on June 3, 2026, a steer-instead-of-stop pattern. Still no stop button.</li>
+<li>Added the InterruptBench paper (April 2026), the first benchmark for interruptible agents.</li>
+</ul>
+<hr />
+<h2 id="part-1-stop-generation-behavior-official-documentation">Part 1 — Stop Generation Behavior (Official Documentation)</h2>
+<h3 id="11-relayapp">1.1 Relay.app</h3>
+<p><a href="https://docs.relay.app/running-workflows/runs">Three-tier stop</a>: Pause (resumable), End (terminal), and Freeze all runs (workspace-wide kill switch), with no rollback for external side effects already executed. No changes to stop behavior in the May-June 2026 <a href="https://www.relay.app/changelog">changelog</a>.</p>
+<hr />
+<h3 id="12-zapier-agents">1.2 Zapier Agents</h3>
+<p>Cancelled is one of <a href="https://help.zapier.com/hc/en-us/articles/36818600959501-Understand-your-agent-s-statuses">six documented task statuses</a> ("You cancelled the task"), but the cancel affordance itself is undocumented for triggered runs; the only documented stop control is a <a href="https://help.zapier.com/hc/en-us/articles/24393442652557-Build-an-agent-in-Zapier-Agents">Stop button in the chat field</a> for AI generation. Runaway protection is a budget guardrail rather than a kill switch: a <a href="https://help.zapier.com/hc/en-us/articles/26559132765325-How-is-Zapier-Agents-usage-measured">per-run activity cap</a> (10 on Free, 40 on paid) pauses the agent and requests user input before continuing, and overrun activities are not charged. Nothing is documented about partial-work handling or undo after cancel.</p>
+<hr />
+<h3 id="13-n8n">1.3 n8n</h3>
+<p>Stop exists only in the UI, via a stop button in the <a href="https://docs.n8n.io/workflows/executions/all-executions/">All Executions view</a> (which the docs page itself doesn't document) plus a canvas stop during manual testing; the button has been <a href="https://community.n8n.io/t/qol-stop-workflow-executions-in-the-workflow-specific-execution-view/42257">missing from the workflow-specific view</a> since users first asked in March 2024. There is still <a href="https://community.n8n.io/t/cancel-running-workflow-execution-via-n8n-api/114286">no public API cancel endpoint</a> as of June 2026; a community <a href="https://github.com/n8n-io/n8n/pull/21091">PR adding one</a> has been open since October 2025. Side effects from already-executed nodes simply persist after stop, with no checkpointing or rollback documented.</p>
+<hr />
+<h3 id="14-replit-agent">1.4 Replit Agent</h3>
+<p>Stop button at the top of the chat <a href="https://docs.replit.com/updates/2024/12/27/changelog">halts the agent immediately</a> with auto-created <a href="https://docs.replit.com/core-concepts/agent/checkpoints-and-rollbacks">checkpoints</a> for one-click rollback, though closing the tab is a known bug that leaves the agent running in the background. No stop-related changes in May-June 2026 updates.</p>
+<hr />
+<h3 id="15-lovable">1.5 Lovable</h3>
+<p>Stop button <a href="https://docs.lovable.dev/features/agent-mode">inline in the chat halts immediately</a>, with a one-click "Undo latest edit" button appearing right next to the stopped response card. As of <a href="https://docs.lovable.dev/changelog">May 21, 2026</a>, Lovable made its stop semantics explicit: "File edits now persist when stopping the agent," so stop keeps partial work rather than discarding it.</p>
+<hr />
+<h3 id="16-v0-vercel">1.6 v0 (Vercel)</h3>
+<p>Stop button was historically unreliable, sometimes triggering full app rewrites instead of halting, until Vercel <a href="https://community.vercel.com/t/why-v0-stop-button-fails-to-halt-generation-and-rewrites-code/36539">patched it on March 20, 2026</a> after sustained community pressure; <a href="https://community.vercel.com/t/chat-block-code-out-of-sync-with-project-code/9962">chat-preview desync</a> after stop remains a reported issue. On <a href="https://v0.app/changelog">June 8, 2026</a>, v0 moved the other direction on involuntary stops: long agent runs now continue automatically instead of stopping at the timeout.</p>
+<hr />
+<p><strong>Note on Figma Make</strong> (covered in the May version): still no stop button, but on <a href="https://www.figma.com/release-notes/">June 3, 2026</a> it added queued messages (stack follow-up instructions while generation runs) and an opt-in plan mode (edit and approve a plan before generation starts). Steering and upstream prevention instead of mid-run stopping.</p>
+<hr />
+<h2 id="part-2-user-pain-points-themed-insights">Part 2 — User Pain Points (Themed Insights)</h2>
+<p>Five themes emerged from mining complaints across Reddit, official forums, GitHub, G2, Product Hunt, Hacker News, and community Discords. All source links are in the appendix. The themes lead directly into the AIRO design implications in Part 3.</p>
+<h3 id="theme-1-stop-button-doesnt-actually-stop">Theme 1: Stop button doesn't actually stop</h3>
+<p>Users click stop and either nothing happens, the stop itself errors, or the agent does more work after the click. The refresh adds Tier 1 evidence: in workflow automation products, stop doesn't just lag, it sometimes fails outright.</p>
+<ul>
+<li>v0 (March 2026): "When v0 starts going on a tangent and I click STOP, it doesn't stop and it just completely re-writes your entire application... It stops after it puts the 'Fixes' that I nor anyone else is asking it to fix." (<a href="https://community.vercel.com/t/why-v0-stop-button-fails-to-halt-generation-and-rewrites-code/36539">thread</a>) Vercel acknowledged and patched this on March 20, 2026, with users confirming the fix the same day. Worth noting how long it shipped broken first.</li>
+<li>v0 API: CTRL+C or Postman cancel do not stop server-side generation; the platform processes asynchronously and ignores client disconnect (<a href="https://community.vercel.com/t/how-to-cancel-http-requests-to-the-v0-platform-api/31691">thread</a>).</li>
+<li>Replit: User wrote "DO NOT CHANGE FROM RADAR, THIS IS NOT A FIX" in all caps in the prompt. Agent ignored and swapped the implementation across multiple checkpoints anyway (<a href="https://replit.discourse.group/t/how-to-prevent-unwanted-changes-by-agent/6611">thread</a>).</li>
+<li>Replit: "After using agent, I can close the agent tab and the icon on left hand side still shimmers... it has not stopped." (<a href="https://replit.discourse.group/t/how-do-i-stop-agent/4331">thread</a>)</li>
+<li>n8n: "There seems to be a bug where an execution is stuck in Running state and cannot be stopped. When I try to stop it, I get prompted with a 'Problem stopping execution'." (<a href="https://community.n8n.io/t/execution-status-is-running-almost-24-hrs-and-cannot-be-stopped/54461">thread</a>, September 2024)</li>
+<li>n8n: "I accidentally triggered a workflow that created around 1000 asynchronous executions. Now my instance is stuck with endless running executions, and I can't stop them all manually from the UI." (<a href="https://github.com/n8n-io/n8n/issues/19922">GitHub issue</a>, September 2025, closed "not planned")</li>
+<li>Zapier Agents: "It's been stuck at this step for 30 minutes. Anyone else experiencing this issue with agents in Zaps?" (<a href="https://community.zapier.com/troubleshooting-99/run-agent-behavior-step-delayed-stuck-49410">thread</a>, May 2025)</li>
+</ul>
+<p><strong>For AIRO:</strong> the PRD's under-2-seconds halt requirement is the right bar, and the v0 arc shows the cost of shipping below it. A stop that errors ("Problem stopping execution") is worse than a slow stop; the failure path of the stop action itself deserves a defined UX.</p>
+<h3 id="theme-2-credits-and-money-burned-on-stopped-or-broken-runs">Theme 2: Credits and money burned on stopped or broken runs</h3>
+<p>The #1 grievance across credit-based products. Users expect "stop equals no charge for unfinished work." Reality is the opposite, and the financial damage is real.</p>
+<ul>
+<li>v0: One user reported losing $60-90 in two days, then $210 in another two days. Called the experience "extractive" and said "It happens for 30-40% of my prompting." (<a href="https://community.vercel.com/t/many-generations-stopping-and-wasting-credits-60-90-lost/17020">thread</a>)</li>
+<li>Replit: The $607 bill case. Developer launched Agent, went to lunch, agent ran 2 hours in a retry loop. "No hard stop. No popup. No automatic pause at $100, $200, or $500." (<a href="https://blog.vibecoder.me/607-replit-bill-avoiding-runaway-ai-costs">blog post</a>)</li>
+<li>Replit: Another user reported "charged $28 for 7 MINUTES of work" and "spent over 2k last month" (<a href="https://replit.discourse.group/t/agent-3-is-slow-broken-and-unusable-it-just-stops-working-any-work-arounds/7061">thread</a>). Per Replit's own <a href="https://docs.replit.com/billing/ai-billing">billing docs</a>: "All Agent interactions are billable... in cases where the Agent performed work but didn't make code changes, there is still a charge."</li>
+<li>Lovable: "I've spent over 20 credits trying to fix a code that results in my app being frozen on a 'loading page'." Another user: "I still had 360 credits that I had already paid for, and after I canceled my subscription, I had only 5." (<a href="https://vibecodingwithfred.com/blog/lovable-from-hero-to-zero/">source</a>) Per <a href="https://shipper.now/lovable-errors/">shipper.now</a>, each "Fix" attempt counts as a new paid generation even when the bug was caused by Lovable itself.</li>
+<li>Figma Make: Reports of 700+ credit prompts that produce nothing, 62 credits to change three numbers, and entire credit balances wiped out without a single successful change (<a href="https://forum.figma.com/report-a-problem-6/urgent-unexpected-ai-credit-usage-issue-52324">thread</a>). Still ongoing as of May 2026: "I want to request a review of AI credits used during repeated troubleshooting on my project." (<a href="https://forum.figma.com/report-a-problem-6/issues-with-credits-being-wasted-53615">thread</a>)</li>
+</ul>
+<p>Vercel eventually <a href="https://community.vercel.com/t/v0-constantly-freezes-stops-return-incomplete-response-stuck/11124">promised forward-looking</a> "you'll not be charged for a failed execution in the future," signaling that no-charge-on-failure is becoming table stakes for credit-based products. Zapier Agents goes further with a structural guardrail: a <a href="https://help.zapier.com/hc/en-us/articles/26559132765325-How-is-Zapier-Agents-usage-measured">per-run activity cap</a> that pauses the agent and asks for input before continuing, with overrun activities not charged. Prevention by budget rather than reaction by kill switch.</p>
+<h3 id="theme-3-stop-creates-orphan-state-and-products-hide-it">Theme 3: Stop creates orphan state, and products hide it</h3>
+<p>This is the most damaging pattern across products. Stop creates partial state in the workspace, the product doesn't tell the user about it, and trust collapses when users discover the orphans later. The emotional vocabulary in user complaints is the strongest signal that this is a trust problem, not a polish problem.</p>
+<p>Concrete examples of broken or hidden state after stop:</p>
+<ul>
+<li>v0: Chat panel code and project preview code <a href="https://community.vercel.com/t/chat-block-code-out-of-sync-with-project-code/9962">frequently end up out of sync</a> after stop. No "Stopped" indicator, so users have to infer the stop happened.</li>
+<li>Figma Make: "Version Success" in chat alongside "Build Error" in preview is a common failure pattern (<a href="https://forum.figma.com/report-a-problem-6/code-generation-cuts-off-mid-way-figma-make-43994">thread</a>).</li>
+<li>Replit: <a href="https://replit.discourse.group/t/agent-thinking-but-doing-nothing/7511">Checkpoints get created even when no code changes happened</a>, confusing users about what was actually done.</li>
+<li>Figma Make: Users <a href="https://forum.figma.com/report-a-problem-6/figma-make-ai-is-so-bad-i-had-to-give-up-on-my-project-43522">give up entirely</a> on projects after repeated state-corruption incidents.</li>
+<li>n8n (April 2026): "Some records get duplicated. Some records are skipped. I can't reliably continue from where it stopped... There's no real checkpointing, so if it crashes at page 20, I have to restart from page 1." (<a href="https://community.n8n.io/t/n8n-workflow-fails-to-resume-safely-after-partial-execution-idempotency-checkpointing-issue/293072">thread</a>) The same partial-state problem AIRO's orphan recipes represent, in AIRO's own product category.</li>
+</ul>
+<p>One product has started addressing this by making the contract explicit rather than fixing the state: Lovable's <a href="https://docs.lovable.dev/changelog">May 21, 2026 changelog</a> announces "File edits now persist when stopping the agent," with no extra action needed. Users know exactly what stop does to their work. None of the other products researched state their stop-state contract anywhere.</p>
+<p>The vocabulary users reach for tells you it's a trust issue, not a slowness issue:</p>
+<ul>
+<li>"Extractive" (v0)</li>
+<li>"I give up" (Figma Make, multiple users)</li>
+<li>"Hero to zero" (Lovable)</li>
+<li>"Feel cheated" (multiple)</li>
+<li>"I had to move my project out" (Figma Make)</li>
+</ul>
+<p><strong>The takeaway: expose the mess, don't hide it.</strong> Users will forgive a stopped task. They won't forgive finding orphan artifacts later that nobody mentioned. List what got built, name what didn't, recommend cleanup if needed. This is the single most important design pattern to take from this research, and it shows up again in the Part 3 implications.</p>
+<h3 id="theme-4-what-users-want-is-stop-and-verbs-not-just-stop">Theme 4: What users want is "Stop AND..." verbs, not just stop</h3>
+<p>Across all the complaints, users don't actually want a Stop button alone. They want stop combined with another verb. Four "Stop AND..." actions surface across the research, and each has a direct implication for AIRO.</p>
+<h4 id="stop-and-dont-charge-me">Stop AND don't charge me</h4>
+<p>Users universally expect "stop equals no charge for unfinished work." Reality across credit-based products is the opposite: Replit charges for "Agent interactions" even when no code changes happened, Lovable charges every "Fix" attempt as a fresh generation, v0 burns credits on stopped or broken runs. Vercel eventually <a href="https://community.vercel.com/t/v0-constantly-freezes-stops-return-incomplete-response-stuck/11124">promised forward-looking</a> "you'll not be charged for a failed execution in the future" — signaling no-charge-on-failure is becoming table stakes for AI products.</p>
+<p><strong>For AIRO:</strong> if AIRO ever moves toward credit-based billing, the stop-billing contract is worth defining upfront. Even without credits, the principle applies: stop should not feel punitive.</p>
+<h4 id="stop-and-tell-me-what-got-built">Stop AND tell me what got built</h4>
+<p>No competitor sends a structured follow-up listing what was completed vs. left incomplete. Users have to discover the state of the workspace themselves, which is exactly how the trust-collapse pattern from Theme 3 starts.</p>
+<p><strong>For AIRO:</strong> the PRD's June 4 update replaces the post-stop summary message with an in-flight plan artifact showing completed (✓) and pending (○) assets in real time, which on stop freezes at the final state. That's ahead of every product researched. The open question remains what happens to the partially built recipes: the PRD currently says they are "not surfaced," which is the hide-the-mess pattern Theme 3 warns about. Worth considering whether the stopped plan artifact should name the orphans and recommend cleanup, even if one-click cleanup isn't feasible yet.</p>
+<h4 id="stop-and-undo-cleanly">Stop AND undo cleanly</h4>
+<p>Only Lovable has a one-click "Undo latest edit" button on the stopped artifact card. Replit has rollback to checkpoints but it's manual and at a different granularity. Most other products have no undo at all, so partial state lingers.</p>
+<p><strong>For AIRO:</strong> Lovable's pattern is the cleanest reference for AIRO's stopped Build All card. One click to revert the partial state would directly address the orphan empty recipe pain in the current PRD.</p>
+<h4 id="stop-and-let-me-redirect">Stop AND let me redirect</h4>
+<p>At the time of the May version, none of the products researched supported "transition the agent to a new prompt without abandoning the chat." That's starting to move. Figma Make's <a href="https://www.figma.com/release-notes/">June 3, 2026 release</a> added queued messages, letting users stack follow-up instructions while generation runs (steer, but not interrupt). v0 went the other way on <a href="https://v0.app/changelog">June 8</a>: long runs now auto-continue past the timeout, reducing involuntary stops but adding none of the voluntary kind. And the <a href="https://arxiv.org/abs/2604.00892">InterruptBench paper</a> (April 2026) formalizes exactly this: it distinguishes three mid-task interruption types (addition, revision, retraction) and finds that handling them well is still hard even for large models.</p>
+<p><strong>For AIRO:</strong> the PRD already scopes send-new-message-as-stop, which goes further than anything shipped by the products researched. InterruptBench's three interruption types are a useful design check: a new message can add to the task, revise it, or retract it entirely, and the right stop behavior (keep partials, discard, or redirect context) differs per type.</p>
+<hr />
+<h3 id="theme-5-in-airos-own-category-stop-barely-exists">Theme 5: In AIRO's own category, stop barely exists</h3>
+<p>This is the new Tier 1 finding from the refresh. The workflow automation products closest to AIRO treat stop as ops tooling rather than a designed user experience, and users notice.</p>
+<ul>
+<li>n8n (May 2025): "I'm honestly flabbergasted that there still exists NO way to cancel a running execution via the n8n API." (<a href="https://community.n8n.io/t/cancel-running-workflow-execution-via-n8n-api/114286">thread</a>) The community PR adding a public stop endpoint has been <a href="https://github.com/n8n-io/n8n/pull/21091">open since October 2025</a>.</li>
+<li>n8n (March 2024): the stop button exists in one view but not another. "Can we get feature parity here?" A second user: "Actually, it's more like a bug in UI, that there is no stop button for waiting executions." (<a href="https://community.n8n.io/t/qol-stop-workflow-executions-in-the-workflow-specific-execution-view/42257">thread</a>) Still open two years later.</li>
+<li>Zapier Agents: a Cancelled status <a href="https://help.zapier.com/hc/en-us/articles/36818600959501-Understand-your-agent-s-statuses">exists in the docs</a>, but how to cancel a triggered run mid-execution, what happens to partial work, and whether consumed activities are refunded are all undocumented.</li>
+<li>Relay.app is the exception with its explicit <a href="https://docs.relay.app/running-workflows/runs">Pause / End / Freeze model</a>, though it leaves external side effects unresolved.</li>
+</ul>
+<p>The contrast with Tier 2 is stark: coding agents (Replit, Lovable, v0) have all iterated publicly on stop because their users sit and watch generation happen. Automation products assume runs are unattended, so stop never got designed. AIRO sits exactly at the intersection: a conversational agent whose output is automation infrastructure.</p>
+<p><strong>For AIRO:</strong> a stop experience that meets the PRD's current bar (always-visible button, under-2s halt, visual stop signal, send-as-stop) would be ahead of every Tier 1 competitor researched, not just at parity. This reframes stop from catch-up work to a differentiation opportunity worth naming in the AAI-1501 context.</p>
+<hr />
+<h2 id="part-3-airo-design">Part 3 — AIRO Design</h2>
+<table>
+<thead>
+<tr>
+<th>Competitor pain point</th>
+<th>What this could mean for AIRO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stop still charges credits</td>
+<td>Worth defining explicit billing rules on stop and surfacing them transparently in UI. Zapier's no-charge-on-overrun and Vercel's no-charge-on-failure promise suggest where the baseline is heading</td>
+</tr>
+<tr>
+<td>State corruption (orphan empty recipes)</td>
+<td>Current PRD treats this as accepted trade-off. The <a href="https://arxiv.org/abs/2602.14849">Atomix paper (§4)</a> suggests transactional commit + compensation handlers as one possible direction. Short-term option: Lovable-style Undo affordance on the stopped Build All card. Longer-term option: paired undo APIs + distributed frontier tracking</td>
+</tr>
+<tr>
+<td>Orphans hidden after stop</td>
+<td>The PRD's "partially built empty recipes are not surfaced" is the hide-the-mess pattern from Theme 3. Worth considering having the stopped plan artifact name the orphans and suggest cleanup</td>
+</tr>
+<tr>
+<td>No stated stop-state contract</td>
+<td>Lovable now states in its changelog exactly what stop does to work in progress. Worth stating AIRO's per-output-type stop behavior (already defined in the PRD table) somewhere users can see it</td>
+</tr>
+<tr>
+<td>Stop itself can fail (n8n "Problem stopping execution")</td>
+<td>The failure path of the stop action deserves a defined UX: what the user sees if the halt takes longer than expected or errors</td>
+</tr>
+<tr>
+<td>No UI feedback after stop</td>
+<td>AIRO's "visual stop signal" requirement is well-defined in the PRD; this is worth being strict about in implementation</td>
+</tr>
+<tr>
+<td>Users don't know what changed</td>
+<td>The June 4 in-flight plan artifact (✓/○ per asset, frozen at stop) directly addresses this pain and is ahead of every product researched. Worth keeping in scope</td>
+</tr>
+<tr>
+<td>Stop button hidden during thinking / queued states</td>
+<td>AIRO PRD already covers thinking-phase stop and an always-reachable button, which avoids the refresh-and-pray failure mode</td>
+</tr>
+<tr>
+<td>No spending cap</td>
+<td>If AIRO moves toward credit-based billing in the future, Zapier's per-run activity cap (pause and ask for input) is a working reference for prevention rather than reaction</td>
+</tr>
+<tr>
+<td>Tier 1 products have no designed stop at all</td>
+<td>A stop that meets the PRD's current bar would lead the category, not match it. Worth naming as differentiation in the AAI-1501 context</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-biggest-gap-surfaced-by-this-research">The biggest gap surfaced by this research</h3>
+<p>AIRO doesn't yet have a path to roll back partial artifacts after stop. The "Build All → orphan empty recipes" trade-off in <a href="https://workato.atlassian.net/wiki/spaces/PM/pages/2508750890/PRD+AIRO+UX+improvements+Batch+1+PMO-3029#1.3-Stop-generation">Section 1.3</a> is the same shape of state corruption that drives Lovable and Figma Make users to abandon projects, and the refresh found it live in AIRO's own category: n8n users restarting 20-page jobs from page 1 because "there's no real checkpointing."</p>
+<p>The <a href="#part-4--theoretical-framework-atomix-transactional-effects">Atomix paper (§4)</a> offers one possible direction here: treat the 4 output types as bufferable vs. externalized, defer commit until the transaction is safe, and run compensation handlers on abort. The skepticism this direction gets in practice is also worth knowing: when a <a href="https://news.ycombinator.com/item?id=48037724">transactional agent sandbox</a> launched on Hacker News in May 2026, the top criticism was that versioned state can't undo external side effects, which is precisely the externalized-effects half Atomix addresses with compensation. The current "accepted trade-off" framing in the PRD might be worth revisiting as an "open architectural question with a known direction of investigation," especially given that no shipping product has solved this and there's potential differentiation value in being the first.</p>
+<hr />
+<h2 id="part-4-theoretical-framework-atomix-transactional-effects">Part 4 — Theoretical Framework: Atomix Transactional Effects</h2>
+<p><strong>Source:</strong> <em>Atomix: Transactional Effects for Agent Tool Calls</em>, arXiv <a href="https://arxiv.org/abs/2602.14849">2602.14849</a> (Feb 2026). <a href="https://arxiv.org/html/2602.14849">HTML version</a>.</p>
+<p>This paper explores a question relevant to AIRO: how could agent tool calls behave more like database transactions, so stop produces a clean state instead of orphan side effects? It's worth a read because it's the only piece of work I've found that takes this problem seriously, with benchmarks and a proposed runtime.</p>
+<h3 id="how-the-taxonomy-could-map-to-airos-output-types">How the taxonomy could map to AIRO's output types</h3>
+<p>The paper splits all tool-call effects into two categories. Mapping them onto AIRO's output types gives an interesting framing:</p>
+<table>
+<thead>
+<tr>
+<th>AIRO output type</th>
+<th>Atomix category</th>
+<th>Implication for stop</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Blueprint</strong> (draft architecture)</td>
+<td>Bufferable</td>
+<td>Discard the buffer. Zero side effects. Aligns with current PRD.</td>
+</tr>
+<tr>
+<td><strong>Recipe edit</strong></td>
+<td>Bufferable</td>
+<td>Revert to last saved. Aligns with current PRD.</td>
+</tr>
+<tr>
+<td><strong>New recipe from blueprint</strong></td>
+<td>Externalized</td>
+<td>A compensation handler could clean up the orphan recipe on stop.</td>
+</tr>
+<tr>
+<td><strong>Build all</strong></td>
+<td>Externalized (multiple parallel transactions)</td>
+<td>Completed transactions commit. Aborted ones could be compensated.</td>
+</tr>
+</tbody>
+</table>
+<p>Bufferable means changes that can be delayed and held invisible until commit (local file writes, in-memory state). Externalized means changes that execute immediately and would need explicit tracking to undo (API calls, DB writes, emails). The orphan empty recipe problem sits in the Externalized bucket.</p>
+<p>Reversibility layer on top:
+- Reversible: file edits, DB writes, recipe creation. Can be compensated cleanly.
+- Reversible-with-cost: API calls that consume rate limits or connection slots.
+- Irreversible: emails sent, real webhooks fired, transactions completed. These would call for explicit gating (user confirmation before execution) rather than after-the-fact rollback.</p>
+<h3 id="how-compensation-could-address-the-orphan-recipe-trade-off">How compensation could address the orphan recipe trade-off</h3>
+<p>The current PRD treats orphan empty recipes as an accepted trade-off. The paper proposes a different angle: every tool call could record (scope, idempotency key, compensation handler) when it executes. On stop, the runtime would invoke compensations in reverse dependency order. Failed compensations retry; unresolvable ones could surface to the user with a manual cleanup prompt.</p>
+<p>For AIRO this would mean each recipe-building API (<code>create_recipe</code>, <code>link_to_asset_map</code>, <code>add_step</code>, <code>configure_connection</code>) could be paired with a corresponding undo API (<code>delete_recipe</code>, <code>unlink</code>, <code>remove_step</code>, <code>revoke_connection</code>).</p>
+<p>The paper's benchmark is striking. In a test of 1,200 irreversible operations, the transactional version leaked 0 effects on abort while the baseline (no transactions) leaked all 1,200. Translated loosely to AIRO: if Build All tried 1,200 recipes and the user stopped at 60%, the current architecture would leave 720 orphans behind. With compensation, that number could be much closer to zero. Runtime overhead is reported at &lt;0.01% of tool latency, so the main investment is in writing the undo APIs rather than runtime performance.</p>
+<h3 id="constraints-worth-understanding">Constraints worth understanding</h3>
+<p>Three things worth keeping in mind if this direction gets explored further:
+1. Atomix is currently a single-process prototype. AIRO runs across AI, Platform, and Conversation Hub, so adopting this pattern would involve solving the distributed frontier tracking problem that the paper itself calls out as future work.
+2. Each tool would need a paired undo API. For AIRO, that's roughly 20 to 30 paired endpoints depending on scope.
+3. Truly irreversible operations like real webhooks and real emails are different. They benefit from user confirmation before execution rather than after-the-fact rollback. If Build All ever actually runs a recipe (rather than just creating one), that operation falls into this bucket.</p>
+<h3 id="new-since-may-interruptbench">New since May: InterruptBench</h3>
+<p>A second relevant paper appeared in April 2026. <a href="https://arxiv.org/abs/2604.00892">InterruptBench</a> ("When Users Change Their Mind: Evaluating Interruptible Agents in Long-Horizon Web Navigation") is the first benchmark for agents that get interrupted mid-task. Its useful contribution for AIRO is a taxonomy of three interruption types: addition (new requirement on top of the task), revision (change something in flight), and retraction (abandon part or all of it). The paper finds even large models handle these poorly. For AIRO's send-new-message-as-stop behavior, the taxonomy is a design check: the right handling of partial work differs depending on which of the three the user's new message is.</p>
+<hr />
+<h2 id="appendix-all-source-links">Appendix — All Source Links</h2>
+<h3 id="academic-theoretical-framework">Academic / Theoretical Framework</h3>
+<p><strong>Atomix (arXiv 2602.14849, Feb 2026)</strong> — The transactional effects framework that gives AIRO's "orphan empty recipes" problem a known solution direction.
+- <a href="https://arxiv.org/abs/2602.14849">arXiv abstract page</a>
+- <a href="https://arxiv.org/html/2602.14849">HTML full text (easier to read)</a></p>
+<p><strong>InterruptBench (arXiv 2604.00892, Apr 2026)</strong> — First benchmark for interruptible agents; the addition/revision/retraction taxonomy.
+- <a href="https://arxiv.org/abs/2604.00892">arXiv abstract page</a></p>
+<p><strong>Transactional agent sandbox discussion (Hacker News, May 2026)</strong> — Industry reception of transactional/versioned agent state; top criticism is external side effects.
+- <a href="https://news.ycombinator.com/item?id=48037724">Show HN: Tilde.run thread</a></p>
+<h3 id="official-documentation">Official Documentation</h3>
+<p><strong>Replit</strong>
+- <a href="https://docs.replit.com/core-concepts/agent/checkpoints-and-rollbacks">Checkpoints and Rollbacks</a>
+- <a href="https://docs.replit.com/billing/ai-billing">AI Billing</a>
+- <a href="https://docs.replit.com/updates/2024/12/27/changelog">Replit Updates: Dec 27, 2024 changelog (Agent pause improvement)</a>
+- <a href="https://blog.replit.com/introducing-agent-3-our-most-autonomous-agent-yet">Introducing Agent 3: 200-minute autonomy</a></p>
+<p><strong>Lovable</strong>
+- <a href="https://docs.lovable.dev/features/agent-mode">Build in Agent mode</a>
+- <a href="https://docs.lovable.dev/changelog">Changelog</a>
+- <a href="https://lovable.dev/blog/agent">Lovable Agent launch blog (July 23, 2025)</a>
+- <a href="https://lovable.dev/blog/agent-mode-beta">Introducing Agent Mode (Beta) — June 30, 2025</a></p>
+<p><strong>Relay.app</strong>
+- <a href="https://docs.relay.app/running-workflows/runs">Running Workflows: Runs</a>
+- <a href="https://docs.relay.app/human-in-the-loop/human-in-the-loop-steps">Human-in-the-loop Steps</a>
+- <a href="https://docs.relay.app/workspace-and-account/step-and-ai-credit-usage">Step and AI Credit Usage</a>
+- <a href="https://docs.relay.app/flow-control/wait-steps">Wait Steps</a>
+- <a href="https://docs.relay.app/getting-started/faq">FAQ</a>
+- <a href="https://www.relay.app/features/human-in-the-loop">Relay Features: Human-in-the-loop</a>
+- <a href="https://www.relay.app/changelog">Changelog</a></p>
+<p><strong>Zapier Agents</strong>
+- <a href="https://help.zapier.com/hc/en-us/articles/36818600959501-Understand-your-agent-s-statuses">Understand your agent's statuses (six statuses incl. Cancelled)</a>
+- <a href="https://help.zapier.com/hc/en-us/articles/24393442652557-Build-an-agent-in-Zapier-Agents">Build an agent (Stop button in chat field)</a>
+- <a href="https://help.zapier.com/hc/en-us/articles/26559132765325-How-is-Zapier-Agents-usage-measured">How is Zapier Agents usage measured (per-run activity cap, overruns not charged)</a>
+- <a href="https://help.zapier.com/hc/en-us/articles/33336184962573-Review-your-agent-s-activity">Review your agent's activity</a></p>
+<p><strong>n8n</strong>
+- <a href="https://docs.n8n.io/workflows/executions/all-executions/">All Executions view</a>
+- <a href="https://docs.n8n.io/hosting/scaling/concurrency-control/">Concurrency control (only official cancel-behavior statement)</a>
+- <a href="https://github.com/n8n-io/n8n/pull/21091">Community PR: public API stop endpoint (open since Oct 2025)</a></p>
+<p><strong>Figma (May version + June 3 update)</strong>
+- <a href="https://help.figma.com/hc/en-us/articles/37998629035799-Work-with-the-AI-agent-in-Figma-Design">Work with the AI agent in Figma Design</a>
+- <a href="https://help.figma.com/hc/en-us/articles/31304610458647-Troubleshoot-in-Figma-Make">Troubleshoot in Figma Make</a>
+- <a href="https://www.figma.com/release-notes/">Figma release notes (June 3: plan mode, queued messages)</a></p>
+<p><strong>v0 (Vercel)</strong>
+- <a href="https://v0.app/changelog">v0 changelog (June 8: long runs auto-continue)</a></p>
+<h3 id="complaint-sources">Complaint Sources</h3>
+<p><strong>v0 (Vercel Community Forum)</strong>
+- <a href="https://community.vercel.com/t/why-v0-stop-button-fails-to-halt-generation-and-rewrites-code/36539">Why v0 stop button fails to halt generation and rewrites code</a>
+- <a href="https://community.vercel.com/t/many-generations-stopping-and-wasting-credits-60-90-lost/17020">Many generations stopping and wasting credits. $60-90 lost</a>
+- <a href="https://community.vercel.com/t/v0-chat-frozen-and-consuming-credits-during-generation/33893">v0 chat frozen and consuming credits during generation</a>
+- <a href="https://community.vercel.com/t/v0-sandbox-temporarily-unavailable-error-loop-and-stop-button-failure/33890">v0 sandbox temporarily unavailable error loop and stop button failure</a>
+- <a href="https://community.vercel.com/t/v0-generation-not-completing-credits-not-usable/39640">v0 generation not completing + credits not usable</a>
+- <a href="https://community.vercel.com/t/v0-constantly-freezes-stops-return-incomplete-response-stuck/11124">V0 constantly freezes, stops, returns incomplete response</a>
+- <a href="https://community.vercel.com/t/how-to-cancel-http-requests-to-the-v0-platform-api/31691">How to cancel HTTP requests to the v0 Platform API</a>
+- <a href="https://community.vercel.com/t/chat-block-code-out-of-sync-with-project-code/9962">Chat block code out of sync with project code</a>
+- <a href="https://community.vercel.com/t/continuing-code-generation-when-paused-stopped/17939">Continuing code generation when paused/stopped</a>
+- <a href="https://community.vercel.com/t/v0-is-stopping-responses-in-each-generation-generating-code-in-chat/9081">V0 is stopping responses in each generation</a></p>
+<p><strong>Replit (Discourse Forum + Blog Posts)</strong>
+- <a href="https://replit.discourse.group/t/how-do-i-stop-agent/4331">How do I stop agent?</a>
+- <a href="https://replit.discourse.group/t/agent-3-is-slow-broken-and-unusable-it-just-stops-working-any-work-arounds/7061">Agent 3 is SLOW, BROKEN and UNUSABLE</a>
+- <a href="https://replit.discourse.group/t/agent-thinking-but-doing-nothing/7511">Agent Thinking - But doing nothing</a>
+- <a href="https://replit.discourse.group/t/how-to-prevent-unwanted-changes-by-agent/6611">How to prevent unwanted changes by Agent?</a>
+- <a href="https://blog.vibecoder.me/607-replit-bill-avoiding-runaway-ai-costs">The $607 Replit Bill and How to Avoid Runaway AI Tool Costs</a>
+- <a href="https://www.weavy.com/blog/stop-the-bleed-prevent-replit-agent-burning-budget">Stop the Bleed: 8 Ways to Prevent Replit Agent from Burning Through Your Budget</a></p>
+<p><strong>Lovable (Blog Posts + Hacker News)</strong>
+- <a href="https://vibecodingwithfred.com/blog/lovable-from-hero-to-zero/">Lovable Refund: From Hero to Zero with 2.0 Issues</a>
+- <a href="https://momen.app/blogs/lovable-ai-fixes-for-common-issues-without-losing-credits/">Stuck in a Lovable Bug Loop</a>
+- <a href="https://shipper.now/lovable-errors/">Lovable Bugs Keep Wasting Credits</a>
+- <a href="https://rapidevelopers.com/ai-build-errors-debug-solutions-library/code-generation-stuck-on-thinking">How to Fix 'Code generation stuck on Thinking…' in Lovable</a>
+- <a href="https://news.ycombinator.com/item?id=44377495">Is Lovable getting monetization wrong? – Hacker News</a></p>
+<p><strong>Figma Make (Figma Forum)</strong>
+- <a href="https://forum.figma.com/report-a-problem-6/wasted-figma-make-credits-52556">Wasted Figma Make Credits</a>
+- <a href="https://forum.figma.com/report-a-problem-6/urgent-unexpected-ai-credit-usage-issue-52324">Urgent: Unexpected AI Credit Usage Issue</a>
+- <a href="https://forum.figma.com/report-a-problem-6/figma-make-stuck-in-endless-thinking-mode-43912">Figma Make Stuck in Endless "Thinking" Mode</a>
+- <a href="https://forum.figma.com/report-a-problem-6/figma-make-is-stuck-44030">Figma Make is stuck</a>
+- <a href="https://forum.figma.com/report-a-problem-6/code-generation-cuts-off-mid-way-figma-make-43994">Code Generation Cuts off Mid Way: Figma Make</a>
+- <a href="https://forum.figma.com/report-a-problem-6/figma-make-ai-suddenly-stop-without-any-feedback-46773">Figma make AI suddenly stop without any feedback</a>
+- <a href="https://forum.figma.com/suggest-a-feature-11/figma-make-don-t-rewrite-everything-41054">Figma Make: DON'T REWRITE EVERYTHING!</a>
+- <a href="https://forum.figma.com/report-a-problem-6/figma-make-ai-is-so-bad-i-had-to-give-up-on-my-project-43522">Figma Make AI is so bad I had to give up on my project</a></p>
+<p><strong>Relay.app</strong>
+- <a href="https://www.g2.com/products/relay-app/reviews">Relay G2 Reviews</a>
+- <a href="https://www.producthunt.com/products/relay-app/reviews">Relay Product Hunt Reviews</a>
+- <a href="https://www.relay.app/join-the-relay-app-community">Join the Relay community</a></p>
+<p><strong>n8n (Community Forum + GitHub)</strong>
+- <a href="https://community.n8n.io/t/cancel-running-workflow-execution-via-n8n-api/114286">Cancel running workflow execution via n8n API ("flabbergasted")</a>
+- <a href="https://community.n8n.io/t/qol-stop-workflow-executions-in-the-workflow-specific-execution-view/42257">Stop button missing from workflow-specific view (open since Mar 2024)</a>
+- <a href="https://community.n8n.io/t/execution-status-is-running-almost-24-hrs-and-cannot-be-stopped/54461">Execution stuck Running ~24 hrs, "Problem stopping execution"</a>
+- <a href="https://github.com/n8n-io/n8n/issues/19922">1000 unstoppable executions (GitHub, closed "not planned")</a>
+- <a href="https://community.n8n.io/t/n8n-workflow-fails-to-resume-safely-after-partial-execution-idempotency-checkpointing-issue/293072">Workflow fails to resume safely after partial execution (no checkpointing)</a>
+- <a href="https://community.n8n.io/t/n8n-api-stop-cancel-execution/133701">Duplicate API cancel request (June 2025, unresolved)</a></p>
+<p><strong>Zapier Agents (Community Forum + G2)</strong>
+- <a href="https://community.zapier.com/troubleshooting-99/run-agent-behavior-step-delayed-stuck-49410">Run Agent behavior step delayed/stuck</a>
+- <a href="https://www.g2.com/products/zapier/reviews?qs=pros-and-cons">Zapier G2 reviews (silent-failure complaints)</a></p>
+<p><strong>Figma Make (May-June 2026)</strong>
+- <a href="https://forum.figma.com/report-a-problem-6/issues-with-credits-being-wasted-53615">Issues with credits being wasted (May 2026)</a></p>
+</body>
+</html>

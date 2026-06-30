@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projects · Workspace Canvas (templates mixed in)</title>
+<style>
+  /* ── Fluid design-system tokens (subset, from references/fluid-tokens.css) ── */
+  :root {
+    --primary-font-family: "Source Sans 3", "Source Sans Pro", Helvetica, Arial, sans-serif;
+
+    --surface-default: #ffffff;
+    --surface-subtle: #f6f9fb;
+    --surface-alt: #e5eaf1;
+
+    --text-primary: #373d47;
+    --text-secondary: #586373;
+    --text-emphasis: #1a1d21;
+    --text-inverse: #ffffff;
+
+    --border-default: #d5dbe4;
+    --border-subtle: #e5eaf1;
+
+    --radius-s: 4px;
+    --radius-m: 8px;
+    --radius-l: 12px;
+
+    --shadow-card: 0 1px 2px rgba(26,29,33,.06), 0 1px 3px rgba(26,29,33,.10);
+    --shadow-pop: 0 8px 24px rgba(26,29,33,.16), 0 2px 6px rgba(26,29,33,.08);
+
+    /* palette */
+    --blue-default:#1f75d7; --blue-emphasis:#0d4e9e; --blue-tint:#e7f2fa; --blue-subtle:#c8e2f8;
+    --teal-default:#108291; --teal-emphasis:#065f69; --teal-tint:#eef8fa; --teal-subtle:#c7eded;
+    --purple-default:#6d53c0; --purple-emphasis:#533aa2; --purple-tint:#ece9fa; --purple-subtle:#d9d3f5;
+    --orange-default:#e67009; --orange-emphasis:#bd5200; --orange-tint:#faf0e3; --orange-subtle:#ffe2c1;
+    --green-default:#5aa028; --green-emphasis:#44791e; --green-tint:#f0fae7; --green-subtle:#e0f5cf;
+    --red-default:#da3b1c; --red-emphasis:#b6270a; --red-tint:#fff1f0; --red-subtle:#fcded9;
+    --gray-default:#586373; --gray-tint:#f1f4f8; --gray-subtle:#e5eaf1;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: var(--primary-font-family);
+    color: var(--text-primary);
+    background: var(--surface-subtle);
+    overflow: hidden;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    height: 56px; display: flex; align-items: center; gap: 16px;
+    padding: 0 20px; background: var(--surface-default);
+    border-bottom: 1px solid var(--border-subtle);
+    position: relative; z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; }
+  .brand .mark {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--purple-default), var(--blue-default));
+    display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 14px;
+  }
+  .brand .name { font-weight: 700; font-size: 15px; color: var(--text-emphasis); }
+  .crumb { color: var(--text-secondary); font-size: 13px; }
+  .crumb b { color: var(--text-primary); font-weight: 600; }
+
+  .topbar .spacer { flex: 1; }
+  .search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface-subtle); border: 1px solid var(--border-default);
+    border-radius: var(--radius-m); padding: 7px 11px; width: 280px;
+  }
+  .search input { border: 0; background: transparent; outline: none; width: 100%;
+    font: inherit; font-size: 13px; color: var(--text-primary); }
+  .search svg { flex: none; opacity: .55; }
+
+  .btn {
+    font: inherit; font-size: 13px; font-weight: 600;
+    border: 1px solid var(--border-default); background: var(--surface-default);
+    color: var(--text-primary); border-radius: var(--radius-m);
+    padding: 8px 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+    transition: background .12s, border-color .12s;
+  }
+  .btn:hover { background: var(--surface-subtle); }
+  .btn.primary { background: var(--purple-default); border-color: var(--purple-default); color: #fff; }
+  .btn.primary:hover { background: var(--purple-emphasis); }
+
+  /* ── Coverage strip ── */
+  .coverage {
+    display: flex; align-items: center; gap: 18px; padding: 12px 22px;
+    background: var(--surface-default); border-bottom: 1px solid var(--border-subtle);
+    position: relative; z-index: 19;
+  }
+  .coverage .kpi { display: flex; flex-direction: column; line-height: 1.15; }
+  .coverage .kpi .v { font-size: 20px; font-weight: 800; color: var(--text-emphasis); }
+  .coverage .kpi .l { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .05em; }
+  .coverage .divider { width: 1px; height: 30px; background: var(--border-subtle); }
+  .cov-bars { display: flex; gap: 6px; flex: 1; max-width: 520px; }
+  .cov-bars .seg { flex: 1; height: 8px; border-radius: 99px; background: var(--surface-alt); position: relative; overflow: hidden; }
+  .cov-bars .seg i { position: absolute; inset: 0; border-radius: 99px; }
+  .cov-note { font-size: 13px; color: var(--text-secondary); }
+  .cov-note b { color: var(--orange-emphasis); }
+
+  /* ── Canvas ── */
+  .canvas-wrap { position: absolute; inset: 0; top: 0; overflow: hidden; }
+  .stage-pad { position: absolute; top: 117px; left: 0; right: 0; bottom: 0; overflow: hidden; }
+  .stage {
+    position: absolute; top: 0; left: 0; transform-origin: 0 0;
+    background-image: radial-gradient(var(--border-subtle) 1.1px, transparent 1.1px);
+    background-size: 22px 22px;
+    padding: 28px 28px 60px; display: flex; gap: 22px; cursor: grab;
+    min-width: max-content;
+  }
+  .stage.grabbing { cursor: grabbing; }
+
+  /* ── Lane (function) ── */
+  .lane { width: 320px; flex: none; display: flex; flex-direction: column; }
+  .lane-head {
+    border-radius: var(--radius-m) var(--radius-m) 0 0; padding: 10px 14px;
+    display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 13.5px;
+    border: 1px solid; border-bottom: 0;
+  }
+  .lane-head .count {
+    margin-left: auto; font-size: 12px; font-weight: 700;
+    background: rgba(255,255,255,.65); border-radius: 99px; padding: 1px 9px;
+  }
+  .lane-head .dot { width: 9px; height: 9px; border-radius: 99px; }
+  .lane-body {
+    border: 1px solid; border-top: 0; border-radius: 0 0 var(--radius-m) var(--radius-m);
+    padding: 12px; display: flex; flex-direction: column; gap: 11px; flex: 1; min-height: 540px;
+  }
+
+  /* ── Project card ── */
+  .card {
+    background: var(--surface-default); border: 1px solid var(--border-default);
+    border-radius: var(--radius-m); padding: 13px 14px; cursor: pointer;
+    box-shadow: var(--shadow-card); transition: transform .1s, box-shadow .12s, border-color .12s;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); border-color: var(--border-default); }
+  .card .ct { display: flex; align-items: flex-start; gap: 8px; }
+  .card .title { font-weight: 700; font-size: 14px; color: var(--text-emphasis); line-height: 1.25; flex: 1; }
+  .pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+  .pill.live { background: var(--green-tint); color: var(--green-emphasis); }
+  .pill.draft { background: var(--gray-tint); color: var(--gray-default); }
+  .pill.attn { background: var(--red-tint); color: var(--red-emphasis); }
+  .card .chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 9px 0 10px; }
+  .chip {
+    font-size: 11px; font-weight: 600; color: var(--text-secondary);
+    background: var(--surface-subtle); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-s); padding: 2px 7px; display: inline-flex; gap: 4px; align-items: center;
+  }
+  .card .foot { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+  .card .foot .run { font-weight: 700; color: var(--text-primary); }
+  .card .foot .sep { opacity: .4; }
+  .mini-flow { display: flex; align-items: center; gap: 3px; margin-top: 10px; }
+  .mini-flow .node { height: 6px; border-radius: 99px; background: var(--border-default); }
+  .mini-flow .ar { color: var(--border-default); font-size: 9px; }
+
+  /* ── Template / inspiration card ── */
+  .tpl {
+    border: 1.5px dashed var(--border-default); background: transparent;
+    border-radius: var(--radius-m); padding: 12px 13px; cursor: pointer;
+    transition: background .12s, border-color .12s;
+  }
+  .tpl:hover { background: var(--surface-default); border-color: var(--purple-muted, #b7a9ea); }
+  .tpl .tl { font-size: 12.5px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 7px; }
+  .tpl .td { font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.35; }
+  .tpl .badge { font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--purple-emphasis); background: var(--purple-tint); border-radius: var(--radius-s); padding: 1px 6px; }
+
+  /* empty lane upsell */
+  .empty {
+    border: 1.5px dashed var(--border-default); border-radius: var(--radius-m);
+    padding: 18px 14px; text-align: center; background: rgba(255,255,255,.4);
+  }
+  .empty .em-ic { font-size: 22px; margin-bottom: 6px; opacity: .8; }
+  .empty .em-t { font-weight: 700; font-size: 13.5px; color: var(--text-emphasis); }
+  .empty .em-d { font-size: 12.5px; color: var(--text-secondary); margin: 5px 0 12px; line-height: 1.4; }
+  .lane-section-label { font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text-secondary); margin: 4px 2px -2px; display: flex; align-items: center; gap: 6px; }
+  .lane-section-label::after { content:""; flex:1; height:1px; background: var(--border-subtle); }
+
+  /* ── Zoom control ── */
+  .zoom {
+    position: absolute; right: 20px; bottom: 20px; z-index: 18;
+    display: flex; align-items: center; background: var(--surface-default);
+    border: 1px solid var(--border-default); border-radius: var(--radius-m);
+    box-shadow: var(--shadow-card); overflow: hidden;
+  }
+  .zoom button { border: 0; background: transparent; font: inherit; font-size: 16px; font-weight: 700;
+    color: var(--text-secondary); width: 36px; height: 34px; cursor: pointer; }
+  .zoom button:hover { background: var(--surface-subtle); }
+  .zoom .lvl { width: 50px; text-align: center; font-size: 12px; font-weight: 700; color: var(--text-primary);
+    border-left: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle); line-height: 34px; }
+
+  .hint { position: absolute; left: 20px; bottom: 22px; z-index: 18; font-size: 12px;
+    color: var(--text-secondary); background: rgba(255,255,255,.8); border: 1px solid var(--border-subtle);
+    border-radius: 99px; padding: 5px 12px; backdrop-filter: blur(4px); }
+
+  /* ── Modal ── */
+  .scrim { position: fixed; inset: 0; background: rgba(26,29,33,.45); z-index: 50;
+    display: none; align-items: center; justify-content: center; padding: 24px; }
+  .scrim.open { display: flex; }
+  .modal { background: var(--surface-default); border-radius: var(--radius-l); width: 520px; max-width: 100%;
+    box-shadow: var(--shadow-pop); overflow: hidden; animation: pop .14s ease-out; }
+  @keyframes pop { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal .mh { padding: 18px 20px 14px; border-bottom: 1px solid var(--border-subtle); display: flex; gap: 12px; align-items: flex-start; }
+  .modal .mh .mt { font-size: 17px; font-weight: 800; color: var(--text-emphasis); }
+  .modal .mh .ms { font-size: 13px; color: var(--text-secondary); margin-top: 3px; }
+  .modal .mh .x { margin-left: auto; border: 0; background: transparent; font-size: 20px; cursor: pointer; color: var(--text-secondary); }
+  .modal .mb { padding: 18px 20px; }
+  .modal .mb p { font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 14px; }
+  .modal .mb .row { display: flex; gap: 10px; margin-bottom: 8px; font-size: 13px; }
+  .modal .mb .row .k { width: 110px; color: var(--text-secondary); flex: none; }
+  .modal .mb .row .v { font-weight: 600; color: var(--text-primary); }
+  .modal .mf { padding: 14px 20px; border-top: 1px solid var(--border-subtle); display: flex; gap: 10px; justify-content: flex-end; }
+  .modal .preview-strip { display:flex; align-items:center; gap:6px; background: var(--surface-subtle);
+    border:1px solid var(--border-subtle); border-radius: var(--radius-m); padding: 14px; margin-bottom: 16px; }
+  .modal .pv-node { padding: 6px 9px; border-radius: var(--radius-s); font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .modal .pv-ar { color: var(--border-default); }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand"><div class="mark">W</div><div class="name">Workato</div></div>
+    <div class="crumb">Workspace › <b>Projects</b></div>
+    <div class="spacer"></div>
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+      <input id="q" placeholder="Search projects across functions">
+    </div>
+    <button class="btn" id="tplBtn">✨ Browse templates</button>
+    <button class="btn primary">+ New project</button>
+  </div>
+
+  <div class="coverage">
+    <div class="kpi"><span class="v" id="kProjects">6</span><span class="l">Projects</span></div>
+    <div class="divider"></div>
+    <div class="kpi"><span class="v"><span id="kCov">4</span>/5</span><span class="l">Functions automated</span></div>
+    <div class="divider"></div>
+    <div class="cov-bars" id="covBars"></div>
+    <div class="cov-note">Marketing has <b>no automation yet</b> — see what teams like yours run there.</div>
+  </div>
+
+  <div class="canvas-wrap">
+    <div class="stage-pad">
+      <div class="stage" id="stage"></div>
+    </div>
+    <div class="hint">Drag to pan · scroll to move · click a project to open its canvas</div>
+    <div class="zoom">
+      <button id="zOut">−</button>
+      <div class="lvl" id="zLvl">100%</div>
+      <button id="zIn">+</button>
+    </div>
+  </div>
+
+  <div class="scrim" id="scrim">
+    <div class="modal" id="modal"></div>
+  </div>
+
+<script>
+/* ───────── data ───────── */
+const FUNCS = [
+  { key:"it",        name:"IT",         color:"gray" },
+  { key:"hr",        name:"HR",         color:"blue" },
+  { key:"sales",     name:"Sales",      color:"orange" },
+  { key:"marketing", name:"Marketing",  color:"purple" },
+  { key:"accounting",name:"Accounting", color:"green" },
+];
+
+const PROJECTS = {
+  it: [
+    { name:"Employee Device Provisioning", status:"live", chips:["3 recipes","1 agent"], runs:"86 runs/mo", edited:"3d ago", nodes:4 },
+  ],
+  hr: [
+    { name:"New Hire Onboarding", status:"live", chips:["6 recipes","2 agents","1 KB"], runs:"142 runs/mo", edited:"yesterday", nodes:6 },
+    { name:"PTO Request Routing", status:"attn", chips:["2 recipes","1 decision model"], runs:"311 runs/mo", edited:"5d ago", nodes:3 },
+  ],
+  sales: [
+    { name:"Lead Enrichment & Routing", status:"live", chips:["4 recipes","1 agent","2 KBs"], runs:"1.2k runs/mo", edited:"2h ago", nodes:5 },
+    { name:"Quote Approval Flow", status:"draft", chips:["2 recipes"], runs:"draft", edited:"1w ago", nodes:2 },
+  ],
+  marketing: [], // intentionally empty — the upsell story
+  accounting: [
+    { name:"Supplier Contract Legal Review", status:"live", chips:["1 recipe","1 Genie","1 decision model","2 KBs"], runs:"58 runs/mo", edited:"just now", nodes:7 },
+    { name:"Invoice 3-Way Match", status:"live", chips:["3 recipes","1 agent"], runs:"940 runs/mo", edited:"4d ago", nodes:5 },
+  ],
+};
+
+const TEMPLATES = {
+  it:        [{t:"Access Request & Deprovisioning", d:"Auto-grant on hire, revoke on exit across SaaS apps."}],
+  hr:        [{t:"Candidate Interview Scheduler", d:"Coordinate panels and send offers without back-and-forth."}],
+  sales:     [{t:"Renewal Risk Watcher", d:"Flag at-risk accounts from usage + CRM signals."}],
+  marketing: [
+    {t:"Campaign UTM Builder", d:"Standardize tracking links and push to the CMP."},
+    {t:"MQL Scoring & Routing", d:"Score inbound leads and route to the right SDR."},
+    {t:"Event Lead Capture", d:"Sync booth scans to CRM and trigger follow-ups."},
+  ],
+  accounting:[{t:"Expense Audit Assistant", d:"AI flags out-of-policy expenses before reimbursement."}],
+};
+
+const COLORS = {
+  gray:  {def:"var(--gray-default)",  head:"var(--gray-tint)",   body:"var(--gray-tint)",   border:"var(--border-default)", fg:"var(--text-primary)"},
+  blue:  {def:"var(--blue-default)",  head:"var(--blue-subtle)", body:"var(--blue-tint)",   border:"var(--blue-subtle)",    fg:"var(--blue-emphasis)"},
+  orange:{def:"var(--orange-default)",head:"var(--orange-subtle)",body:"var(--orange-tint)",border:"var(--orange-subtle)",  fg:"var(--orange-emphasis)"},
+  purple:{def:"var(--purple-default)",head:"var(--purple-subtle)",body:"var(--purple-tint)",border:"var(--purple-subtle)",  fg:"var(--purple-emphasis)"},
+  green: {def:"var(--green-default)", head:"var(--green-subtle)",body:"var(--green-tint)",  border:"var(--green-subtle)",   fg:"var(--green-emphasis)"},
+};
+
+/* ───────── render ───────── */
+const stage = document.getElementById("stage");
+
+function pill(status){
+  const map = {live:["live","Live"], draft:["draft","Draft"], attn:["attn","Needs attention"]};
+  const [c,l] = map[status] || map.draft;
+  return `<span class="pill ${c}">${l}</span>`;
+}
+function miniFlow(n, color){
+  const widths = [22,16,14,18,12,20,15];
+  let html = '<div class="mini-flow">';
+  for(let i=0;i<n;i++){
+    const last = i===n-1;
+    html += `<span class="node" style="width:${widths[i%widths.length]}px;${last?`background:${color}`:''}"></span>`;
+    if(!last) html += '<span class="ar">›</span>';
+  }
+  return html + '</div>';
+}
+
+function projectCard(p, color){
+  const c = COLORS[color];
+  return `<div class="card" data-proj="${p.name}">
+    <div class="ct"><div class="title">${p.name}</div>${pill(p.status)}</div>
+    <div class="chips">${p.chips.map(x=>`<span class="chip">${x}</span>`).join("")}</div>
+    <div class="foot"><span class="run">${p.runs}</span><span class="sep">·</span><span>edited ${p.edited}</span></div>
+    ${miniFlow(p.nodes, c.def)}
+  </div>`;
+}
+
+function templateCard(tp){
+  return `<div class="tpl" data-tpl="${tp.t}">
+    <div class="tl"><span class="badge">Template</span>${tp.t}</div>
+    <div class="td">${tp.d}</div>
+  </div>`;
+}
+
+function render(filter=""){
+  const f = filter.trim().toLowerCase();
+  stage.innerHTML = FUNCS.map(fn=>{
+    const c = COLORS[fn.color];
+    let projs = PROJECTS[fn.key] || [];
+    if(f) projs = projs.filter(p=>p.name.toLowerCase().includes(f));
+    const tpls = TEMPLATES[fn.key] || [];
+    const empty = (PROJECTS[fn.key]||[]).length === 0;
+
+    let bodyInner = "";
+    if(empty){
+      bodyInner += `<div class="empty">
+        <div class="em-ic">🌱</div>
+        <div class="em-t">No automation here yet</div>
+        <div class="em-d">Marketing teams like yours usually start with lead routing and campaign ops. Pick a template to launch in minutes.</div>
+        <button class="btn primary" style="font-size:12.5px;padding:7px 12px" data-tpl="${tpls[0]?.t||''}">Start from a template</button>
+      </div>`;
+      bodyInner += `<div class="lane-section-label">Popular with teams like yours</div>`;
+      bodyInner += tpls.map(templateCard).join("");
+    } else {
+      bodyInner += projs.map(p=>projectCard(p, fn.color)).join("");
+      if(!f && tpls.length){
+        bodyInner += `<div class="lane-section-label">Add next</div>`;
+        bodyInner += tpls.map(templateCard).join("");
+      }
+      if(f && !projs.length){
+        bodyInner += `<div class="empty"><div class="em-d" style="margin:0">No match in ${fn.name}.</div></div>`;
+      }
+    }
+
+    return `<div class="lane">
+      <div class="lane-head" style="background:${c.head};border-color:${c.border};color:${c.fg}">
+        <span class="dot" style="background:${c.def}"></span>${fn.name}
+        <span class="count">${(PROJECTS[fn.key]||[]).length}</span>
+      </div>
+      <div class="lane-body" style="background:${c.body};border-color:${c.border}">${bodyInner}</div>
+    </div>`;
+  }).join("");
+}
+
+/* coverage bars */
+function buildCoverage(){
+  const wrap = document.getElementById("covBars");
+  wrap.innerHTML = FUNCS.map(fn=>{
+    const has = (PROJECTS[fn.key]||[]).length>0;
+    const c = COLORS[fn.color];
+    return `<div class="seg" title="${fn.name}">${has?`<i style="background:${c.def}"></i>`:''}</div>`;
+  }).join("");
+}
+
+render();
+buildCoverage();
+
+/* ───────── modal ───────── */
+const scrim = document.getElementById("scrim");
+const modal = document.getElementById("modal");
+function closeModal(){ scrim.classList.remove("open"); }
+scrim.addEventListener("click", e=>{ if(e.target===scrim) closeModal(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeModal(); });
+
+function findProject(name){
+  for(const k in PROJECTS){ const hit = PROJECTS[k].find(p=>p.name===name); if(hit) return {p:hit, fn:FUNCS.find(f=>f.key===k)}; }
+  return null;
+}
+
+function openProject(name){
+  const found = findProject(name); if(!found) return;
+  const {p, fn} = found; const c = COLORS[fn.color];
+  const nodeColors = [c.def, "var(--blue-default)", "var(--purple-default)", "var(--green-default)"];
+  const flow = p.chips.slice(0, Math.min(p.chips.length,4)).map((ch,i)=>
+    `<span class="pv-node" style="background:${['var(--blue-tint)','var(--purple-tint)','var(--orange-tint)','var(--green-tint)'][i%4]};color:${nodeColors[i%4]}">${ch}</span>`
+  ).join('<span class="pv-ar">→</span>');
+
+  modal.innerHTML = `
+    <div class="mh">
+      <div><div class="mt">${p.name}</div><div class="ms">${fn.name} · ${p.runs}</div></div>
+      <button class="x" onclick="closeModal()">×</button>
+    </div>
+    <div class="mb">
+      <div class="preview-strip">${flow}</div>
+      <div class="row"><span class="k">Function</span><span class="v">${fn.name}</span></div>
+      <div class="row"><span class="k">Status</span><span class="v">${{live:'Live',draft:'Draft',attn:'Needs attention'}[p.status]}</span></div>
+      <div class="row"><span class="k">Components</span><span class="v">${p.chips.join(' · ')}</span></div>
+      <div class="row"><span class="k">Last edited</span><span class="v">${p.edited}</span></div>
+      <p style="margin-top:14px">Opening this project takes you into its full canvas — recipes, Genies, decision models, and knowledge bases laid out as a flow.</p>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeModal()">Close</button>
+      <button class="btn primary" onclick="closeModal()">Open project canvas →</button>
+    </div>`;
+  scrim.classList.add("open");
+}
+
+function openTemplate(name){
+  let tp=null, fnKey=null;
+  for(const k in TEMPLATES){ const hit=TEMPLATES[k].find(t=>t.t===name); if(hit){tp=hit; fnKey=k;} }
+  if(!tp) return;
+  const fn = FUNCS.find(f=>f.key===fnKey); const c = COLORS[fn.color];
+  modal.innerHTML = `
+    <div class="mh">
+      <div><div class="mt">${tp.t}</div><div class="ms">Template · ${fn.name}</div></div>
+      <button class="x" onclick="closeModal()">×</button>
+    </div>
+    <div class="mb">
+      <div class="preview-strip">
+        <span class="pv-node" style="background:${c.body};color:${c.fg}">Trigger</span><span class="pv-ar">→</span>
+        <span class="pv-node" style="background:var(--blue-tint);color:var(--blue-emphasis)">Recipe</span><span class="pv-ar">→</span>
+        <span class="pv-node" style="background:var(--purple-tint);color:var(--purple-emphasis)">Agent</span><span class="pv-ar">→</span>
+        <span class="pv-node" style="background:var(--green-tint);color:var(--green-emphasis)">Outcome</span>
+      </div>
+      <p>${tp.d}</p>
+      <p style="margin:0">See how other companies run this, then clone it into your <b>${fn.name}</b> space and customize. Most teams are live in under a day.</p>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeModal()">Close</button>
+      <button class="btn primary" onclick="closeModal()">Use this template</button>
+    </div>`;
+  scrim.classList.add("open");
+}
+
+stage.addEventListener("click", e=>{
+  const card = e.target.closest("[data-proj]");
+  const tpl  = e.target.closest("[data-tpl]");
+  if(tpl){ e.stopPropagation(); openTemplate(tpl.getAttribute("data-tpl")); return; }
+  if(card){ openProject(card.getAttribute("data-proj")); }
+});
+
+document.getElementById("tplBtn").addEventListener("click", ()=>{
+  modal.innerHTML = `
+    <div class="mh"><div><div class="mt">✨ Template gallery</div>
+      <div class="ms">Inspiration from how other companies automate each function</div></div>
+      <button class="x" onclick="closeModal()">×</button></div>
+    <div class="mb">
+      ${FUNCS.map(fn=>{
+        const c=COLORS[fn.color]; const tpls=TEMPLATES[fn.key]||[];
+        return `<div class="lane-section-label" style="color:${c.fg}">${fn.name}</div>` +
+          tpls.map(t=>`<div class="tpl" data-tpl="${t.t}" style="margin-bottom:8px"><div class="tl"><span class="badge">Template</span>${t.t}</div><div class="td">${t.d}</div></div>`).join("");
+      }).join("")}
+    </div>
+    <div class="mf"><button class="btn" onclick="closeModal()">Close</button></div>`;
+  modal.querySelectorAll("[data-tpl]").forEach(el=>el.addEventListener("click",()=>openTemplate(el.getAttribute("data-tpl"))));
+  scrim.classList.add("open");
+});
+
+/* ───────── search ───────── */
+document.getElementById("q").addEventListener("input", e=> render(e.target.value));
+
+/* ───────── zoom + pan ───────── */
+let zoom = 1, panX = 0, panY = 0;
+const stagePad = stage.parentElement;
+function applyTransform(){
+  stage.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+  document.getElementById("zLvl").textContent = Math.round(zoom*100)+"%";
+}
+function setZoom(z){ zoom = Math.min(1.4, Math.max(0.5, z)); applyTransform(); }
+document.getElementById("zIn").onclick = ()=> setZoom(zoom+0.1);
+document.getElementById("zOut").onclick = ()=> setZoom(zoom-0.1);
+
+let dragging=false, sx=0, sy=0, ox=0, oy=0;
+stage.addEventListener("mousedown", e=>{
+  if(e.target.closest(".card, .tpl, .btn")) return;
+  dragging=true; stage.classList.add("grabbing"); sx=e.clientX; sy=e.clientY; ox=panX; oy=panY;
+});
+window.addEventListener("mousemove", e=>{
+  if(!dragging) return; panX = ox + (e.clientX-sx); panY = oy + (e.clientY-sy); applyTransform();
+});
+window.addEventListener("mouseup", ()=>{ dragging=false; stage.classList.remove("grabbing"); });
+stagePad.addEventListener("wheel", e=>{
+  if(e.ctrlKey){ e.preventDefault(); setZoom(zoom - e.deltaY*0.002); return; }
+  panX -= e.deltaX; panY -= e.deltaY; applyTransform();
+}, {passive:false});
+
+applyTransform();
+</script>
+</body>
+</html>

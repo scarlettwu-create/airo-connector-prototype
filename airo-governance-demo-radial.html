@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIRO · Agent Operations — Radial</title>
+<style>
+  :root{
+    --bg:#f4f7fb; --bg2:#eef2f7; --panel:#ffffff; --panel2:#ffffff;
+    --line:#e3e9f1; --line2:#d6dfea;
+    --tx:#1d2733; --tx2:#5d6b7c; --tx3:#8a97a8;
+    --teal:#0d9488; --accent:#3b6fe0; --accent2:#3b6fe0;
+    --ok:#1f9d6b; --warn:#b8820f; --err:#d5403a; --risk:#bf3aa0;
+    --r:12px; --rs:8px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:var(--font);background:var(--bg);color:var(--tx);font-size:14px;overflow:hidden}
+  .nav{height:50px;display:flex;align-items:center;gap:26px;padding:0 20px;border-bottom:1px solid var(--line);background:#fff}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700}
+  .brand .star{color:var(--teal);font-size:18px}
+  .nav a{color:var(--tx2);font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;text-decoration:none;padding:4px 2px;font-weight:600}
+  .nav a.active{color:var(--tx);border-bottom:2px solid var(--teal);padding-bottom:14px}
+  .nav .sp{flex:1}
+  .nav .aibtn{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line2);color:var(--tx);border-radius:999px;padding:6px 13px;cursor:pointer;font-size:13px;font-weight:600;box-shadow:0 1px 2px rgba(20,30,50,.05)}
+  .nav .aibtn .star{color:var(--teal)}
+  .main{display:flex;height:calc(100% - 50px);position:relative}
+  .stage{flex:1;min-width:0;overflow:auto;position:relative}
+  .exhd{display:flex;align-items:center;gap:12px;padding:18px 24px 6px}
+  .exhd .crumb{color:var(--tx3);font-size:12px}
+  .exhd h1{margin:0;font-size:22px}
+  .extop{display:flex;align-items:center;gap:10px;padding:0 24px 10px;color:var(--tx2);font-size:13px}
+  .exwrap{display:flex;gap:0;height:calc(100% - 130px);min-width:0;overflow:hidden}
+  .filterbar{display:flex;align-items:center;gap:10px;padding:8px 24px 10px}
+  .fback,.fchip{display:flex;align-items:center;gap:6px;border:1px solid var(--line2);background:#fff;border-radius:8px;padding:5px 11px;font-size:12.5px;cursor:pointer;box-shadow:0 1px 2px rgba(20,30,50,.04)}
+  .fback{color:var(--tx2)} .fchip{color:var(--tx)} .fchip .lbl{color:var(--tx2)} .fchip .cx{color:var(--tx3);margin-left:2px}
+  .fchip:hover,.fback:hover{border-color:var(--accent)}
+  .graph{flex:1;min-width:0;position:relative;overflow:hidden;background:#fbfcfe;background-image:radial-gradient(circle at 1px 1px,#e1e8f2 1px,transparent 0);background-size:22px 22px}
+  #rsvg{display:block;width:100%;height:100%}
+  .rnode rect{fill:#fff;stroke:var(--line2);stroke-width:1.2}
+  .rnode .rt{font-size:12px;font-weight:600;fill:var(--tx)}
+  .rnode .rs{font-size:9.5px;fill:var(--tx3)}
+  .rnode.dim{opacity:.4;transition:opacity .2s}
+  .rnode.active rect{stroke-width:2.4}
+  .rnode.active.green rect{stroke:var(--ok)}
+  .rnode.active.red rect{stroke:var(--err)}
+  .rnode.active.amber rect{stroke:var(--warn)}
+  .rhub rect{fill:#f1fbf9;stroke:var(--teal);stroke-width:1.6;transition:.2s}
+  .rhub.shut rect{fill:#fdecea}
+  .rhub .ht{font-size:11px;font-weight:700;fill:var(--teal);letter-spacing:.04em}
+  .rhub.shut .ht{fill:var(--err)}
+  .rhub .hstamp{font-size:16px;font-weight:700}
+  .rhub .htally{font-size:11px;fill:var(--tx2)}
+  .rhub{cursor:pointer}
+  .rnode.hasviol rect{stroke:var(--err);stroke-width:1.8}
+  .rnode.hasmask rect{stroke:#0d9488;stroke-width:1.6}
+  .rnode.hasviol,.rnode.hasmask{opacity:1}
+  .badge text{font-family:var(--font)}
+  .vtag{font-size:9.5px;font-weight:700;border-radius:999px;padding:1px 7px;margin-left:6px}
+  .vtag.r{background:#fcebe9;color:#d5403a}.vtag.g{background:#e8f6ef;color:#1f9d6b}.vtag.o{background:#fbf2dd;color:#9a7212}.vtag.m{background:#dff3ee;color:#0d7a66}
+  .rail{width:300px;flex:none;border-left:1px solid var(--line);padding:18px 18px 24px;overflow:auto;background:#fafcff}
+  .rail h3{font-size:15px;margin:0 0 14px}
+  .rail .reason{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--tx);margin-bottom:9px}
+  .rail .kv{border-top:1px solid var(--line);padding:12px 0 0;margin-top:12px}
+  .rail .kv .k{font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.03em}
+  .rail .kv .v{font-size:15px;font-weight:700;margin-top:3px}
+  .page{padding:22px 26px;max-width:980px}
+  .page h1{font-size:22px;margin:0 0 16px}
+  .polrow{background:#fff;border:1px solid var(--line2);border-radius:11px;padding:13px 15px;margin-bottom:11px;box-shadow:0 1px 2px rgba(20,30,50,.04)}
+  .polrow .pn{font-weight:600;display:flex;align-items:center;gap:8px}
+  .polrow .pm{font-size:12px;color:var(--tx2);margin-top:6px;display:flex;gap:16px;flex-wrap:wrap}
+  .polrow .pm b{color:var(--tx)}
+  .sw{margin-left:auto;width:36px;height:20px;border-radius:999px;background:#cfd8e4;position:relative;cursor:pointer;flex:none}
+  .sw.on{background:var(--ok)}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}.sw.on::after{left:18px}
+  .auditv .ar{display:flex;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);font-size:13px;border-radius:6px}
+  .auditv .ar:hover{background:#f6f8fc}
+  .afilter{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .achip{border:1px solid var(--line2);background:#fff;border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--tx2)}
+  .achip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .auditv .ar .t{color:var(--tx2);width:50px;flex:none}
+  .dpill{font-size:10px;font-weight:700;border-radius:999px;padding:1px 8px}
+  .dpill.g{background:#e8f6ef;color:#1f9d6b}.dpill.r{background:#fcebe9;color:#d5403a}.dpill.o{background:#fbf2dd;color:#9a7212}
+  .dock{width:380px;flex:none;border-left:1px solid var(--line);background:#fff;display:flex;flex-direction:column;transition:width .2s}
+  .dock.collapsed{width:0;border:none;overflow:hidden}
+  .dock .dhd{height:44px;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid var(--line);font-weight:700}
+  .dock .dhd .star{color:var(--teal)}
+  .dock .dhd .x{margin-left:auto;cursor:pointer;color:var(--tx2);background:none;border:none;font-size:16px}
+  .thread{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;background:var(--bg)}
+  .msg{font-size:13px;line-height:1.5}
+  .msg.user{align-self:flex-end;background:var(--accent2);color:#fff;border-radius:12px 12px 3px 12px;padding:8px 11px;max-width:88%}
+  .msg.airo{background:#fff;border:1px solid var(--line2);border-radius:3px 12px 12px 12px;padding:9px 12px;max-width:94%}
+  .msg.sys{background:transparent;color:var(--tx2);padding:0;font-size:12.5px}
+  .env-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+  .pill{font-size:11px;font-weight:600;border-radius:999px;padding:2px 8px}
+  .pill.b{background:#eaf1fe;color:#3b6fe0}.pill.n{background:#eef2f8;color:var(--tx2)}.pill.r{background:#fcebe9;color:#d5403a}.pill.o{background:#fbf2dd;color:#9a7212}.pill.g{background:#e8f6ef;color:#1f9d6b}
+  .routine{border:1px dashed var(--line2);border-radius:10px;background:#f6f8fc}
+  .routine summary{cursor:pointer;list-style:none;padding:8px 11px;font-size:12.5px;color:var(--tx2)}
+  .routine summary::-webkit-details-marker{display:none}
+  .routine .ln{padding:4px 11px 4px 26px;font-size:12px;color:var(--tx2);border-top:1px solid var(--line)}
+  .note{border-radius:8px;padding:9px 11px;font-size:12.5px}
+  .note.block{background:#fbf2dd;color:#7c5a06}.note.halt{background:#fcebe9;color:#8a2a25}
+  .approve{border:1.5px solid var(--warn);border-radius:10px;background:#fbf6e6;overflow:hidden}
+  .approve .hd{padding:9px 12px;font-weight:700;color:#7c5a06}
+  .approve .bd{padding:0 12px 11px;font-size:12.5px;color:#6b5a2e}
+  .approve .grant{background:#fff;border:1px solid #e8d7a8;border-radius:7px;padding:6px 9px;margin:7px 0;display:flex;justify-content:space-between}
+  .ack{display:flex;gap:6px;font-size:12px;margin:6px 0 9px}
+  .pcard{border:1px solid var(--accent2);border-radius:10px;background:#eef4ff;padding:10px 12px;margin-top:7px}
+  .pcard .pn{font-weight:700;color:#23406e}.pcard .pm{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:11.5px;color:var(--tx2)}
+  .row{display:flex;gap:8px;align-items:center}
+  .btn{height:30px;padding:0 12px;border-radius:7px;font-size:12.5px;font-weight:600;border:1px solid transparent;cursor:pointer;font-family:inherit}
+  .btn.brand{background:var(--accent2);color:#fff}.btn.neutral{background:#fff;border-color:var(--line2);color:var(--tx)}.btn.danger{background:var(--err);color:#fff}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .composer{border-top:1px solid var(--line);padding:11px 13px 14px;background:#fff}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .chip{font-size:11.5px;padding:4px 9px;border-radius:999px;border:1px solid var(--line2);background:#fff;color:var(--tx2);cursor:pointer;white-space:nowrap}
+  .chip.rule{border-style:dashed}.chip:hover{border-color:var(--accent);color:var(--tx)}
+  .inrow{display:flex;gap:8px}
+  .inrow textarea{flex:1;resize:none;background:#fff;border:1px solid var(--line2);border-radius:10px;color:var(--tx);padding:9px 11px;font-family:inherit;font-size:13px;height:42px}
+  .inrow textarea:focus{outline:none;border-color:var(--accent)}
+  .drawer{position:absolute;top:0;right:0;height:100%;width:640px;max-width:92%;background:#fff;border-left:1px solid var(--line);box-shadow:-18px 0 44px rgba(20,30,50,.12);transform:translateX(100%);transition:transform .25s;z-index:20;display:flex;flex-direction:column}
+  .drawer.open{transform:none}
+  .drhd{padding:16px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)}
+  .drhd h2{margin:0;font-size:17px;flex:1}
+  .menu{position:relative}
+  .menu .pop{position:absolute;right:0;top:36px;background:#fff;border:1px solid var(--line2);border-radius:10px;min-width:190px;display:none;overflow:hidden;z-index:5;box-shadow:0 8px 24px rgba(20,30,50,.12)}
+  .menu.open .pop{display:block}
+  .menu .pop div{padding:10px 13px;font-size:13px;cursor:pointer}.menu .pop div:hover{background:#f0f3f8}
+  .drtabs{display:flex;gap:18px;padding:0 20px;border-bottom:1px solid var(--line)}
+  .drtab{padding:11px 0;font-size:12.5px;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.03em;font-weight:600}
+  .drtab.active{color:var(--tx);border-color:var(--teal)}
+  .drbody{flex:1;overflow:auto;padding:20px}
+  .drbody h4{font-size:13px;margin:0 0 9px;display:flex;align-items:center;gap:7px}
+  .drbody p{font-size:13.5px;line-height:1.55;color:var(--tx);margin:0 0 18px}
+  .fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px 20px;margin-bottom:20px}
+  .fields .k{font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.03em}
+  .fields .v{font-size:14px;margin-top:4px}
+  .tl{position:relative;padding-left:18px}
+  .tl .ev{border-left:2px solid var(--line2);padding:0 0 18px 16px;position:relative}
+  .tl .ev::before{content:"";position:absolute;left:-5px;top:2px;width:8px;height:8px;border-radius:50%;background:var(--teal)}
+  .tl .ev .ts{font-size:11px;color:var(--tx2)}
+  .tl .ev .tt{font-weight:600;margin:3px 0}
+  .tl .ev .td{font-size:12.5px;color:var(--tx2)}
+  .tl pre{background:#f4f7fb;border:1px solid var(--line2);border-radius:8px;padding:9px 11px;font-size:11.5px;color:#23406e;overflow:auto;margin-top:7px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d2733;border:1px solid #2c3a4e;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:50;display:none;box-shadow:0 8px 24px rgba(20,30,50,.2)}
+</style>
+</head>
+<body>
+  <div class="nav">
+    <div class="brand"><span class="star">✦</span> AIRO <span style="color:var(--tx3);font-weight:500">· Agent Operations</span></div>
+    <a data-view="explorer" class="active">Explorer</a>
+    <a data-view="pol">Policies</a>
+    <a data-view="activity">Activity audit</a>
+    <span class="sp"></span>
+    <button class="aibtn" id="aibtn"><span class="star">✦</span> Ask AIRO</button>
+  </div>
+  <div class="main">
+    <div class="stage">
+      <!-- EXPLORER (radial) -->
+      <div id="view-explorer">
+        <div class="exhd"><div><div class="crumb">Runs › Onboarding</div><h1 id="runTitle">Onboarding run</h1></div></div>
+        <div class="extop">Explorer · <b style="color:var(--tx)">this run</b> &nbsp;|&nbsp; <span id="runStatus">idle</span></div>
+        <div class="filterbar">
+          <div class="fback">‹ Back</div>
+          <div class="fchip"><span class="lbl">Run:</span> <b>this run</b></div>
+          <div class="fchip"><span class="lbl">Genie:</span> <b>All</b> ▾</div>
+          <div class="fchip"><span class="lbl">Status:</span> <b>All</b> <span class="cx">×</span></div>
+        </div>
+        <div class="exwrap">
+          <div class="graph"><svg id="rsvg" viewBox="0 0 920 640" preserveAspectRatio="xMidYMid meet"><g id="rwires"></g><g id="rmarks"></g><g id="ractive"></g><g id="rnodes"></g></svg></div>
+          <div class="rail">
+            <h3>Run summary</h3>
+            <div id="reasons"><div class="reason" style="color:var(--tx2)">Run something from the AIRO panel to see the blast radius and a plain-language summary.</div></div>
+            <div class="kv"><div class="k">Grants used</div><div class="v" id="kvGrants">0 / 8</div></div>
+            <div class="kv"><div class="k">Blocked</div><div class="v" id="kvViol">0</div></div>
+            <div class="kv"><div class="k">Sponsor</div><div class="v" style="font-size:13px">it-ops-manager</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- POLICIES -->
+      <div id="view-pol" style="display:none"><div class="page"><h1>Policies</h1><div id="pollist"></div>
+        <p style="color:var(--tx2);font-size:13px">Create new policies by telling AIRO a rule in plain English, e.g. “max 5 grants per run”.</p></div></div>
+      <!-- ACTIVITY -->
+      <div id="view-activity" style="display:none"><div class="page"><h1>Activity audit</h1><div class="afilter" id="afilter"></div><div class="auditv" id="auditv"></div></div></div>
+
+      <!-- action drawer -->
+      <div class="drawer" id="drawer">
+        <div class="drhd"><h2 id="drTitle">Action</h2>
+          <span class="pill o" id="drStatus">Open</span>
+          <div class="menu" id="remediate"><button class="btn brand" id="remBtn">Remediate ▾</button>
+            <div class="pop"><div data-act="rewind">↺ Rewind action</div><div data-act="jira">Create Jira ticket</div><div data-act="snow">Create ServiceNow ticket</div></div></div>
+          <button class="btn neutral" id="drClose">✕</button>
+        </div>
+        <div class="drtabs"><span class="drtab active" data-dt="ov">Overview</span><span class="drtab" data-dt="logs">Agent Logs</span></div>
+        <div class="drbody" id="drBody"></div>
+      </div>
+    </div>
+
+    <!-- AIRO dock -->
+    <div class="dock" id="dock">
+      <div class="dhd"><span class="star">✦</span> AIRO <button class="x" id="dockX">›</button></div>
+      <div class="thread" id="thread"></div>
+      <div class="composer">
+        <div class="chips" id="chips"></div>
+        <div class="inrow"><textarea id="input" placeholder="Run something, or set a rule…"></textarea><button class="btn brand" id="send" style="height:42px">↑</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+<script>
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const crew=[
+  {name:'Coordinator',id:'coord',role:'orchestrate only',allowed:['delegate'],canGrant:[],denied:[]},
+  {name:'AccountGenie',id:'acct',role:'standard accounts',allowed:['createAccount'],canGrant:[],denied:[]},
+  {name:'AccessGenie',id:'access',role:'standard roles',allowed:['grantAccess'],canGrant:['crm:read','calendar','wiki','drive','vpn','finance:read'],denied:['admin','pii:export']},
+  {name:'NotifyGenie',id:'notify',role:'notify · drafts',allowed:['notify','modelCall'],canGrant:[],denied:[]},
+];
+const IDENT=[{id:'spons',nm:'it-ops-manager',sub:'sponsor'},{id:'broker',nm:'AIRO',sub:'broker'}];
+const APPS=[{id:'okta',nm:'Okta'},{id:'slack',nm:'Slack'},{id:'drive',nm:'Drive'},{id:'finance',nm:'Finance'},{id:'extllm',nm:'External LLM'}];
+const TOOLS=[{id:'createAccount',nm:'create_account'},{id:'grantAccess',nm:'grant_access'},{id:'notify',nm:'notify'},{id:'modelCall',nm:'model_call'}];
+
+let policies=defaultPolicies();
+function defaultPolicies(){return [
+  {id:'p1',name:'No admin grants',type:'Rule-based',enf:'Block',on:true,kind:'block',role:'admin'},
+  {id:'p2',name:'No PII export',type:'Rule-based',enf:'Block',on:true,kind:'block',role:'pii:export'},
+  {id:'p3',name:'Max 8 grants per run',type:'Rule-based',enf:'Block',on:true,kind:'ceiling',n:8},
+  {id:'p4',name:'Finance access needs approval',type:'Rule-based',enf:'Approve',on:true,kind:'approve',role:'finance:read'},
+  {id:'p5',name:'No PII to external models',type:'Content / PII',enf:'Mask',on:true,kind:'pii'},
+  {id:'p6',name:'Block unsafe content',type:'LLM-as-judge',enf:'Block',on:true,kind:'content'},
+];}
+function POL(){const blocked=new Set(),approve=new Set();let max=999,pii=false,content=false;
+  policies.filter(p=>p.on).forEach(p=>{if(p.kind==='block')blocked.add(p.role);if(p.kind==='approve')approve.add(p.role);if(p.kind==='ceiling')max=Math.min(max,p.n);if(p.kind==='pii')pii=true;if(p.kind==='content')content=true;});return{blocked,approve,max,pii,content};}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+function parseRule(t){t=t.toLowerCase();let m=t.match(/(\d+)\s*grants?/);
+  if(m&&/(max|ceiling|limit|no more than|only|at most)/.test(t))return{kind:'ceiling',n:+m[1],name:`Max ${m[1]} grants per run`,type:'Rule-based',enf:'Block'};
+  if(/(pii|personal data|personal info|sensitive data)/.test(t)&&/(share|leak|send|external|expose|reveal|can't|cannot|no )/.test(t))return{kind:'pii',name:'No PII to external models',type:'Content / PII',enf:'Mask'};
+  if(/(unsafe|toxic|harmful|inappropriate|content moderation|content policy)/.test(t))return{kind:'content',name:'Block unsafe content',type:'LLM-as-judge',enf:'Block'};
+  const roles=['vpn','finance','calendar','wiki','drive','crm','admin'];const role=roles.find(r=>t.includes(r));const full={finance:'finance:read',crm:'crm:read'}[role]||role;
+  if(role&&/(approv|review|sign[- ]?off|confirm|needs|require)/.test(t))return{kind:'approve',role:full,name:`${cap(role)} access needs approval`,type:'Rule-based',enf:'Approve'};
+  if(role&&/(block|deny|no |cannot|can't|forbid|disallow|don't allow|never)/.test(t))return{kind:'block',role:full,name:`Block ${full}`,type:'Rule-based',enf:'Block'};return null;}
+function isPolicyIntent(t){return /\b(rule|policy|block|deny|forbid|disallow|cannot|can't|must|require)\b|ceiling|limit|\d+\s*grants?|approval|pii|sensitive|personal data|content/i.test(t);}
+
+let run=fresh();
+function fresh(){return {grants:0,ledger:[],audit:[],status:'idle',hr:0,viol:0,masked:0};}
+function gate(a){const g=crew.find(c=>c.id===a.actor);const pol=POL();
+  if(!g.allowed.includes(a.type))return{d:'block',reason:'action not in role'};
+  if(a.type==='grantAccess'&&a.role&&!g.canGrant.includes(a.role))return{d:'block',reason:`role cap — cannot grant ${a.role}`};
+  if(a.type==='grantAccess'&&a.role&&pol.blocked.has(a.role))return{d:'block',reason:`read-only / blocked tools policy — ${a.role}`};
+  if(a.type==='grantAccess'&&run.grants+1>pol.max)return{d:'halt',reason:`ceiling (${pol.max} grants) reached`};
+  if(a.type==='grantAccess'&&a.role&&pol.approve.has(a.role))return{d:'approve'};
+  if(a.external&&a.unsafe&&pol.content)return{d:'block',reason:'content policy — unsafe output blocked'};
+  if(a.external&&a.pii&&a.pii.length&&pol.pii)return{d:'mask',masked:a.pii};
+  if(a.highRisk)return{d:'approve'};return{d:'allow'};}
+function bundle(){return [
+  {actor:'acct',type:'createAccount',label:'Create email account',sys:'okta'},
+  {actor:'acct',type:'createAccount',label:'Create Slack account',sys:'slack'},
+  {actor:'access',type:'grantAccess',role:'crm:read',label:'Grant CRM (read)',sys:'drive'},
+  {actor:'access',type:'grantAccess',role:'calendar',label:'Grant Calendar',sys:'drive'},
+  {actor:'access',type:'grantAccess',role:'wiki',label:'Grant Wiki',sys:'drive'},
+  {actor:'access',type:'grantAccess',role:'drive',label:'Grant Drive',sys:'drive'},
+  {actor:'notify',type:'notify',label:'Send welcome message',sys:'slack'}];}
+function actionsFor(s){
+  if(s==='overgrant')return [...bundle().slice(0,6),{actor:'access',type:'grantAccess',role:'admin',label:'Grant admin console',sys:'okta'},{actor:'access',type:'grantAccess',role:'pii:export',label:'Grant PII export',sys:'okta'},bundle()[6]];
+  if(s==='approval')return [...bundle().slice(0,6),{actor:'access',type:'grantAccess',role:'finance:read',label:'Grant Finance (read)',sys:'finance',risk:0.7,highRisk:true},bundle()[6]];
+  if(s==='loop'){const a=[bundle()[0],bundle()[1]];const r=['crm:read','calendar','wiki','drive','vpn','crm:read','calendar','wiki','drive','vpn','wiki','calendar'];r.forEach((x,i)=>a.push({actor:'access',type:'grantAccess',role:x,label:`Grant ${x} · person ${i+1}`,sys:'drive'}));return a;}
+  if(s==='enrich')return [bundle()[0],{actor:'notify',type:'modelCall',label:'Draft personalized welcome (external AI)',sys:'extllm',external:true,pii:['email','phone','home address']},bundle()[6]];
+  return bundle();}
+function routePrompt(t){t=t.toLowerCase();if(/draft|external ai|enrich|summari[sz]e|with ai|personali/.test(t))return 'enrich';if(/class|everyone|whole|all new|30|batch/.test(t))return 'loop';if(/admin|administrator/.test(t))return 'overgrant';if(/finance|elevated|extra|more access/.test(t))return 'approval';return 'normal';}
+function actLabel(a){return a.role||(a.type==='createAccount'?(a.sys+' account'):a.type==='notify'?'welcome msg':a.label);}
+
+const thread=document.getElementById('thread');
+function scrollT(){thread.scrollTop=thread.scrollHeight;}
+function airo(html){const m=el(`<div class="msg airo">${html}</div>`);thread.appendChild(m);scrollT();return m;}
+function user(t){thread.appendChild(el(`<div class="msg user">${esc(t)}</div>`));scrollT();}
+function sysB(){const m=el(`<div class="msg sys"></div>`);thread.appendChild(m);scrollT();return m;}
+function el(h){const d=document.createElement('div');d.innerHTML=h.trim();return d.firstChild;}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+let routineBox=null;
+function routineLine(label){if(!routineBox){routineBox=el(`<details class="routine" open><summary>▾ <span class="rc">Routine actions</span></summary></details>`);const m=sysB();m.appendChild(routineBox);}
+  routineBox.appendChild(el(`<div class="ln">✓ ${esc(label)}</div>`));const n=routineBox.querySelectorAll('.ln').length;routineBox.querySelector('.rc').textContent=`${n} routine action${n>1?'s':''} auto-cleared`;scrollT();}
+
+/* ---------- radial graph ---------- */
+let actN=0; const actData={}; const lastByGenie={}; let POS={}; let nodeMarks={}; let firstViolAid=null; let countByNode={}; let auditLog=[]; let auditFilter='all'; let runSeq=0; let curRun='';
+function svgEl(t,a){const e=document.createElementNS('http://www.w3.org/2000/svg',t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function edgePt(c,toward,hw,hh){let dx=toward[0]-c[0],dy=toward[1]-c[1];const adx=Math.abs(dx)||1e-6,ady=Math.abs(dy)||1e-6;const s=Math.min(hw/adx,hh/ady);return [c[0]+dx*s,c[1]+dy*s];}
+function spokePath(gid,sid){const gC=POS[gid],h=POS.gate,sC=POS[sid];const gE=edgePt(gC,h,64,25),hG=edgePt(h,gC,80,59),hS=edgePt(h,sC,80,59),sE=edgePt(sC,h,64,25);
+  return `M${gE[0]} ${gE[1]} L${hG[0]} ${hG[1]} M${hS[0]} ${hS[1]} L${sE[0]} ${sE[1]}`;}
+function rnode(id,p,title,sub,clickable,obj){const x=p[0],y=p[1],w=124,h=46;
+  const g=svgEl('g',{id,class:'rnode dim'+(clickable?' genie':''),transform:`translate(${x-w/2},${y-h/2})`});
+  g.appendChild(svgEl('rect',{x:0,y:0,width:w,height:h,rx:11}));
+  const t1=svgEl('text',{x:w/2,y:h/2-1,'text-anchor':'middle',class:'rt'});t1.textContent=title;g.appendChild(t1);
+  const t2=svgEl('text',{x:w/2,y:h/2+13,'text-anchor':'middle',class:'rs'});t2.textContent=sub;g.appendChild(t2);
+  if(clickable){g.style.cursor='pointer';g.addEventListener('click',()=>{const aid=lastByGenie[obj.id];if(aid)openDrawer(aid);});}
+  return g;}
+function hubEl(cx,cy){const w=156,h=114;const g=svgEl('g',{id:'gate',class:'rhub',transform:`translate(${cx-w/2},${cy-h/2})`});
+  g.appendChild(svgEl('rect',{x:0,y:0,width:w,height:h,rx:16}));
+  const a=svgEl('text',{x:w/2,y:34,'text-anchor':'middle',class:'ht'});a.textContent='AIRO GATE';g.appendChild(a);
+  const b=svgEl('text',{x:w/2,y:65,'text-anchor':'middle',class:'hstamp',id:'hstamp',fill:'#5d6b7c'});b.textContent='idle';g.appendChild(b);
+  const c=svgEl('text',{x:w/2,y:90,'text-anchor':'middle',class:'htally',id:'htally'});c.textContent='awaiting run';g.appendChild(c);
+  g.addEventListener('click',openFirstViolation);
+  return g;}
+function buildFlow(){const nodes=document.getElementById('rnodes');nodes.innerHTML='';document.getElementById('ractive').innerHTML='';document.getElementById('rmarks').innerHTML='';nodeMarks={};firstViolAid=null;countByNode={};
+  const cx=460,cy=320,gr=174,sr=300;POS={gate:[cx,cy]};
+  crew.forEach((c,i)=>{const ang=(i*(360/crew.length)-90)*Math.PI/180;POS['ag-'+c.id]=[cx+gr*Math.cos(ang),cy+gr*Math.sin(ang)];});
+  APPS.forEach((a,i)=>{const ang=(i*(360/APPS.length)-90)*Math.PI/180;POS['app-'+a.id]=[cx+sr*Math.cos(ang),cy+sr*Math.sin(ang)];});
+  drawBase();
+  nodes.appendChild(hubEl(cx,cy));
+  crew.forEach(c=>nodes.appendChild(rnode('ag-'+c.id,POS['ag-'+c.id],c.name,c.role,true,c)));
+  APPS.forEach(a=>nodes.appendChild(rnode('app-'+a.id,POS['app-'+a.id],a.nm,'system',false)));}
+function drawBase(){const w=document.getElementById('rwires');if(!w||!POS.gate)return;w.innerHTML='';const h=POS.gate;
+  crew.forEach(c=>{const p=POS['ag-'+c.id];if(!p)return;const hE=edgePt(h,p,80,59),gE=edgePt(p,h,64,25);w.appendChild(svgEl('line',{x1:hE[0],y1:hE[1],x2:gE[0],y2:gE[1],stroke:'#e4eaf3','stroke-width':1.3}));});}
+function clearActive(){document.querySelectorAll('.rnode').forEach(n=>{n.classList.remove('active','green','red','amber','show-risk');n.classList.add('dim');});const r=document.getElementById('ractive');if(r)r.innerHTML='';}
+function addActionCard(a,res,ts){const id='act-'+(actN++);actData[id]={a,res,ts,id};lastByGenie[a.actor]=id;return id;}
+function tagAction(id,res){/* no per-action card in the radial view */}
+async function activate(act,res,actId){clearActive();
+  const tone=(res.d==='allow'||res.d==='mask')?'green':res.d==='approve'?'amber':'red';
+  const col=tone==='green'?'#1f9d6b':tone==='amber'?'#b8820f':'#d5403a';
+  const gid='ag-'+act.actor,sid='app-'+act.sys;
+  [gid,sid].forEach(id=>{const n=document.getElementById(id);if(n){n.classList.remove('dim');n.classList.add('active',tone);}});
+  const g=document.getElementById('ractive');if(!POS[gid]||!POS[sid])return;
+  const path=svgEl('path',{d:spokePath(gid,sid),fill:'none',stroke:col,'stroke-width':2,opacity:.8,'stroke-linecap':'round'});g.appendChild(path);
+  const dot=svgEl('circle',{r:4.5,fill:col});g.appendChild(dot);await pulse(path,dot,res.d==='block'||res.d==='halt');
+  countNode(gid);countNode(sid);
+  if(res.d==='block'||res.d==='halt'||res.d==='mask'){persistSpoke(gid,sid,res.d);markNode(gid,res.d);markNode(sid,res.d);if(res.d!=='mask'&&!firstViolAid)firstViolAid=actId;}}
+function pulse(path,dot,bounce){return new Promise(res=>{let len;try{len=path.getTotalLength?path.getTotalLength():0;}catch(e){len=0;}if(!len){res();return;}
+  const dur=640,t0=performance.now();function fr(t){let k=Math.min(1,(t-t0)/dur);const e=bounce?(k<.55?k:1.1-k):k;const pt=path.getPointAtLength(Math.max(0,Math.min(1,e))*len);dot.setAttribute('cx',pt.x);dot.setAttribute('cy',pt.y);if(k<1)requestAnimationFrame(fr);else{dot.setAttribute('opacity','0');res();}}requestAnimationFrame(fr);});}
+function gateStamp(res){const map={allow:['#1f9d6b','✓ pass'],mask:['#0d9488','🛡 mask'],approve:['#b8820f','⏳ approval'],block:['#d5403a','✕ block'],halt:['#d5403a','🛑 halt']};
+  const [c,t]=map[res.d]||['#5d6b7c','—'];const hub=document.getElementById('gate');if(!hub)return;
+  const hs=document.getElementById('hstamp');if(hs){hs.textContent=t;hs.setAttribute('fill',c);}
+  const v=Object.values(actData).map(x=>x.res.d);const pass=v.filter(d=>d==='allow').length,blk=v.filter(d=>d==='block'||d==='halt').length,msk=v.filter(d=>d==='mask').length,apr=v.filter(d=>d==='approve').length;
+  const tal=document.getElementById('htally');if(tal)tal.textContent=`✓${pass}  ✕${blk}  🛡${msk}`+(apr?`  ⏳${apr}`:'');
+  const rect=hub.querySelector('rect');if(rect)rect.setAttribute('stroke',res.d==='halt'?'#d5403a':'#0d9488');
+  if(res.d==='halt')hub.classList.add('shut');}
+function persistSpoke(gid,sid,kind){const g=document.getElementById('rmarks');if(!g||!POS[gid]||!POS[sid])return;
+  const col=kind==='mask'?'#0d9488':'#d5403a';
+  g.appendChild(svgEl('path',{d:spokePath(gid,sid),fill:'none',stroke:col,'stroke-width':1.6,opacity:.3,'stroke-dasharray':'5 5','stroke-linecap':'round'}));}
+function markNode(id,kind){const n=document.getElementById(id);if(!n)return;nodeMarks[id]=nodeMarks[id]||{v:0,m:0};if(kind==='mask')nodeMarks[id].m++;else nodeMarks[id].v++;n.classList.add(kind==='mask'?'hasmask':'hasviol');renderBadge(id);}
+function renderBadge(id){const n=document.getElementById(id);if(!n)return;const old=n.querySelector('.badge');if(old)old.remove();const mk=nodeMarks[id];if(!mk)return;const col=mk.v?'#d5403a':'#0d9488';const num=mk.v||mk.m;const w=124;const g=svgEl('g',{class:'badge'});g.appendChild(svgEl('circle',{cx:w-8,cy:2,r:9,fill:col}));const t=svgEl('text',{x:w-8,y:6,'text-anchor':'middle','font-size':10,'font-weight':700,fill:'#fff'});t.textContent=num;g.appendChild(t);n.appendChild(g);}
+function openFirstViolation(){if(firstViolAid&&actData[firstViolAid])openDrawer(firstViolAid);else showToast('No violations in this run.');}
+function countNode(id){countByNode[id]=(countByNode[id]||0)+1;const n=document.getElementById(id);if(!n)return;const old=n.querySelector('.cchip');if(old)old.remove();const w=124,c=countByNode[id];const g=svgEl('g',{class:'cchip'});g.appendChild(svgEl('rect',{x:w/2-15,y:50,width:30,height:17,rx:8,fill:'#fff',stroke:'#d6dfea'}));const t=svgEl('text',{x:w/2,y:62,'text-anchor':'middle','font-size':10,'font-weight':700,fill:'#5d6b7c'});t.textContent=c;g.appendChild(t);n.appendChild(g);}
+
+function railUpdate(scenario){
+  document.getElementById('kvGrants').textContent=`${run.grants} / ${POL().max}`;
+  document.getElementById('kvViol').textContent=run.viol;
+  document.getElementById('runStatus').textContent=run.status;
+  const reasons=[];
+  if(run.status==='halted')reasons.push(['var(--err)',`Halted at the ${POL().max}-grant ceiling — looked like onboarding many people at once`]);
+  if(run.viol)reasons.push(['var(--warn)',`${run.viol} action(s) blocked by policy / role cap`]);
+  if(run.hr)reasons.push(['var(--warn)',`${run.hr} high-risk action routed to you for approval`]);
+  if(run.masked)reasons.push(['#0d7a66',`${run.masked} external call(s) had PII auto-redacted`]);
+  reasons.push(['var(--ok)',`${run.grants} grants applied, all attributable to it-ops-manager`]);
+  if(run.ledger.length)reasons.push(['var(--ok)',`Fully reversible — every grant has a recorded inverse`]);
+  if(run.viol)reasons.unshift(['var(--err)',`⚠ ${run.viol} issue(s) — click to inspect`,1]);
+  document.getElementById('reasons').innerHTML=reasons.map(r=>`<div class="reason"${r[2]?' style="cursor:pointer;font-weight:600" onclick="openFirstViolation()"':''}><span class="i" style="color:${r[0]}">●</span><span>${r[1]}</span></div>`).join('');
+}
+function renderAudit(){const av=document.getElementById('auditv');if(!av)return;
+  const rows=auditLog.slice().reverse().filter(e=>auditFilter==='all'||(auditFilter==='Allowed'&&e.r==='Allowed')||(auditFilter==='blocked'&&e.c==='r')||(auditFilter==='Masked'&&e.r==='Masked')||(auditFilter==='Reversed'&&e.r==='Reversed'));
+  av.innerHTML=rows.length?rows.map(e=>{const g=e.aid&&actData[e.aid]?crew.find(c=>c.id===actData[e.aid].a.actor).name:'';
+    return `<div class="ar"${e.aid?` style="cursor:pointer" onclick="openDrawer('${e.aid}')"`:''}><span class="t">${e.t}</span><span style="color:var(--tx2);width:104px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g}</span><span>${esc(e.txt)}</span><span style="margin-left:auto;display:flex;gap:10px;align-items:center"><span style="font-size:10px;color:var(--tx3)">${e.run||''}</span><span class="dpill ${e.c}">${e.r}</span></span></div>`;}).join(''):`<div style="color:var(--tx2)">No activity${auditFilter==='all'?' yet':' matches this filter'}.</div>`;
+  renderAuditFilter();}
+function renderAuditFilter(){const f=document.getElementById('afilter');if(!f)return;const chips=[['all','All'],['Allowed','Allowed'],['blocked','Blocked / issues'],['Masked','Masked'],['Reversed','Reversed']];
+  f.innerHTML=chips.map(([v,l])=>`<span class="achip${auditFilter===v?' on':''}" onclick="setAuditFilter('${v}')">${l}</span>`).join('');}
+function setAuditFilter(v){auditFilter=v;renderAudit();}
+function audit(t,txt,c,r,aid){auditLog.push({t,txt,c,r,aid:aid||null,run:curRun});renderAudit();}
+
+let curDraw=null;
+function openDrawer(id){curDraw=id;const {a,res,ts}=actData[id];
+  document.getElementById('drTitle').textContent=actLabel(a)+(res.reason?' — '+res.reason:'');
+  const st=document.getElementById('drStatus');st.textContent=res.d==='allow'?'Resolved':res.d==='mask'?'Masked':res.d==='approve'?'Approved':'Open';st.className='pill '+(res.d==='allow'||res.d==='mask'?'g':'o');
+  document.querySelectorAll('.drtab').forEach(t=>t.classList.toggle('active',t.dataset.dt==='ov'));
+  drawTab('ov');document.getElementById('drawer').classList.add('open');}
+function drawTab(which){const {a,res,ts}=actData[curDraw];const b=document.getElementById('drBody');
+  const genie=crew.find(c=>c.id===a.actor).name;const viol=(res.d==='block'||res.d==='halt');const masked=(res.d==='mask');
+  if(which==='ov'){
+    const summary=viol?`At ${ts}, ${genie} attempted to ${actLabel(a).toLowerCase()} on ${cap(a.sys)} while running this onboarding. AIRO blocked it before it committed — ${res.reason}.`
+      :masked?`At ${ts}, ${genie} sent a draft request to External LLM. AIRO detected ${res.masked.length} PII fields (${res.masked.join(', ')}) and redacted them before the request left Workato. The draft proceeded without exposing any personal data.`
+      :res.d==='approve'?`At ${ts}, ${genie} requested ${actLabel(a)} on ${cap(a.sys)}. Because it exceeds the standard bundle, AIRO paused it for your approval.`
+      :`At ${ts}, ${genie} performed ${actLabel(a)} on ${cap(a.sys)}, on behalf of it-ops-manager. Within policy and recorded with an inverse for rollback.`;
+    const stTxt=viol?('⚠ '+res.reason):masked?('🛡 PII redacted — '+res.masked.length+' fields'):res.d==='approve'?'Approved by sponsor':'Allowed';
+    const stCol=viol?'var(--err)':masked?'#0d7a66':'var(--ok)';
+    b.innerHTML=`<h4>💬 Action summary</h4><p>${esc(summary)}</p>
+      <div class="fields">
+        <div><div class="k">Application</div><div class="v">${cap(a.sys)}</div></div>
+        <div><div class="k">Agent</div><div class="v">${genie}</div></div>
+        <div><div class="k">Time</div><div class="v">${ts}</div></div>
+        <div><div class="k">Tool</div><div class="v">${a.type}</div></div>
+        <div><div class="k">Identity</div><div class="v">it-ops-manager</div></div>
+        <div><div class="k">${viol?'Policy violation':'Status'}</div><div class="v" style="color:${stCol}">${stTxt}</div></div>
+      </div>
+      ${viol?`<h4>⚠ Violation summary</h4><p>This action violates the active policy. ${genie} attempted a ${a.type} operation that is not permitted under the current access policy, so AIRO denied it. Nothing was committed.</p>`:''}
+      ${masked?`<h4>🛡 Guardrail summary</h4><p>This call would have sent personal data (${res.masked.join(', ')}) to an external model. The “No PII to external models” policy masked those fields automatically; the rest of the request went through, so the task still completed.</p>`:''}`;
+  } else {
+    const args=JSON.stringify(a.type==='grantAccess'?{role:a.role,target:cap(a.sys)}:a.type==='modelCall'?{prompt:'Draft personalized welcome',target:cap(a.sys),piiRedacted:(res.masked||[])}:{system:cap(a.sys)},null,2);
+    b.innerHTML=`<div class="fields" style="grid-template-columns:1fr 1fr"><div><div class="k">User</div><div class="v">it-ops-manager</div></div><div><div class="k">Time</div><div class="v">${ts}</div></div></div>
+      <h4>🕐 Action timeline</h4>
+      <div class="tl">
+        <div class="ev"><div class="ts">${ts}</div><div class="tt">Plan · ${genie}</div><div class="td">Genie selected the “${a.type}” tool for this task.</div></div>
+        <div class="ev"><div class="ts">${ts}</div><div class="tt">${a.type} ${viol?'<span class="vtag r">Violation</span>':''}</div><div class="td">${esc(actLabel(a))}</div><pre>${esc(args)}</pre></div>
+      </div>`;
+  }
+}
+function showToast(t){const el2=document.getElementById('toast');el2.textContent=t;el2.style.display='block';setTimeout(()=>el2.style.display='none',2200);}
+function remediate(act){const id=curDraw;const {a,res}=actData[id];
+  document.getElementById('remediate').classList.remove('open');
+  if(act==='rewind'){
+    if(res.d!=='allow'){showToast('Nothing to rewind — this action was blocked, never committed.');return;}
+    const li=run.ledger.findIndex(l=>l.aid===id);if(li>=0){run.ledger.splice(li,1);run.grants=Math.max(0,run.grants-1);}
+    actData[id].res={d:'reversed'};railUpdate();audit('rwnd','Rewound '+a.label,'o','Reversed',id);
+    document.getElementById('drStatus').textContent='Reversed';showToast('↺ Action rewound — the grant was reversed.');airo(`↺ Rewound <b>${esc(a.label)}</b> on your request. The grant is reversed and logged.`);
+  } else showToast((act==='jira'?'Jira':'ServiceNow')+' ticket created for this violation.');
+}
+
+function renderPolicies(){document.getElementById('pollist').innerHTML=policies.map(p=>
+  `<div class="polrow"><div class="pn">${esc(p.name)}<span class="sw ${p.on?'on':''}" data-id="${p.id}"></span></div>
+   <div class="pm"><span>Type: <b>${p.type}</b></span><span>Scope: <b>All Genies</b></span><span>Enforcement: <b>${p.enf}</b></span></div></div>`).join('');
+  document.querySelectorAll('#pollist .sw').forEach(s=>s.onclick=()=>{const p=policies.find(x=>x.id===s.dataset.id);p.on=!p.on;renderPolicies();});}
+function policyCard(p){return el(`<div class="pcard"><div class="pn">⊕ ${esc(p.name)}</div><div class="pm"><span>Type: ${p.type}</span><span>Enforce: ${p.enf}</span><span>Enabled</span></div></div>`);}
+
+let approvalResolve=null;function waitApproval(){return new Promise(r=>approvalResolve=r);}let busy=false;
+async function handlePrompt(text){if(busy)return;busy=true;user(text);
+  const scenario=routePrompt(text);run=fresh();runSeq++;curRun='Run '+runSeq;run.status='running';routineBox=null;buildFlow();clearActive();railUpdate();renderAudit();showView('explorer');
+  await sleep(420);const pol=POL();
+  airo(`Running an <b>onboarding crew</b> on your behalf. Enforcing your policies:<div class="env-row"><span class="pill b">4 Genies</span><span class="pill n">max ${pol.max}</span>${[...pol.blocked].map(b=>`<span class="pill r">${b}✕</span>`).join('')}${[...pol.approve].map(a=>`<span class="pill o">${a}→approve</span>`).join('')}</div>`);
+  await sleep(540);const q=actionsFor(scenario);let t=14;
+  for(const a of q){const res=gate(a);const ts='09:'+String(t++).padStart(2,'0');const aid=addActionCard(a,res,ts);
+    await activate(a,res,aid);gateStamp(res);
+    if(res.d==='allow'){if(a.type==='grantAccess'){run.grants++;run.ledger.push({aid,label:a.label});}railUpdate();audit(ts,a.label,'g','Allowed',aid);routineLine(a.label);}
+    else if(res.d==='mask'){run.masked++;railUpdate();audit(ts,a.label+' — '+res.masked.length+' PII fields redacted','o','Masked',aid);const m=sysB();m.appendChild(el(`<div class="note" style="background:#e6f6f2;color:#0d7a66">🛡 <b>PII redacted.</b> AIRO masked ${res.masked.length} fields (${esc(res.masked.join(', '))}) before the external model saw them — the draft still went through. <a style="color:var(--accent);cursor:pointer" onclick="openDrawer('${aid}')">view</a></div>`));await sleep(440);}
+    else if(res.d==='block'){run.viol++;railUpdate();audit(ts,a.label+' — '+res.reason,'r','Blocked',aid);const m=sysB();m.appendChild(el(`<div class="note block">⛔ <b>Blocked.</b> ${esc(a.label)} — ${esc(res.reason)}. <a style="color:var(--accent);cursor:pointer" onclick="openDrawer('${aid}')">view</a></div>`));await sleep(460);}
+    else if(res.d==='halt'){run.status='halted';run.viol++;railUpdate(scenario);audit(ts,a.label+' — '+res.reason,'r','Halted',aid);const m=sysB();m.appendChild(el(`<div class="note halt">🛑 <b>Run halted.</b> Hit the ${POL().max}-grant ceiling. Stopped before further action. <a style="color:var(--accent);cursor:pointer" onclick="rollback()">roll back</a></div>`));busy=false;return;}
+    else if(res.d==='approve'){run.hr++;railUpdate();const card=approvalCard(a);const ok=await waitApproval();card.querySelector('.row').remove();
+      if(ok){run.grants++;run.ledger.push({aid,label:a.label});actData[aid].res={d:'allow'};railUpdate();audit(ts,a.label+' — approved','g','Allowed',aid);card.querySelector('.bd').insertAdjacentHTML('beforeend','<div style="color:var(--ok);font-weight:600;margin-top:4px">✓ Approved</div>');await activate(a,{d:'allow'},aid);gateStamp({d:'allow'});}
+      else{run.viol++;actData[aid].res={d:'block',reason:'denied by sponsor'};railUpdate();audit(ts,a.label+' — denied','r','Denied',aid);card.querySelector('.bd').insertAdjacentHTML('beforeend','<div style="color:var(--err);font-weight:600;margin-top:4px">✕ Denied</div>');}}
+    await sleep(res.d==='allow'?300:140);
+  }
+  run.status='completed';railUpdate(scenario);airo(`✅ <b>Onboarding complete.</b> ${run.grants} grants for one new hire — all attributable and reversible. <span class="pill g">audit ready</span>`);busy=false;}
+function approvalCard(a){const c=el(`<div class="approve"><div class="hd">⚠ Needs your approval</div><div class="bd">AccessGenie wants to go beyond the standard bundle:<div class="grant"><b>${esc(a.label)}</b><span class="pill o">risk ${a.risk}</span></div><label class="ack"><input type="checkbox" id="ackbox"> I understand this exceeds the standard bundle and is logged against my name.</label><div class="row"><button class="btn danger" id="denyB">Deny</button><button class="btn brand" id="apprB" disabled>Approve</button></div></div></div>`);
+  const m=sysB();m.appendChild(c);scrollT();c.querySelector('#ackbox').onchange=e=>c.querySelector('#apprB').disabled=!e.target.checked;c.querySelector('#apprB').onclick=()=>approvalResolve(true);c.querySelector('#denyB').onclick=()=>approvalResolve(false);return c;}
+async function rollback(){if(!run.ledger.length){airo('Nothing to roll back yet.');return;}
+  airo('Rolling the run back as one transaction…');run.status='rolledback';let t=30;const led=run.ledger.slice().reverse();
+  for(const g of led){run.grants=Math.max(0,run.grants-1);railUpdate();audit('09:'+(t++),'Reversed '+g.label,'o','Reversed',g.aid);if(actData[g.aid]){actData[g.aid].res={d:'reversed'};}await sleep(140);}
+  run.ledger=[];const m=sysB();m.appendChild(el(`<div class="note block" style="background:#eaf1fe;color:#23406e">↩︎ <b>Run rolled back.</b> Every grant reversed.</div>`));}
+async function handleRule(text){user(text);await sleep(360);const r=parseRule(text);
+  if(!r){airo(`I recognize rules like <b>“max 5 grants per run”</b>, <b>“block VPN access”</b>, or <b>“finance access needs approval”</b>.`);return;}
+  const id='p'+Date.now().toString().slice(-4);const pol={id,...r,on:true};
+  if(r.kind==='ceiling')policies=policies.filter(p=>p.kind!=='ceiling');else policies=policies.filter(p=>!(p.kind===r.kind&&p.role===r.role));
+  policies.push(pol);renderPolicies();const m=airo(`Done — turned that into a policy. Applies to your <b>next run</b>.`);m.appendChild(policyCard(pol));}
+
+const CHIPS=[['Onboard Sarah as a sales contractor',0],['Onboard the whole incoming class',0],['Give Sarah finance access too',0],['Onboard Sarah as an admin',0],['Draft Sarah’s welcome with external AI',0],['max 5 grants per run',1],['block VPN access',1]];
+const chipWrap=document.getElementById('chips');CHIPS.forEach(([txt,rule])=>{const b=el(`<button class="chip ${rule?'rule':''}">${txt}</button>`);b.onclick=()=>{document.getElementById('input').value=txt;send();};chipWrap.appendChild(b);});
+function send(){const i=document.getElementById('input');const v=i.value.trim();if(!v||busy)return;if(/roll.*back|undo/i.test(v)){user(v);i.value='';rollback();return;}i.value='';if(isPolicyIntent(v))handleRule(v);else handlePrompt(v);}
+document.getElementById('send').onclick=send;
+document.getElementById('input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
+function showView(v){document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('active',a.dataset.view===v));
+  document.getElementById('view-explorer').style.display=v==='explorer'?'':'none';document.getElementById('view-pol').style.display=v==='pol'?'':'none';document.getElementById('view-activity').style.display=v==='activity'?'':'none';}
+document.querySelectorAll('.nav a').forEach(a=>a.onclick=()=>showView(a.dataset.view));
+const dock=document.getElementById('dock');
+document.getElementById('dockX').onclick=()=>dock.classList.add('collapsed');
+document.getElementById('aibtn').onclick=()=>dock.classList.toggle('collapsed');
+document.getElementById('drClose').onclick=()=>document.getElementById('drawer').classList.remove('open');
+document.querySelectorAll('.drtab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.drtab').forEach(x=>x.classList.remove('active'));t.classList.add('active');drawTab(t.dataset.dt);});
+document.getElementById('remBtn').onclick=()=>document.getElementById('remediate').classList.toggle('open');
+document.querySelectorAll('#remediate .pop div').forEach(d=>d.onclick=()=>remediate(d.dataset.act));
+
+buildFlow();railUpdate();renderAudit();renderPolicies();
+airo(`Hi — I'm AIRO. Tell me what to run, or set a rule in plain English. The radial map shows each Genie's blast radius: actions fly from a Genie through the central gate out to the system it touches. Click a Genie for its latest action.`);
+</script>
+</body>
+</html>

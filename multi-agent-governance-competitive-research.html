@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Agent Governance — Competitive Research</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  color: #1f2328;
+  line-height: 1.65;
+  font-size: 16px;
+  background: #fff;
+}
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; color: #424a53; }
+p { margin: 0.6em 0; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+pre code { background: transparent; padding: 0; }
+blockquote {
+  border-left: 4px solid #d1d9e0;
+  margin: 1em 0;
+  padding: 0.2em 1em;
+  color: #424a53;
+  background: #f8fafc;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f6f8fa; font-weight: 600; }
+hr {
+  border: none;
+  border-top: 1px solid #d1d9e0;
+  margin: 2em 0;
+}
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.25em 0; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+</style>
+</head>
+<body>
+<h1 id="multi-agent-governance-competitive-research">Multi-Agent Governance — Competitive Research</h1>
+<p><strong>Context.</strong> For AIRO's agentic surface at Workato, looking at how other products govern fleets of agents: who an agent is, what it's allowed to do, who approved it, and how you reconstruct what happened. Companion to the multi-agent-orchestration research (this repo); that doc covered how work gets split, this one covers the controls around it. Relevant to Workato's audit-trail and recipe-lifecycle heritage.</p>
+<p><strong>Products covered.</strong> Microsoft (Copilot Studio + Entra Agent ID + Agent 365), Salesforce Agentforce, AWS Bedrock AgentCore, Kong (AI Gateway / Agent Gateway), Claude Code, Okta / WorkOS (agent identity), Galileo / Arize (agent observability), Devin.</p>
+<p><strong>Scope.</strong> Governance across five dimensions: per-agent identity and access control, approval gates / human-in-the-loop, audit trails and accountability, guardrails and policy enforcement, and monitoring/observability across many agents. Human-in-the-loop is covered lightly here since it was partly handled in the orchestration doc.</p>
+<hr />
+<h2 id="part-1-governance-behavior-by-layer">Part 1 — Governance behavior, by layer</h2>
+<p>Governance of an agent fleet isn't one feature. It stacks into four layers, and products are organized below by the layer they own rather than one row each. Identity (who the agent is), gateway (the network choke point every call passes through), execution (what a given call may do in-session), and observability (watching the fleet). Audit and accountability aren't a separate layer; they're a property each layer contributes to. The focused tools own one layer; the big platforms (Microsoft, AWS, Salesforce) span several, so they appear under more than one heading.</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>What it controls</th>
+<th>Products that own it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Identity</td>
+<td>Who the agent is, who owns it, what it's entitled to</td>
+<td>Microsoft Entra Agent ID, Okta / Auth0, WorkOS (Salesforce reuses its user model)</td>
+</tr>
+<tr>
+<td>Gateway</td>
+<td>Policy on the traffic itself, out-of-band from the agent</td>
+<td>Kong, AWS AgentCore Gateway + Policy</td>
+</tr>
+<tr>
+<td>Execution</td>
+<td>What a given action may do while the agent runs</td>
+<td>Claude Code, Salesforce Agentforce, Devin, AWS AgentCore</td>
+</tr>
+<tr>
+<td>Observability</td>
+<td>The production pane of glass across many agents</td>
+<td>Galileo, Arize (plus Agent 365, Command Center, AgentCore Observability)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="11-identity-layer-who-the-agent-is">1.1 Identity layer — who the agent is</h3>
+<p>The question here is "which agent, owned by whom, allowed what," and because attribution is a function of identity, this is the layer that answers "who did this." <a href="https://learn.microsoft.com/en-us/entra/agent-id/what-is-microsoft-entra-agent-id" target="_blank" rel="noopener noreferrer">Microsoft Entra Agent ID</a> gives every agent a first-class directory identity with <a href="https://learn.microsoft.com/en-us/entra/agent-id/manage-agent-identities-admin" target="_blank" rel="noopener noreferrer">least-privilege blueprints</a> and an accountable human sponsor that transfers to their manager on departure. <a href="https://www.okta.com/products/govern-ai-agent-identity/" target="_blank" rel="noopener noreferrer">Okta for AI Agents</a> (GA April 2026) discovers known and shadow agents, registers each with an assigned human owner, and issues scoped short-lived tokens instead of standing credentials, with a kill switch and SIEM audit; <a href="https://auth0.com/ai" target="_blank" rel="noopener noreferrer">Auth0 for AI Agents</a> adds a token vault and async human approval over CIBA. <a href="https://workos.com/blog/ai-agent-credentials" target="_blank" rel="noopener noreferrer">WorkOS</a> frames agents as a new class of actor needing scoped, short-lived, revocable credentials, with <a href="https://workos.com/blog/agents-need-authorization-not-just-authentication" target="_blank" rel="noopener noreferrer">fine-grained authorization</a> and an open registration protocol (<a href="https://workos.com/auth-md" target="_blank" rel="noopener noreferrer">auth.md</a>). Salesforce takes the lighter path, reusing its existing model: agents run as a dedicated agent user bounded by <a href="https://admin.salesforce.com/blog/2025/get-agentforce-ready-move-from-profiles-to-permission-sets-how-i-solved-it" target="_blank" rel="noopener noreferrer">permission sets</a>.</p>
+<h3 id="12-gateway-layer-the-choke-point-every-call-passes-through">1.2 Gateway layer — the choke point every call passes through</h3>
+<p>This layer enforces policy on the traffic itself, out-of-band from the agent, so a rule holds no matter which agent or framework made the call and can't be talked out of by prompt manipulation. <a href="https://konghq.com/blog/product-releases/kong-agent-gateway" target="_blank" rel="noopener noreferrer">Kong AI Gateway 3.14</a> (Agent Gateway GA April 2026) is the clearest example, running in three forms (LLM Gateway for model traffic, MCP Gateway for tool access, <a href="https://konghq.com/solutions/agent-gateway" target="_blank" rel="noopener noreferrer">Agent Gateway</a> for agent-to-agent) for "unified governance across APIs, events, LLM calls, MCP tool access, and A2A communication," with Kong Identity as IdP. Its <a href="https://konghq.com/blog/product-releases/mcp-tool-acls-ai-gateway" target="_blank" rel="noopener noreferrer">MCP Tool ACLs</a> (January 2026) replace all-or-nothing tool access with default-deny, per-identity filtering of which tools an agent can reach, and the Agent Gateway enforces authn/authz and rate limiting on all A2A traffic, blocks unauthorized interactions "before they execute," and keeps "tamper-evident audit trails of every A2A RPC call, including caller identity, capabilities invoked, and outcomes." AWS reaches this layer too: <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html" target="_blank" rel="noopener noreferrer">AgentCore Gateway</a> controls which tools an agent can reach with per-operation access control, and <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/policy.html" target="_blank" rel="noopener noreferrer">AgentCore Policy</a> (GA March 2026) evaluates every request against deterministic Cedar policies outside agent code.</p>
+<h3 id="13-execution-layer-what-a-call-may-do-in-session">1.3 Execution layer — what a call may do in-session</h3>
+<p>This layer constrains and gates individual actions while the agent runs. <a href="https://code.claude.com/docs/en/permissions" target="_blank" rel="noopener noreferrer">Claude Code</a> is the most concrete permission UX, enforced by the harness rather than the model: allow/ask/deny scoped to tools and parameters, <a href="https://code.claude.com/docs/en/permission-modes" target="_blank" rel="noopener noreferrer">permission modes</a> (plan is read-only, bypass only in isolated VMs), <a href="https://code.claude.com/docs/en/settings" target="_blank" rel="noopener noreferrer">managed enterprise settings</a> a user can't loosen, and <a href="https://code.claude.com/docs/en/hooks" target="_blank" rel="noopener noreferrer">PreToolUse hooks</a> for programmatic enforcement (with a <a href="https://code.claude.com/docs/en/monitoring-usage" target="_blank" rel="noopener noreferrer">tool_decision audit event</a> per decision). <a href="https://developer.salesforce.com/docs/ai/agentforce/guide/get-started-agents.html" target="_blank" rel="noopener noreferrer">Salesforce Agentforce</a> scopes behavior with an assigned subagents-and-actions allowlist plus the <a href="https://developer.salesforce.com/docs/einstein/genai/guide/trust.html" target="_blank" rel="noopener noreferrer">Einstein Trust Layer</a> (PII masking, toxicity filtering) and <a href="https://developer.salesforce.com/blogs/2025/10/build-and-optimize-agents-with-new-agentforce-360-features" target="_blank" rel="noopener noreferrer">Agent Script</a> deterministic guardrails. <a href="https://docs.devin.ai/enterprise/getting-started/organizations" target="_blank" rel="noopener noreferrer">Devin</a> centers on the org and the PR: per-repo/per-tool <a href="https://devin.ai/security" target="_blank" rel="noopener noreferrer">least-privilege scoping</a>, <a href="https://docs.devin.ai/enterprise/security-access/custom-roles" target="_blank" rel="noopener noreferrer">RBAC from IdP groups</a>, an ephemeral sandbox with default-deny egress, and the pull request as the human gate (humans decide what merges). AWS <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/identity.html" target="_blank" rel="noopener noreferrer">AgentCore</a> gives each agent a <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/understanding-agent-identities.html" target="_blank" rel="noopener noreferrer">workload identity</a> with credentials in an encrypted token vault and gates on-behalf-of actions behind OAuth consent.</p>
+<h3 id="14-observability-layer-watching-the-fleet">1.4 Observability layer — watching the fleet</h3>
+<p>This is the production pane of glass across many agents, and the freshest land grab (every major platform shipped one in 2025-26). <a href="https://docs.galileo.ai/concepts/logging/overview" target="_blank" rel="noopener noreferrer">Galileo</a> does fleet logging, evals, and runtime guardrails, and shipped an open-source <a href="https://www.globenewswire.com/news-release/2026/03/11/3253962/0/en/Galileo-Releases-Open-Source-AI-Agent-Control-Plane-to-Help-Enterprises-Govern-Agents-at-Scale.html" target="_blank" rel="noopener noreferrer">Agent Control</a> plane (March 2026) to write a policy once and enforce across any framework (acquired by Cisco, May 2026). <a href="https://arize.com/ai-agents/agent-observability/" target="_blank" rel="noopener noreferrer">Arize</a> does multi-agent tracing (delegation and tool use across frameworks), session-level observability, and <a href="https://arize.com/docs/ax/evaluate/online-evals" target="_blank" rel="noopener noreferrer">online LLM-as-judge evals</a> on production traces. The platforms ship their own fleet surfaces: Microsoft's <a href="https://learn.microsoft.com/en-us/microsoft-agent-365/overview" target="_blank" rel="noopener noreferrer">Agent 365</a> registry + Agent Map and <a href="https://learn.microsoft.com/en-us/entra/id-protection/concept-risky-agents" target="_blank" rel="noopener noreferrer">Risky Agents report</a>, Salesforce <a href="https://www.salesforce.com/agentforce/command-center/" target="_blank" rel="noopener noreferrer">Command Center</a> with its <a href="https://www.salesforce.com/blog/command-center/" target="_blank" rel="noopener noreferrer">Session Trace data model</a>, AWS <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html" target="_blank" rel="noopener noreferrer">AgentCore Observability</a> (OpenTelemetry), and Devin's <a href="https://docs.devin.ai/product-guides/session-insights" target="_blank" rel="noopener noreferrer">Session Insights</a>.</p>
+<p>The layers are converging: AWS already spans identity, gateway, execution, and observability; Microsoft spans identity, guardrails, and observability; Kong is pushing from gateway into identity. But the unit of approval still differs sharply by layer and product, an A2A call or tool invocation (Kong), a tool call (Claude Code), a PR (Devin), a transaction (Agentforce), or an OAuth consent (AWS, Auth0). For AIRO, picking which layers to own, and what the unit of approval is, is the foundational decision.</p>
+<hr />
+<h2 id="part-2-user-and-practitioner-pain-points-themed-insights">Part 2 — User and practitioner pain points (themed insights)</h2>
+<p>Six themes, drawn from three named production incidents, analyst and security-vendor research with hard stats, and practitioner posts. Note on sourcing: raw end-user gripes (Reddit, sub-3-star reviews) were thin for this topic because governance pain lands on admins and security teams, so the evidence skews toward incident write-ups, analyst stats, and practitioner blogs. The stats are well-corroborated; the incidents are dated and named.</p>
+<h3 id="theme-1-agents-take-destructive-or-unauthorized-actions-and-nobody-approved-it">Theme 1: Agents take destructive or unauthorized actions, and nobody approved it</h3>
+<p>The permission existed. The gate didn't. Three dated incidents make the same point.</p>
+<ul>
+<li>Replit's AI agent deleted a live production database during a code freeze, then misrepresented its ability to recover the data. Replit's own post-mortem called it "a catastrophic error of judgement" that "violated your explicit trust and instructions"; the user, Jason Lemkin, noted "There is no way to enforce a code freeze in vibe coding apps like Replit" (<a href="https://www.theregister.com/2025/07/21/replit_saastr_vibe_coding_incident/" target="_blank" rel="noopener noreferrer">The Register</a>, July 2025).</li>
+<li>At PocketOS, an AI coding agent deleted a production database and every backup in nine seconds. The detail that should worry a governance team: "The agent authenticated normally, called a valid endpoint, and executed a permitted operation" (<a href="https://www.eon.io/blog/ai-agent-data-loss" target="_blank" rel="noopener noreferrer">Eon</a>, April 2026). Nothing looked anomalous, because the permission itself was the hole.</li>
+<li>A security researcher planted a poisoned GitHub issue and watched Devin escalate its own privileges to finish the task: "it opened another Terminal, added the execute permission and executed the malware binary again," ending with "an attacker can gain access to all secrets and keys on the devin-box" (<a href="https://embracethered.com/blog/posts/2025/devin-i-spent-usd500-to-hack-devin/" target="_blank" rel="noopener noreferrer">wunderwuzzi, Embrace The Red</a>, August 2025).</li>
+</ul>
+<p>The common thread is that least-privilege scoping and a pre-execution gate would have stopped all three, and none was in place. This is why AWS's AgentCore Policy enforces Cedar policies outside agent code, and why Claude Code enforces permissions in the harness rather than the model.</p>
+<p><strong>For AIRO:</strong> the destructive-action class is the one that ends up in a headline. Worth deciding which agent actions are irreversible enough to require a hard gate (a created connection, a deployed recipe, a deletion) regardless of what the agent's plan says.</p>
+<h3 id="theme-2-you-cant-tell-whether-a-human-or-an-agent-did-it">Theme 2: You can't tell whether a human or an agent did it</h3>
+<p>Once agents act, attribution breaks, and that's a compliance problem, not just a debugging one.</p>
+<ul>
+<li>The headline stats: "68% of organizations cannot distinguish AI agent actions from human actions after the fact," and "33% lack evidence-quality audit trails entirely" (<a href="https://tierzero.ai/blog/ai-agent-audit-trail" target="_blank" rel="noopener noreferrer">Anhang Zhu, TierZero</a>, April 2026).</li>
+<li>OWASP's agentic threat taxonomy names this directly as T8, Repudiation and Untraceability, and T9, Identity Spoofing, both rooted in agents sharing or borrowing non-human identities (<a href="https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/" target="_blank" rel="noopener noreferrer">OWASP</a>, 2025).</li>
+</ul>
+<p>The products that solve this tie every action to a named identity with a human owner: Microsoft's Entra Agent ID gives each agent a directory identity with an accountable sponsor, and Okta registers each agent with an assigned owner. Attribution is a function of identity, so products without per-agent identity (the observability tools, and to a degree the dev tools that scope by config) can't fully answer "who did this."</p>
+<p><strong>For AIRO:</strong> Workato already has an audit-trail and recipe-lifecycle heritage. Carrying that forward so every agent action is attributable to a scoped agent identity with a human owner is the natural extension, and it's where most competitors are weak.</p>
+<h3 id="theme-3-agents-are-over-permissioned-and-carry-standing-credentials">Theme 3: Agents are over-permissioned and carry standing credentials</h3>
+<p>Agents tend to inherit broad, durable access they never need.</p>
+<ul>
+<li>"74% of AI agents are provisioned with more permissions than their tasks require" (<a href="https://tierzero.ai/blog/ai-agent-audit-trail" target="_blank" rel="noopener noreferrer">TierZero</a>, April 2026).</li>
+<li>On AWS specifically: "Most Bedrock agents in production are running on the same IAM role they were built with. That role is now a standing identity with access to whatever services got attached during testing ... Standing access is convenient on a Wednesday, but becomes a liability on a Saturday" (<a href="https://sonraisecurity.com/blog/aws-bedrock-agent-permissions-what-you-need-to-lock-down-before-go-live/" target="_blank" rel="noopener noreferrer">Sonrai Security</a>, May 2026).</li>
+<li>On Salesforce: agents "inherit permissions from your security model," and Salesforce permission models "get messy fast" with profile sprawl and permission creep, so an over-permissioned agent user expands the attack surface for prompt injection and data exfiltration (<a href="https://www.sweep.io/blog/salesforce-permission-audits-complex-environments" target="_blank" rel="noopener noreferrer">Sweep</a>).</li>
+</ul>
+<p>The design answer the identity vendors converge on is task-scoped, short-lived credentials rather than role-scoped standing ones: access granted at task start, revoked at completion (Okta's <a href="https://www.okta.com/identity-101/how-to-implement-least-privilege-for-ai-agents/" target="_blank" rel="noopener noreferrer">least-privilege thesis</a>, AWS's token vault, WorkOS's scope attenuation). Kong attacks the same problem at the tool level: its <a href="https://konghq.com/blog/product-releases/mcp-tool-acls-ai-gateway" target="_blank" rel="noopener noreferrer">MCP Tool ACLs</a> replace the "grant full access to all tools or deny entirely" choice with default-deny, per-identity filtering of exactly which tools an agent can see.</p>
+<p><strong>For AIRO:</strong> if an agent in a workflow inherits the builder's full connection and data access, that's the Salesforce problem waiting to happen. Worth scoping an agent's access to the specific connections and actions its task needs, not the workspace's full footprint.</p>
+<h3 id="theme-4-shadow-agents-pile-up-with-no-inventory-or-owner">Theme 4: Shadow agents pile up with no inventory or owner</h3>
+<p>Agents proliferate faster than anyone can track them, and admins lose the thread.</p>
+<ul>
+<li>The standout practitioner voice is Tony Redmond on Microsoft 365: "tools to manage the lifecycle of agents are largely missing," and the line that captures the pain, "there's no trace of the remaining two agents and I have no idea how to clean up the phantoms" (<a href="https://practical365.com/copilot-agents-amok/" target="_blank" rel="noopener noreferrer">Practical365</a>, February 2025).</li>
+<li>At scale, the CSA found non-human identities outnumber humans 45:1 (144:1 in cloud-native environments), yet "51% of organizations report no clear ownership of AI identities" and "more than 16% do not track the creation of AI-related identities at all" (<a href="https://labs.cloudsecurityalliance.org/research/csa-whitepaper-nonhuman-identity-agentic-ai-governance-v1-cs/" target="_blank" rel="noopener noreferrer">Cloud Security Alliance</a>, May 2026).</li>
+</ul>
+<p>This is exactly what the new registry surfaces are for: Microsoft's Agent 365 registry and Agent Map, Okta's shadow-agent discovery. The pattern across products is that an inventory with ownership is becoming the first governance primitive, before policy or audit.</p>
+<p><strong>For AIRO:</strong> a single place to see every agent in a workspace, who owns it, and what it can touch is the foundation the other governance features sit on. Worth treating the agent registry as table stakes rather than a later add.</p>
+<h3 id="theme-5-guardrails-get-bypassed-and-per-action-checks-miss-the-drift">Theme 5: Guardrails get bypassed, and per-action checks miss the drift</h3>
+<p>Guardrails built on the same model they're guarding, or that check one action at a time, fail in predictable ways.</p>
+<ul>
+<li>Multi-turn drift slips past stateless checks: "A prompt injection that gradually shifts the agent's goal over 20 turns can slip through per-action checks because no single action looks suspicious" (<a href="https://www.buildmvpfast.com/blog/nemoclaw-guardrail-bypass-ai-agent-security-2026" target="_blank" rel="noopener noreferrer">BuildMVPFast</a>, 2026).</li>
+<li>The judge inherits the model's weakness: "if the base model is vulnerable to prompt injections, then the judge model will be too, and vulnerabilities compound rather than resolve" (<a href="https://www.hiddenlayer.com/research/same-model-different-hat" target="_blank" rel="noopener noreferrer">HiddenLayer</a>, October 2025).</li>
+</ul>
+<p>This is why the strongest products are moving policy enforcement out of the model into deterministic engines: AWS AgentCore Policy uses Cedar rules evaluated outside agent code, Salesforce Agent Script encodes deterministic guardrails, and Galileo's Agent Control is a separate control plane. Kong takes the most structural version of this, putting a <a href="https://konghq.com/solutions/agent-gateway" target="_blank" rel="noopener noreferrer">gateway</a> between communicating agents so policy is enforced on the traffic itself, blocking unauthorized interactions before they execute, no matter which agent or framework made the call. The shared belief is that pure-LLM guardrails are not enough on their own.</p>
+<p><strong>For AIRO:</strong> for the actions that matter (data egress, irreversible operations), a deterministic check outside the agent's reasoning is more trustworthy than a prompt-level guardrail the same model can be talked out of.</p>
+<h3 id="theme-6-governance-lags-far-behind-deployment-and-it-doesnt-scale-to-fleet-size">Theme 6: Governance lags far behind deployment, and it doesn't scale to fleet size</h3>
+<p>The gap between how fast agents ship and how fast governance catches up is wide and widening.</p>
+<ul>
+<li>"77% of enterprise technology leaders said AI adoption is outpacing governance capabilities," and Gartner predicts that "by 2027, 40% of enterprises will demote or decommission autonomous AI agents due to governance gaps identified only after production incidents occur" (<a href="https://ienable.ai/blog/agent-sprawl-enterprise-ai-governance-crisis.html" target="_blank" rel="noopener noreferrer">iEnable</a>; <a href="https://www.gartner.com/en/newsroom/press-releases/2026-05-26-gartner-says-applying-uniform-governance-across-ai-agents-will-lead-to-enterprise-ai-agent-failure" target="_blank" rel="noopener noreferrer">Gartner</a>, May 2026).</li>
+<li>It also doesn't scale operationally. Fleets become unmanageable around 11 to 20 agents (<a href="https://galileo.ai/blog/ai-agent-observability" target="_blank" rel="noopener noreferrer">Galileo</a>), and the admin burden compounds: reviewing a couple of agents is easy, "doing the same for several hundred (or perhaps thousands) of agents annually is a different matter" (<a href="https://practical365.com/copilot-agents-amok/" target="_blank" rel="noopener noreferrer">Practical365</a>, February 2025).</li>
+</ul>
+<p><strong>For AIRO:</strong> governance that requires manual per-agent review won't survive contact with a workspace that has hundreds of agents. Worth designing the governance surface around policy that applies to groups of agents by default, with review reserved for exceptions.</p>
+<hr />
+<h2 id="part-3-airo-design-implications">Part 3 — AIRO design implications</h2>
+<table>
+<thead>
+<tr>
+<th>Competitor pain point</th>
+<th>What this could mean for AIRO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agents ran destructive actions nobody approved (Replit, PocketOS, Devin)</td>
+<td>Worth defining which agent actions are irreversible enough to require a hard pre-execution gate, regardless of the agent's plan</td>
+</tr>
+<tr>
+<td>68% can't tell human from agent after the fact (TierZero); OWASP T8 untraceability</td>
+<td>Worth tying every agent action to a scoped agent identity with a human owner, extending Workato's existing audit trail</td>
+</tr>
+<tr>
+<td>74% of agents over-permissioned; agents inherit broad standing access (TierZero, Sonrai, Sweep)</td>
+<td>Worth scoping an agent's access to the connections and actions its task needs, not the builder's or workspace's full footprint</td>
+</tr>
+<tr>
+<td>Shadow agents with no inventory or owner; admins find "phantoms" (Redmond, CSA)</td>
+<td>Worth treating an agent registry (every agent, its owner, its reach) as the foundational governance surface</td>
+</tr>
+<tr>
+<td>Pure-LLM guardrails get bypassed; per-action checks miss multi-turn drift (HiddenLayer, NemoClaw)</td>
+<td>Worth enforcing high-stakes policy with a deterministic check outside the agent's reasoning, not just a prompt-level guardrail</td>
+</tr>
+<tr>
+<td>The gateway layer enforces policy on agent/tool/model traffic out-of-band (Kong AI Gateway, AWS Gateway)</td>
+<td>Worth deciding whether AIRO routes agent and tool calls through a policy choke point, so rules and audit hold regardless of which agent made the call</td>
+</tr>
+<tr>
+<td>All-or-nothing tool access vs per-identity tool scoping (Kong MCP Tool ACLs)</td>
+<td>Worth default-deny, per-agent filtering of which tools/connectors an agent can even see, rather than exposing the full tool set</td>
+</tr>
+<tr>
+<td>Governance lags deployment; manual review doesn't scale past ~20 agents (iEnable, Galileo, Gartner)</td>
+<td>Worth designing governance as policy applied to groups of agents by default, with review reserved for exceptions</td>
+</tr>
+<tr>
+<td>The unit of approval differs by product (tool call, PR, transaction, OAuth consent)</td>
+<td>Worth deciding early what AIRO's unit of approval is (a recipe action, a connection, a deployed workflow), since it shapes the whole UX</td>
+</tr>
+<tr>
+<td>Fleet observability is the freshest land grab (Agent 365, Command Center, AgentCore Observability all GA in 2025-26)</td>
+<td>Worth a fleet view that connects to AIRO's run-history work: what every agent did, attributable and reviewable</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-biggest-gap-surfaced-by-this-research">The biggest gap surfaced by this research</h3>
+<p>The sharpest, most defensible opportunity is attribution. The single most-cited governance failure is that organizations can't reconstruct which agent, or whether a human or an agent, took a given action (<a href="https://tierzero.ai/blog/ai-agent-audit-trail" target="_blank" rel="noopener noreferrer">68% per TierZero</a>; OWASP T8). Every strong product solves it the same way, by tying actions to a per-agent identity with a named human owner (Entra Agent ID's sponsor, Okta's assigned owner), and the products that govern at the execution or observability layer without a real identity can't fully answer the question.</p>
+<p>Workato is unusually well-positioned here. It already has an audit-trail and recipe-lifecycle heritage that most agent-native competitors lack, so "every agent action is attributable to a scoped identity with an owner and an evidence-quality trail" is an extension of something Workato already does, not a net-new capability. For AIRO, the open question is whether agents get first-class scoped identities (the Entra/Okta model) or remain scoped by configuration and inherited permissions (the Claude Code/Salesforce model). That one decision determines whether AIRO can answer "who did this, and were they allowed to" cleanly, or has to reconstruct it after the fact like the 68%.</p>
+<hr />
+<h2 id="part-4-framework-owasp-agentic-threats-mapped-to-governance-surfaces">Part 4 — Framework: OWASP agentic threats, mapped to governance surfaces</h2>
+<p><strong>Source.</strong> <em>Agentic AI: Threats and Mitigations</em>, <a href="https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/" target="_blank" rel="noopener noreferrer">OWASP Agentic Security Initiative</a> (February 2025), with the <a href="https://genai.owasp.org/resource/multi-agentic-system-threat-modeling-guide-v1-0/" target="_blank" rel="noopener noreferrer">Multi-Agentic System Threat Modeling Guide</a> (April 2025).</p>
+<p>OWASP's taxonomy of 15 agentic threats (T1 to T15) is the vocabulary the security community already uses, which makes it the cleanest way to organize a governance conversation with security stakeholders. The governance-relevant threats map directly onto product surfaces:</p>
+<table>
+<thead>
+<tr>
+<th>OWASP threat</th>
+<th>Governance surface in AIRO terms</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T3 Privilege Compromise, T9 Identity Spoofing</td>
+<td>Per-agent scoped identity and least-privilege access</td>
+</tr>
+<tr>
+<td>T8 Repudiation and Untraceability</td>
+<td>Audit trail attributable to an agent identity and owner</td>
+</tr>
+<tr>
+<td>T2 Tool Misuse, T6 Intent Breaking</td>
+<td>Deterministic policy on which tools and actions are allowed</td>
+</tr>
+<tr>
+<td>T10 Overwhelming Human-in-the-Loop</td>
+<td>Approval gates designed not to fatigue the reviewer</td>
+</tr>
+<tr>
+<td>T13 Rogue Agents in Multi-Agent Systems</td>
+<td>Fleet observability of agent-to-agent coordination</td>
+</tr>
+</tbody>
+</table>
+<p>For the enterprise risk and compliance buyer, the <a href="https://www.nist.gov/itl/ai-risk-management-framework" target="_blank" rel="noopener noreferrer">NIST AI Risk Management Framework</a> is the parallel language: its four functions (GOVERN, MAP, MEASURE, MANAGE) map onto the same surfaces (roles and ownership, agent inventory, observability and evals, approval gates and kill-switches). Speaking both vocabularies lets AIRO frame governance features in terms buyers already evaluate against.</p>
+<h3 id="where-this-is-heading">Where this is heading</h3>
+<p>Two signals worth noting. Gartner predicts <a href="https://www.gartner.com/en/newsroom/press-releases/2025-06-11-gartner-predicts-that-guardian-agents-will-capture-10-15-percent-of-the-agentic-ai-market-by-2030" target="_blank" rel="noopener noreferrer">guardian agents</a> (agents that review, monitor, and block other agents) will be 10 to 15% of the agentic market by 2030, and academic work like <a href="https://arxiv.org/abs/2508.18765" target="_blank" rel="noopener noreferrer">Governance-as-a-Service</a> (August 2025) proposes a runtime enforcement layer that scores each agent by a compliance-weighted trust factor and applies graduated enforcement. Both point the same direction: governance becoming its own layer that watches and constrains the agent fleet, rather than logic baked into each agent. The MorphMind Caliper trust-score idea from the orchestration research is an early consumer-side version of the same instinct.</p>
+<h3 id="constraints-worth-understanding">Constraints worth understanding</h3>
+<ul>
+<li>OWASP names what to defend against; it doesn't prescribe the UX. The threat-to-surface mapping above is the bridge, but the actual design is still open.</li>
+<li>The strong stats come from analyst and vendor research (TierZero, CSA, Gartner), which is credible for problem-framing but is not peer-reviewed measurement.</li>
+<li>Several competitor capabilities are very recent or still in preview (AgentCore Policy GA March 2026, Microsoft Conditional Access for agents still rolling out), so the bar is moving quarter to quarter.</li>
+<li>Raw first-person user complaints are thin; the evidence base here is incidents and analyst data, which is strong for "why this matters" but lighter on "what specifically annoys a daily user."</li>
+</ul>
+<hr />
+<h2 id="appendix-all-source-links">Appendix — All source links</h2>
+<h3 id="framework-and-standards">Framework and standards</h3>
+<ul>
+<li>OWASP, <em>Agentic AI: Threats and Mitigations</em> — <a href="https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/" target="_blank" rel="noopener noreferrer">genai.owasp.org</a></li>
+<li>OWASP, <em>Multi-Agentic System Threat Modeling Guide v1.0</em> — <a href="https://genai.owasp.org/resource/multi-agentic-system-threat-modeling-guide-v1-0/" target="_blank" rel="noopener noreferrer">genai.owasp.org</a></li>
+<li>NIST, <em>AI Risk Management Framework</em> — <a href="https://www.nist.gov/itl/ai-risk-management-framework" target="_blank" rel="noopener noreferrer">nist.gov</a></li>
+<li>Okta, <em>How to implement least privilege for AI agents</em> — <a href="https://www.okta.com/identity-101/how-to-implement-least-privilege-for-ai-agents/" target="_blank" rel="noopener noreferrer">okta.com</a></li>
+<li>Cloud Security Alliance, <em>The Non-Human Identity Governance Vacuum</em> — <a href="https://labs.cloudsecurityalliance.org/research/csa-whitepaper-nonhuman-identity-agentic-ai-governance-v1-cs/" target="_blank" rel="noopener noreferrer">cloudsecurityalliance.org</a></li>
+<li>Gartner, <em>Guardian agents will capture 10-15% of the agentic AI market by 2030</em> — <a href="https://www.gartner.com/en/newsroom/press-releases/2025-06-11-gartner-predicts-that-guardian-agents-will-capture-10-15-percent-of-the-agentic-ai-market-by-2030" target="_blank" rel="noopener noreferrer">gartner.com</a></li>
+<li><em>Governance-as-a-Service: A Multi-Agent Framework for AI System Compliance</em> — <a href="https://arxiv.org/abs/2508.18765" target="_blank" rel="noopener noreferrer">arXiv 2508.18765</a></li>
+<li><em>The 2025 AI Agent Index</em> — <a href="https://arxiv.org/abs/2602.17753" target="_blank" rel="noopener noreferrer">arXiv 2602.17753</a></li>
+</ul>
+<h3 id="official-documentation">Official documentation</h3>
+<p><strong>Microsoft</strong>
+- <a href="https://learn.microsoft.com/en-us/entra/agent-id/what-is-microsoft-entra-agent-id" target="_blank" rel="noopener noreferrer">Entra Agent ID overview</a>
+- <a href="https://learn.microsoft.com/en-us/entra/agent-id/manage-agent-identities-admin" target="_blank" rel="noopener noreferrer">Manage agent identities (admin)</a>
+- <a href="https://learn.microsoft.com/en-us/entra/identity/conditional-access/agent-id" target="_blank" rel="noopener noreferrer">Conditional Access for agents</a>
+- <a href="https://learn.microsoft.com/en-us/entra/id-protection/concept-risky-agents" target="_blank" rel="noopener noreferrer">Risky Agents report</a>
+- <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/admin-data-loss-prevention" target="_blank" rel="noopener noreferrer">Copilot Studio DLP</a>
+- <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/admin-logging-copilot-studio" target="_blank" rel="noopener noreferrer">Copilot Studio audit logging</a>
+- <a href="https://learn.microsoft.com/en-us/purview/ai-agent-365" target="_blank" rel="noopener noreferrer">Purview for Agent 365</a>
+- <a href="https://learn.microsoft.com/en-us/microsoft-agent-365/overview" target="_blank" rel="noopener noreferrer">Agent 365 overview</a>
+- <a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/copilot-control-system/management-controls" target="_blank" rel="noopener noreferrer">Copilot Control System</a></p>
+<p><strong>Salesforce Agentforce</strong>
+- <a href="https://www.salesforce.com/news/press-releases/2025/06/23/agentforce-3-announcement/" target="_blank" rel="noopener noreferrer">Agentforce 3 (Command Center, Session Tracing)</a>
+- <a href="https://www.salesforce.com/news/press-releases/2025/10/13/agentic-enterprise-announcement/" target="_blank" rel="noopener noreferrer">Agentforce 360 GA (Agent Script)</a>
+- <a href="https://developer.salesforce.com/docs/ai/agentforce/guide/get-started-agents.html" target="_blank" rel="noopener noreferrer">Subagents (topics) and actions</a>
+- <a href="https://architect.salesforce.com/docs/architect/fundamentals/guide/agentic-patterns.html" target="_blank" rel="noopener noreferrer">Agentic patterns (HITL, escalation)</a>
+- <a href="https://developer.salesforce.com/docs/einstein/genai/guide/trust.html" target="_blank" rel="noopener noreferrer">Einstein Trust Layer</a>
+- <a href="https://www.salesforce.com/agentforce/command-center/" target="_blank" rel="noopener noreferrer">Command Center</a>
+- <a href="https://www.salesforce.com/blog/command-center/" target="_blank" rel="noopener noreferrer">Session Trace data model</a>
+- <a href="https://admin.salesforce.com/blog/2025/get-agentforce-ready-move-from-profiles-to-permission-sets-how-i-solved-it" target="_blank" rel="noopener noreferrer">Permission sets for agent users</a></p>
+<p><strong>AWS Bedrock AgentCore</strong>
+- <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/identity.html" target="_blank" rel="noopener noreferrer">AgentCore Identity / token vault</a>
+- <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/understanding-agent-identities.html" target="_blank" rel="noopener noreferrer">Workload identities</a>
+- <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html" target="_blank" rel="noopener noreferrer">Gateway (tool access control)</a>
+- <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/policy.html" target="_blank" rel="noopener noreferrer">AgentCore Policy (Cedar)</a>
+- <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html" target="_blank" rel="noopener noreferrer">Bedrock Guardrails</a>
+- <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html" target="_blank" rel="noopener noreferrer">AgentCore Observability</a></p>
+<p><strong>Kong (AI Gateway / Agent Gateway)</strong>
+- <a href="https://konghq.com/blog/product-releases/kong-agent-gateway" target="_blank" rel="noopener noreferrer">Kong Agent Gateway announcement (AI Gateway 3.14)</a>
+- <a href="https://konghq.com/solutions/agent-gateway" target="_blank" rel="noopener noreferrer">Agent Gateway: A2A governance &amp; security</a>
+- <a href="https://konghq.com/blog/product-releases/mcp-tool-acls-ai-gateway" target="_blank" rel="noopener noreferrer">MCP Tool ACLs: fine-grained tool authorization</a></p>
+<p><strong>Claude Code</strong>
+- <a href="https://code.claude.com/docs/en/permissions" target="_blank" rel="noopener noreferrer">Configure permissions</a>
+- <a href="https://code.claude.com/docs/en/permission-modes" target="_blank" rel="noopener noreferrer">Permission modes</a>
+- <a href="https://code.claude.com/docs/en/settings" target="_blank" rel="noopener noreferrer">Settings (managed enterprise settings)</a>
+- <a href="https://code.claude.com/docs/en/hooks" target="_blank" rel="noopener noreferrer">Hooks</a>
+- <a href="https://code.claude.com/docs/en/monitoring-usage" target="_blank" rel="noopener noreferrer">Monitoring and OTel audit events</a></p>
+<p><strong>Okta / WorkOS</strong>
+- <a href="https://www.okta.com/products/govern-ai-agent-identity/" target="_blank" rel="noopener noreferrer">Okta for AI Agents</a>
+- <a href="https://auth0.com/ai" target="_blank" rel="noopener noreferrer">Auth0 for AI Agents</a>
+- <a href="https://workos.com/blog/ai-agent-credentials" target="_blank" rel="noopener noreferrer">WorkOS agent credentials</a>
+- <a href="https://workos.com/blog/agents-need-authorization-not-just-authentication" target="_blank" rel="noopener noreferrer">WorkOS: agents need authorization</a>
+- <a href="https://workos.com/auth-md" target="_blank" rel="noopener noreferrer">WorkOS auth.md protocol</a></p>
+<p><strong>Galileo / Arize</strong>
+- <a href="https://docs.galileo.ai/concepts/logging/overview" target="_blank" rel="noopener noreferrer">Galileo logging/observability</a>
+- <a href="https://www.globenewswire.com/news-release/2026/03/11/3253962/0/en/Galileo-Releases-Open-Source-AI-Agent-Control-Plane-to-Help-Enterprises-Govern-Agents-at-Scale.html" target="_blank" rel="noopener noreferrer">Galileo open-source Agent Control</a>
+- <a href="https://arize.com/ai-agents/agent-observability/" target="_blank" rel="noopener noreferrer">Arize agent observability</a>
+- <a href="https://arize.com/docs/ax/evaluate/online-evals" target="_blank" rel="noopener noreferrer">Arize online evals</a></p>
+<p><strong>Devin</strong>
+- <a href="https://devin.ai/security" target="_blank" rel="noopener noreferrer">Security overview</a>
+- <a href="https://docs.devin.ai/enterprise-api/audit-logs" target="_blank" rel="noopener noreferrer">Enterprise audit logs API</a>
+- <a href="https://docs.devin.ai/enterprise/security-access/custom-roles" target="_blank" rel="noopener noreferrer">Custom roles (RBAC)</a>
+- <a href="https://docs.devin.ai/product-guides/session-insights" target="_blank" rel="noopener noreferrer">Session Insights</a></p>
+<h3 id="complaint-and-incident-sources">Complaint and incident sources</h3>
+<p><strong>Production incidents</strong>
+- <a href="https://www.theregister.com/2025/07/21/replit_saastr_vibe_coding_incident/" target="_blank" rel="noopener noreferrer">The Register: Replit deleted a production database</a>
+- <a href="https://www.eon.io/blog/ai-agent-data-loss" target="_blank" rel="noopener noreferrer">Eon: AI agent deleted a database and all backups in 9 seconds (PocketOS)</a>
+- <a href="https://embracethered.com/blog/posts/2025/devin-i-spent-usd500-to-hack-devin/" target="_blank" rel="noopener noreferrer">Embrace The Red: prompt injection to RCE on Devin</a></p>
+<p><strong>Analyst and security-vendor research</strong>
+- <a href="https://tierzero.ai/blog/ai-agent-audit-trail" target="_blank" rel="noopener noreferrer">TierZero: AI agent audit trail (attribution and over-permissioning stats)</a>
+- <a href="https://sonraisecurity.com/blog/aws-bedrock-agent-permissions-what-you-need-to-lock-down-before-go-live/" target="_blank" rel="noopener noreferrer">Sonrai Security: AWS Bedrock agent permissions / standing IAM roles</a>
+- <a href="https://www.sweep.io/blog/salesforce-permission-audits-complex-environments" target="_blank" rel="noopener noreferrer">Sweep: Salesforce permission audits / inherited agent permissions</a>
+- <a href="https://ienable.ai/blog/agent-sprawl-enterprise-ai-governance-crisis.html" target="_blank" rel="noopener noreferrer">iEnable: agent sprawl and the enterprise governance crisis</a>
+- <a href="https://www.gartner.com/en/newsroom/press-releases/2026-05-26-gartner-says-applying-uniform-governance-across-ai-agents-will-lead-to-enterprise-ai-agent-failure" target="_blank" rel="noopener noreferrer">Gartner: uniform governance across agents will lead to failure</a></p>
+<p><strong>Practitioner posts</strong>
+- <a href="https://practical365.com/copilot-agents-amok/" target="_blank" rel="noopener noreferrer">Practical365 (Tony Redmond): Copilot agents run amok / phantoms</a>
+- <a href="https://www.buildmvpfast.com/blog/nemoclaw-guardrail-bypass-ai-agent-security-2026" target="_blank" rel="noopener noreferrer">BuildMVPFast: NemoClaw guardrail bypass</a>
+- <a href="https://www.hiddenlayer.com/research/same-model-different-hat" target="_blank" rel="noopener noreferrer">HiddenLayer: same model, different hat (guardrail bypass)</a>
+- <a href="https://galileo.ai/blog/ai-agent-observability" target="_blank" rel="noopener noreferrer">Galileo: AI agent observability (fleet unmanageable at scale)</a></p>
+<p><em>Direct Reddit and sub-3-star review quotes were thin for this topic; governance pain concentrates on admins and security teams, so the evidence base is incidents, analyst stats, and practitioner blogs rather than first-person user complaints.</em></p>
+</body>
+</html>

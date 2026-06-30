@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity Timeline — Competitive Research</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  color: #1f2328;
+  line-height: 1.65;
+  font-size: 16px;
+  background: #fff;
+}
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; color: #424a53; }
+p { margin: 0.6em 0; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+pre code { background: transparent; padding: 0; }
+blockquote {
+  border-left: 4px solid #d1d9e0;
+  margin: 1em 0;
+  padding: 0.2em 1em;
+  color: #424a53;
+  background: #f8fafc;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f6f8fa; font-weight: 600; }
+img {
+  max-width: 100%;
+  border: 1px solid #d1d9e0;
+  border-radius: 6px;
+  margin: 0.5em 0;
+}
+hr {
+  border: none;
+  border-top: 1px solid #d1d9e0;
+  margin: 2em 0;
+}
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.25em 0; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+
+/* Make missing screenshot placeholders less ugly */
+img[alt] {
+  position: relative;
+}
+img:not([src=""]):after {
+  content: attr(alt);
+  display: block;
+  padding: 24px;
+  background: #f6f8fa;
+  color: #57606a;
+  font-size: 0.85em;
+  text-align: center;
+  border: 1px dashed #d1d9e0;
+  border-radius: 6px;
+}
+
+/* Sticky nav at top */
+.toc {
+  background: #f6f8fa;
+  border: 1px solid #d1d9e0;
+  border-radius: 6px;
+  padding: 16px 24px;
+  margin: 0 0 32px 0;
+  font-size: 0.95em;
+}
+.toc strong { display: block; margin-bottom: 8px; }
+.toc a { display: block; padding: 2px 0; color: #424a53; }
+</style>
+</head>
+<body>
+<h1 id="activity-timeline-competitive-research">Activity Timeline — Competitive Research</h1>
+<p><strong>Context.</strong> Research compiled to inform a future AIRO PRD on real-time agent activity UI (what users see while AIRO is working). No PRD exists yet; this research is at the discovery stage. Updated June 2026 to add the workflow-automation tier (n8n, Zapier, Make), which is AIRO's direct competitor category.</p>
+<p><strong>Products covered.</strong> Cursor, Claude Code, Replit Agent, Devin, Lovable (AI coding agents). n8n, Zapier, Make (workflow automation, Tier 1 for AIRO).</p>
+<p><strong>Scope.</strong> Two related surfaces. First, what users see while the agent is working: thinking stream, tool calls, planned steps, sub-tasks, progress indicators, interaction model. Second, how they review what happened after a run: run history, execution detail, rerun. The coding agents center on the live stream; the workflow-automation tools center on run history, which is the surface AIRO will lean on most.</p>
+<hr />
+<h2 id="part-1-activity-timeline-behavior-per-product">Part 1 — Activity timeline behavior per product</h2>
+<h3 id="11-cursor">1.1 Cursor</h3>
+<p>Cursor's Agent (the multi-step mode inside Composer, distinct from plain Chat) shows live activity inline in the Composer pane: reasoning blocks, file reads, file edits with diffs, and terminal commands stream as they happen. Cursor 2.0 added a dedicated Agents sidebar that lists every agent currently running locally or in the cloud, with each agent's worktree, plan, and tool calls accessible from one place. A Plan Mode (Shift+Tab) generates a markdown todo list before code is written, and a "compact / balanced / detailed" tool call density setting lets users dial down the noise.</p>
+<ul>
+<li>Agent Mode + Composer overview: <a href="https://cursor.com/product">cursor.com/product</a></li>
+<li>Cursor 2.0 changelog (sidebar, plan mode, multi-agent): <a href="https://cursor.com/changelog/2-0">cursor.com/changelog/2-0</a></li>
+<li>Plan Mode docs: <a href="https://docs.cursor.com/agent/planning">docs.cursor.com/agent/planning</a></li>
+<li>Agent best practices: <a href="https://cursor.com/blog/agent-best-practices">cursor.com/blog/agent-best-practices</a></li>
+</ul>
+<h3 id="12-claude-code">1.2 Claude Code</h3>
+<p>Claude Code streams every tool call inline in the conversation with color-coded badges (Read = blue, Write = green, Edit = amber, Bash = red), each expandable to show full input and output. Extended thinking blocks appear inline as collapsed cards that can be opened individually or toggled with Ctrl+O. The CLI streams bash output token-by-token; the VS Code extension buffers it until the command finishes, which has been a recurring complaint. There is no dedicated planning panel beyond the conversation itself, though Claude often emits a todo list as a tool call when tasks get complex.</p>
+<ul>
+<li>Tool system overview: <a href="https://callsphere.ai/blog/claude-code-tool-system-explained">callsphere.ai/blog/claude-code-tool-system-explained</a></li>
+<li>VS Code integration docs: <a href="https://code.claude.com/docs/en/vs-code">code.claude.com/docs/en/vs-code</a></li>
+<li>Bash tool reference: <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/bash-tool">platform.claude.com/docs/en/agents-and-tools/tool-use/bash-tool</a></li>
+</ul>
+<h3 id="13-replit-agent">1.3 Replit Agent</h3>
+<p>Agent 3 (September 2026) can run up to 200 minutes autonomously and surfaces progress through a chat-style activity feed plus a checkpoint timeline. Each checkpoint is a savepoint the agent creates between tasks so users can roll back without losing work. While building, Agent 3 spins up a headless browser to test its own work and replays those browser sessions back into the activity feed (so you can literally watch it click around your app). Mobile and web home pages get live progress bars, fix-log entries, and push notifications when a run finishes.</p>
+<ul>
+<li>Agent 3 launch post: <a href="https://blog.replit.com/introducing-agent-3-our-most-autonomous-agent-yet">blog.replit.com/introducing-agent-3-our-most-autonomous-agent-yet</a></li>
+<li>Replit Agent docs: <a href="https://docs.replit.com/replitai/agent">docs.replit.com/replitai/agent</a></li>
+<li>Deep dive on 200-minute runs: <a href="https://www.theunwindai.com/p/replit-agent-runs-autonomously-for-200-mins-non-stop">theunwindai.com/p/replit-agent-runs-autonomously-for-200-mins-non-stop</a></li>
+</ul>
+<h3 id="14-devin">1.4 Devin</h3>
+<p>Devin is the canonical "watch the agent work" product. Its Workspace is a four-tab pane (Shell, Browser, Editor, Planner) that the user can either switch manually or set to "Following" mode, where the active tab auto-switches to whichever environment Devin is using. A time slider at the bottom of the Workspace lets users scrub backward and forward through the full session; the chat pane re-syncs to whichever message was active at that timestamp. The Planner tab holds a checkable plan Devin produces before coding, which users can edit or reorder before approving.</p>
+<ul>
+<li>Devin intro: <a href="https://docs.devin.ai/get-started/devin-intro">docs.devin.ai/get-started/devin-intro</a></li>
+<li>Interactive Planning docs: <a href="https://docs.devin.ai/work-with-devin/interactive-planning">docs.devin.ai/work-with-devin/interactive-planning</a></li>
+<li>In-depth UI breakdown: <a href="https://ppaolo.substack.com/p/in-depth-product-analysis-devin-cognition-labs">ppaolo.substack.com/p/in-depth-product-analysis-devin-cognition-labs</a></li>
+<li>Devin 2.0 update (proactive planning): <a href="https://cognition.ai/blog/devin-2">cognition.ai/blog/devin-2</a></li>
+</ul>
+<h3 id="15-lovable">1.5 Lovable</h3>
+<p>In Agent Mode, Lovable shows "visible tasks" that stream during a build: the current step, files being modified, and tools being used (search, web fetch, image generation). The live preview re-renders as code lands, and a Details view exposes file diffs and per-message summaries. Above the chat input sits a prompt queue (up to 50 items): users can reorder, edit, pause, or remove queued prompts while a build is in progress. Lovable processes one task at a time, so the queue is the only way to "batch" follow-ups.</p>
+<ul>
+<li>Agent Mode docs: <a href="https://docs.lovable.dev/features/agent-mode">docs.lovable.dev/features/agent-mode</a></li>
+<li>Agent Mode launch blog: <a href="https://lovable.dev/blog/agent-mode-beta">lovable.dev/blog/agent-mode-beta</a></li>
+<li>FAQ on visibility: <a href="https://lovable.dev/faq/ai-agent/agent-mode">lovable.dev/faq/ai-agent/agent-mode</a></li>
+</ul>
+<h3 id="16-n8n">1.6 n8n</h3>
+<p>n8n splits the live and historical views. While a workflow runs, nodes light up green, red, or grey on the canvas in real time; after the fact, the Executions list (a per-workflow tab plus a global "All Executions" view) logs every run with status, start time, and duration. Users can filter by status (success, error, running, waiting), workflow, time range, and custom data attached in a Code node. Clicking a run reopens the canvas in its exact end state with per-node input and output, and a failed node shows the error, the input data at the time of failure, and a stack trace. The catch is retention: execution data prunes on an env-var schedule (<code>EXECUTIONS_DATA_MAX_AGE</code>), and self-hosted users routinely lose history sooner than they expect.</p>
+<ul>
+<li>Execution history walkthrough: <a href="https://www.rapidevelopers.com/n8n-tutorial/how-to-view-execution-history-in-n8n">rapidevelopers.com/n8n-tutorial/how-to-view-execution-history-in-n8n</a></li>
+<li>Executions docs: <a href="https://docs.n8n.io/workflows/executions/">docs.n8n.io/workflows/executions</a></li>
+<li>All executions view: <a href="https://docs.n8n.io/workflows/executions/all-executions/">docs.n8n.io/workflows/executions/all-executions</a></li>
+</ul>
+<h3 id="17-zapier">1.7 Zapier</h3>
+<p>Zapier's Zap history page lists every run on the "Zap runs" tab (10 per page) with a status badge for success or failure. Selecting a run shows the Zap version used and the data each step received and sent. Users can filter by app, folder, owner, status, and date, and search by version number or name. Retention is capped at 60 days and 10,000 runs, with export as the only way to keep more, so anything older silently falls off.</p>
+<ul>
+<li>View and manage Zap history: <a href="https://help.zapier.com/hc/en-us/articles/8496291148685-View-and-manage-your-Zap-history">help.zapier.com/.../View-and-manage-your-Zap-history</a></li>
+<li>View specific run details: <a href="https://help.zapier.com/hc/en-us/articles/20512774106125-View-specific-Zap-run-details">help.zapier.com/.../View-specific-Zap-run-details</a></li>
+<li>Export Zap history: <a href="https://help.zapier.com/hc/en-us/articles/8496294549005-Export-your-Zap-history">help.zapier.com/.../Export-your-Zap-history</a></li>
+</ul>
+<h3 id="18-make">1.8 Make</h3>
+<p>Make's scenario history logs each run with date and time, status (success, warning, error), duration, operations consumed, and data transferred, plus a separate change log of who edited the scenario. Opening a run's detail reopens the scenario canvas with markers showing how far execution reached; clicking any module shows its input and output bundles for that run. Make also surfaces a Run ID column whose UUID-style identifiers drew a wave of user pushback in 2025 (covered in Theme 8).</p>
+<ul>
+<li>Scenario history: <a href="https://help.make.com/scenario-history">help.make.com/scenario-history</a></li>
+<li>Scenario execution history: <a href="https://help.make.com/scenario-execution-history">help.make.com/scenario-execution-history</a></li>
+</ul>
+<hr />
+<h2 id="part-2-user-pain-points-themed-insights">Part 2 — User pain points (themed insights)</h2>
+<p>Five themes emerged from Reddit, GitHub Issues, the Cursor and Replit community forums, Hacker News, and product changelog comments. Sources were mined for verbatim quotes; thin spots are flagged.</p>
+<h3 id="theme-1-the-stream-is-too-noisy-by-default">Theme 1: The stream is too noisy by default</h3>
+<p>Users want to see what's happening, but the default density buries the signal in reasoning text and verbose tool output.</p>
+<ul>
+<li>Claude Code (VS Code): "The VS Code extension currently displays extended thinking/reasoning blocks inline during responses. There is no way to suppress or collapse these automatically. For users who do not need to see the model's reasoning process, this creates significant visual noise and makes responses harder to read." (<a href="https://github.com/anthropics/claude-code/issues/52640">Issue #52640</a>)</li>
+<li>Cursor: Anthropic publicly traced an April 2026 Claude Code quality complaint wave to a "reduce verbosity" prompt change that backfired on coding quality and had to be reverted four days later (<a href="https://www.anthropic.com/engineering/april-23-postmortem">Anthropic postmortem</a>).</li>
+<li>Cursor 2.0 shipped a "compact / balanced / detailed" tool call density toggle in direct response to this kind of feedback (<a href="https://cursor.com/changelog/2-0">Cursor changelog</a>).</li>
+</ul>
+<p>The pattern: products that ship verbose-by-default end up retrofitting a density control. Worth considering for AIRO from day one rather than after the fact.</p>
+<h3 id="theme-2-when-the-stream-goes-quiet-users-cant-tell-if-its-working-or-frozen">Theme 2: When the stream goes quiet, users can't tell if it's working or frozen</h3>
+<p>The opposite failure mode: when the agent buffers output or hits a long-running step, users have no signal whether progress is happening.</p>
+<ul>
+<li>Claude Code: "When Claude runs bash commands in the VS Code extension's graphical panel, the output is buffered and only displayed after the command completes. This makes it difficult to monitor progress of long-running commands, know if a command is stuck or still working, see incremental output that might inform whether to cancel early." (<a href="https://github.com/anthropics/claude-code/issues/14280">Issue #14280</a>)</li>
+<li>Claude Code (same issue): "Currently I see nothing until it finishes. No way to know if it's working or frozen."</li>
+<li>Replit Agent 3: "My main issue is that the agent just STOPS. No error, no crash. Just POOF stops working." (mikecoffin11, <a href="https://replit.discourse.group/t/agent-3-is-slow-broken-and-unusable-it-just-stops-working-any-work-arounds/7061">Replit forum</a>)</li>
+<li>Replit Agent 3: "When I see the message 'Agent optimizing memory…' I know I'm about to have a bad day." (mikecoffin11, same thread)</li>
+<li>Replit Agent 3 workaround: "I started manually refreshing/reloading the app. After each refresh the AI would go to 'Thinking…' and spit out its report." (capacitron, same thread)</li>
+</ul>
+<p>A streaming UI is only useful if it streams. Buffered output and silent stalls undermine the whole point of letting users watch.</p>
+<h3 id="theme-3-the-planning-surface-looks-great-in-the-demo-but-is-fragile-in-practice">Theme 3: The planning surface looks great in the demo but is fragile in practice</h3>
+<p>The todo-list-style planner is now table stakes, but multiple products ship it half-broken.</p>
+<ul>
+<li>Cursor: "The To-Do lists panel doesn't show up and no tasks are created, even though the To-Do List feature is enabled in settings." (<a href="https://forum.cursor.com/t/to-do-lists-not-appearing-in-agent-mode-despite-feature-enabled/114317">Cursor forum</a>)</li>
+<li>Cursor (same thread): "I'm being asked to burn more tokens to feign complexity to invoke the tool." User had to pad the prompt to trick the agent into calling the todo tool.</li>
+<li>Cursor: "Plan mode is struggling to update the ToDo list after the plan builder produces the initial plan, even when changes are agreed upon with the agent." (<a href="https://forum.cursor.com/t/plan-mode-todo-list-does-not-update/137115">Cursor forum</a>)</li>
+<li>Devin: The Planner pane is well-received but underused. One reviewer noted it functions as a "straightforward to-do list" but is potentially "under-leveraged for managing complex requirements" (<a href="https://ppaolo.substack.com/p/in-depth-product-analysis-devin-cognition-labs">Substack analysis</a>).</li>
+</ul>
+<p>A plan that disappears, doesn't update, or only appears on certain prompts is worse than no plan at all. Users notice when planning is theater.</p>
+<h3 id="theme-4-long-running-agents-need-a-way-to-look-backward-not-just-forward">Theme 4: Long-running agents need a way to look backward, not just forward</h3>
+<p>Once a session runs more than a few minutes, the linear chat scroll stops being enough. Users need to revisit what happened earlier.</p>
+<ul>
+<li>Devin: The time slider is the strongest example. "While navigating in time, the chat is automatically scrolled to the messages exchanged before triggering the activities currently displayed." (<a href="https://ppaolo.substack.com/p/in-depth-product-analysis-devin-cognition-labs">Substack analysis</a>)</li>
+<li>Replit Agent 3: Checkpoint-as-rollback is the dominant scrubbing mechanism. The community fix for stuck loops is "use the Rollback feature to revert to a previous checkpoint before the loop started." (<a href="https://replit.discourse.group/t/replit-agent-getting-stuck-in-a-loop-any-advice/1279">Replit forum</a>)</li>
+<li>Claude Code: No scrubbing primitive at all. The conversation is the timeline, which becomes unwieldy in sessions with hundreds of tool calls (Stella Laurenzo's audit covered 234,760 tool calls across ~6,800 sessions, per <a href="https://www.infoq.com/news/2026/05/anthropic-claude-code-postmortem/">InfoQ</a>).</li>
+</ul>
+<p>For AIRO recipes (which can have many steps), some scrubbing primitive (checkpoints, step list, time slider) starts to matter once session length crosses a threshold. Worth investigating where that threshold is for automation builds.</p>
+<h3 id="theme-5-cost-transparency-is-now-part-of-the-activity-ui">Theme 5: Cost transparency is now part of the activity UI</h3>
+<p>In 2026, users expect the activity timeline to also surface what each step costs them. When it doesn't, trust erodes fast.</p>
+<ul>
+<li>Replit Agent 3: "Charged me 31c to think but didn't tell me what it found out. Then charged me 7c to write." (MarcusTettmar1, <a href="https://replit.discourse.group/t/agent-3-is-slow-broken-and-unusable-it-just-stops-working-any-work-arounds/7061">Replit forum</a>)</li>
+<li>Replit Agent 3: "30 bucks a prompt sometimes is wild." (joliver2, same thread)</li>
+<li>Replit Agent 3 (Reddit): One user reported being charged $350 in a single day under dynamic pricing (<a href="https://www.openaitoolshub.org/en/blog/replit-agent-review">summary in Replit Agent Review</a>).</li>
+<li>Lovable: Cost-per-message is exposed in a three-dot menu on each message, which is one of the cleaner patterns observed (<a href="https://docs.lovable.dev/features/agent-mode">Lovable docs</a>).</li>
+</ul>
+<p>If AIRO charges per build or per credit, surfacing cost inside the activity stream (not in a separate billing tab) is worth scoping early.</p>
+<h3 id="theme-6-what-users-actually-want-is-show-me-and-let-me-steer">Theme 6: What users actually want is "Show me AND let me steer"</h3>
+<p>This is the deeper pattern under themes 1 through 5. The activity timeline isn't just a status display. Users want to do things with it.</p>
+<p><strong>6a. Filter and collapse mid-stream.</strong> Hide thinking when they trust the agent, expand it when they don't. Cursor's compact-balanced-detailed toggle is the cleanest version of this so far.</p>
+<p>For AIRO: a global "verbosity" control on the activity panel could let power users hide reasoning and surface only file edits and tool calls.</p>
+<p><strong>6b. Pause, reorder, redirect.</strong> Lovable's prompt queue is the strongest example: users can reorder, edit, pause, or remove queued prompts while a build is in progress.</p>
+<p>For AIRO: if recipes have multiple build phases, letting users queue follow-up tweaks ("after this works, also add error handling") without breaking the current run could be worth considering.</p>
+<p><strong>6c. Scrub backward without losing forward.</strong> Devin's time slider syncs the chat to whatever timestamp you scrub to.</p>
+<p>For AIRO: probably overkill at v1, but for long recipe builds, the ability to revisit "what did the agent do at step 4 again?" without re-reading 30 messages is the underlying need.</p>
+<p><strong>6d. Cancel early when you see it going wrong.</strong> Claude Code users complaining about buffered bash output cited this directly: "If I notice an error mid-stream, I could cancel early instead of waiting for completion."</p>
+<p>For AIRO: a real-time stream that can't be cancelled mid-step is just a slow log. The "interrupt mid-action" affordance is the load-bearing part.</p>
+<hr />
+<p>Themes 1 through 6 came mostly from AI coding agents, where the live stream is the main surface. The workflow-automation tier (n8n, Zapier, Make) surfaces a different cluster of pain, centered on the run-history surface. That surface matters more for AIRO than for a coding agent, because automation runs are recurring and often unattended, so the user's first look is usually after the fact, not live.</p>
+<h3 id="theme-7-run-history-disappears-without-warning-and-there-is-no-way-to-search-what-is-left">Theme 7: Run history disappears without warning, and there is no way to search what is left</h3>
+<p>Retention limits are opaque and almost always discovered post-incident, when the user goes looking for the run that broke and it is gone.</p>
+<ul>
+<li>n8n: "All my 100k executions disappeared out of nowhere. Where did they go and how can I retrieve them and prevent this from happening again?" (shrjrwkls, <a href="https://community.n8n.io/t/all-my-executions-disappeared-after-reaching-100k-how-to-fix-and-prevent-again/94256">n8n community</a>)</li>
+<li>n8n: "Execution history is being aggressively pruned after approximately 13 hours, despite having configured a much longer retention period." (n8n_addict, <a href="https://community.n8n.io/t/v2-execution-history-limited-to-13-hours-despite-720-hour-retention-configuration/87622">n8n community</a>)</li>
+<li>Zapier: "I can't check my task history more than one month old." (ComTH, <a href="https://community.zapier.com/how-do-i-3/task-history-5192">Zapier community</a>)</li>
+<li>And once the history is there, you cannot search it. Activepieces: "the only way to find out what happened is to go through each execution history manually." (Matthew_James, ~1,000 executions/day, <a href="https://community.activepieces.com/t/activepieces-ability-to-search-through-flow-execution-history/4376">Activepieces community</a>). n8n: "It seems that we ONLY list the last 20 runs and you may not scroll." (<a href="https://community.n8n.io/t/executions-history-filter-doesnt-seem-to-return-expected-executions/58011">n8n community</a>)</li>
+</ul>
+<p>For AIRO: retention should be explicit and visible, not a silent gap. A "history older than [date] will be pruned" signal, plus search by trigger value, input, or outcome, is the difference between a usable log and scroll-to-find that breaks at production volume.</p>
+<h3 id="theme-8-the-run-log-speaks-developer-not-business-user">Theme 8: The run log speaks developer, not business user</h3>
+<p>When the history UI exposes technical implementation detail, the people who actually run automations cannot read it. Make shipped a Run ID column in 2025 and four separate users pushed back on it within 24 hours.</p>
+<ul>
+<li>"I've been pulling my hair out over that new Run ID column. Long hash strings like 'ae5e8442c31349afbd9019…' taking prime real estate. The interface looks like a developer debug panel." (Ram_Moshkovits, <a href="https://community.make.com/t/make-has-been-going-downhill-with-these-recent-updates/91711">Make.com community</a>)</li>
+<li>"Wall of meaningless hash characters that I have to mentally filter out. The Run ID serves zero purpose in day-to-day scenario management." (Gilad_Scher, same thread)</li>
+<li>"Execution ID as main run name is driving me crazy too. Exposing technical implementation details to end users." (aderet_trachtingot, same thread)</li>
+</ul>
+<p>For AIRO: the audience is business users, so this is sharper than for a coding tool. Name each run by what triggered it (recipe plus a short trigger summary plus timestamp), not an execution UUID. The run identifier should answer "which run was this?" at a glance.</p>
+<h3 id="theme-9-rerun-does-not-replay-the-actual-failure">Theme 9: Rerun does not replay the actual failure</h3>
+<p>Every product ships some form of rerun, and in every product it reruns the wrong thing: stale data, partial scope, or no ability to pick the one case that failed.</p>
+<ul>
+<li>Zapier: "Zapier can't run failed Zaps from the initial step to the last step. This feature is half baked... The failed Zap is attempting to rerun again with the old data that was wrong." (ZapUser0001, <a href="https://community.zapier.com/troubleshooting-99/what-is-the-point-of-zap-reruns-when-you-can-t-run-the-whole-zap-from-the-begining-how-to-do-a-proper-rerun-23242">Zapier community</a>)</li>
+<li>Make: "If 8 cases failed, I cannot play the 5th one only it seems. Is there any way to decide which one to execute?" (Gaurav_Srivastava, <a href="https://community.make.com/t/is-it-possible-to-have-data-history-of-execution-and-the-possibility-to-replay-it/83570">Make.com community</a>)</li>
+<li>Make: "It is hard to test when you can not run on sample data/rerun on existing runs." (Jason M., <a href="https://www.g2.com/products/integromat-by-celonis-make/reviews">G2, Make.com</a>)</li>
+</ul>
+<p>For AIRO: rerun is only useful if it replays the exact conditions of the original failure. Replay from a chosen step with the original input, and consider selective replay of one item from a batch rather than all-or-nothing.</p>
+<h3 id="theme-10-the-log-shows-what-ran-not-why-the-agent-decided-it">Theme 10: The log shows what ran, not why the agent decided it</h3>
+<p>This is the gap specific to AI agent timelines versus traditional workflow logs. A workflow log records the steps. An agent log needs to record the choice.</p>
+<ul>
+<li>"Logs capture what happened, not why. Standard logging cannot answer whether an agent should have taken an action, only that it did." (<a href="https://www.tierzero.ai/blog/ai-agent-audit-trail/">TierZero</a>)</li>
+<li>"The rollback log says 'deployment X reverted.' It does not say why." (<a href="https://www.tierzero.ai/blog/ai-agent-audit-trail/">TierZero</a>)</li>
+<li>"68% of organizations can't tell if a production action was taken by a human or an AI agent after the fact." (<a href="https://www.tierzero.ai/blog/ai-agent-audit-trail/">TierZero</a>)</li>
+</ul>
+<p>For AIRO: capturing decision context (why this branch, why this connection, why this tool) rather than just tool calls is what separates a purpose-built agent timeline from a ported workflow log. It also lands close to Workato's audit heritage, so it is worth treating as a differentiator rather than a nice-to-have.</p>
+<hr />
+<h2 id="part-3-airo-design">Part 3 — AIRO Design</h2>
+<table>
+<thead>
+<tr>
+<th>Competitor pain point</th>
+<th>What this could mean for AIRO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claude Code's inline thinking blocks create "visual noise" with no toggle</td>
+<td>A density control (hide reasoning / show tool calls only / show all) on the activity panel could be worth shipping at v1 instead of bolting on later</td>
+</tr>
+<tr>
+<td>Claude Code VS Code bash output buffers until command finishes</td>
+<td>Real-time streaming is the whole product. Worth budgeting engineering effort to make sure long-running steps (recipe deploys, API calls) stream token-by-token, not chunk-by-chunk</td>
+</tr>
+<tr>
+<td>Replit Agent 3 silently stops with no error ("just POOF")</td>
+<td>A visible heartbeat (last activity timestamp, "agent is thinking about X" status text) could help. Silent waits are read as crashes</td>
+</tr>
+<tr>
+<td>Cursor's todo panel sometimes doesn't appear or doesn't update</td>
+<td>If AIRO ships a planned task list, treat it as load-bearing UI. A flaky plan is worse than no plan</td>
+</tr>
+<tr>
+<td>Devin Planner is well-designed but under-leveraged</td>
+<td>Worth considering: should the AIRO task list be editable by the user mid-run, or is it read-only progress? Devin's edit-before-approve pattern is one option</td>
+</tr>
+<tr>
+<td>Replit's checkpoint timeline is the main rollback mechanism users actually use</td>
+<td>For multi-step recipe builds, checkpoint-style savepoints (per recipe step or per tool block) could be worth investigating</td>
+</tr>
+<tr>
+<td>Replit users don't know what they're being charged for mid-stream</td>
+<td>If AIRO has any usage-based pricing, surfacing per-step cost in the activity panel (not a billing tab) is worth scoping</td>
+</tr>
+<tr>
+<td>Lovable's prompt queue lets users add follow-ups without interrupting</td>
+<td>One possible direction: let users queue "after this finishes, also do X" prompts on AIRO without cancelling the current build</td>
+</tr>
+<tr>
+<td>Cursor 2.0 retrofitted a compact/balanced/detailed density toggle</td>
+<td>Default verbosity is a real product decision. "Balanced" defaults with easy escape hatches in both directions are likely safer than picking one extreme</td>
+</tr>
+<tr>
+<td>Devin's time slider re-syncs chat to historical moments</td>
+<td>Probably overkill at v1, but a "jump to step N" navigation in the activity panel is the lighter-weight version of the same idea</td>
+</tr>
+<tr>
+<td>n8n, Zapier, and Make all prune run history on opaque retention limits, and users lose it post-incident</td>
+<td>Make retention and export policy explicit and visible. A "history will be pruned on [date]" signal beats a silent gap discovered when something breaks</td>
+</tr>
+<tr>
+<td>Make's UUID Run ID column drew four user complaints in 24 hours</td>
+<td>Name each run by what triggered it (recipe plus trigger summary plus timestamp), not an execution ID. AIRO's audience is business users, so dev-speak in the log costs more here</td>
+</tr>
+<tr>
+<td>Zapier and Make rerun replays stale or partial data, and users can't pick one case from a batch</td>
+<td>If AIRO offers rerun, replay from a chosen step with the original input, and consider selective replay of one item from a batch</td>
+</tr>
+<tr>
+<td>n8n and Activepieces have no search across run history at production volume</td>
+<td>Search by trigger value, input, or outcome is the missing primitive once run counts climb. Worth scoping before scroll-to-find breaks</td>
+</tr>
+<tr>
+<td>Workflow logs capture what ran, not why the agent chose it</td>
+<td>A decision-context layer (why this branch, why this connection) is the AI-specific differentiator versus a ported workflow log, and it fits Workato's audit heritage</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-biggest-gap-surfaced-by-this-research">The biggest gap surfaced by this research</h3>
+<p>Every product researched treats the activity timeline as a display. The strongest ones (Lovable's queue, Devin's slider, Cursor's plan mode) also treat it as a control surface where users can steer the in-flight agent. For AIRO, the design question worth pressuring is: when users see something they don't like in the activity stream, what can they do about it without cancelling the whole run? That answer probably shapes the panel more than the visual layout does.</p>
+<p>Adding the workflow-automation tier surfaced a second gap. Every product's log answers "what ran." None answers "why the agent decided that." For a coding agent the steps are usually enough, but for a Workato product with deep audit heritage, an agent timeline that captures decision context (why this branch, why this connection, why this tool) rather than just a list of tool calls is a credible right-to-win. It is also the cleanest line between a purpose-built agent timeline and a workflow execution log ported forward. Worth pressuring early, because it likely shapes what each step has to record from day one.</p>
+<hr />
+<h2 id="part-4-research-grounding">Part 4 — Research grounding</h2>
+<p>A few papers and pattern references back the design direction, and they answer the "is showing the work just trust theater?" question directly.</p>
+<ul>
+<li><strong>Interactive Reasoning ("Hippo")</strong>, ACM IUI 2025 (<a href="https://arxiv.org/abs/2506.23678">arXiv 2506.23678</a>). Visualizes chain-of-thought as an editable hierarchy. In a study of 16 users, surfacing structured reasoning let people catch erroneous generations early and steer the model mid-run. This is the strongest evidence that exposing the agent's work is not decoration. The measured payoff is earlier error-catching and intervention, which argues for an interactive activity panel, not just an observable one. It lines up with Theme 6 (show me and let me steer).</li>
+<li><strong>Shape of AI, "Stream of Thought" pattern</strong> (<a href="https://www.shapeof.ai/patterns/stream-of-thought">shapeof.ai</a>). The named pattern for this exact surface: plan plus execution log plus reasoning summary, with each step in an explicit state (queued, running, waiting for approval, error, completed) and an editable plan shown before execution. Usable design vocabulary for the AIRO panel, and it reframes the spinner as the fallback rather than the main event.</li>
+<li><strong>Wait-time baselines.</strong> NN/G's <a href="https://www.nngroup.com/articles/progress-indicators/">progress indicator</a> and <a href="https://www.nngroup.com/articles/response-times-3-important-limits/">response-time</a> work sets the rule that past 10 seconds you need determinate progress plus an interrupt. Agent runs almost always exceed that, so by the existing rule they require real progress, not a bare spinner. Microsoft's <a href="https://microsoft.design/articles/ux-design-for-agents/">UX Design for Agents</a> is the first-party anchor for "agent status is clearly visible at all times," with progressive disclosure of reasoning to calibrate trust. Both map onto Themes 1 and 2.</li>
+</ul>
+<hr />
+<h2 id="appendix-all-source-links">Appendix — All source links</h2>
+<h3 id="research-grounding">Research grounding</h3>
+<ul>
+<li><a href="https://arxiv.org/abs/2506.23678">Interactive Reasoning / Hippo (arXiv 2506.23678)</a></li>
+<li><a href="https://www.shapeof.ai/patterns/stream-of-thought">Shape of AI — Stream of Thought pattern</a></li>
+<li><a href="https://www.nngroup.com/articles/progress-indicators/">NN/G — Progress Indicators</a></li>
+<li><a href="https://www.nngroup.com/articles/response-times-3-important-limits/">NN/G — Response Time Limits</a></li>
+<li><a href="https://microsoft.design/articles/ux-design-for-agents/">Microsoft Design — UX Design for Agents</a></li>
+</ul>
+<h3 id="official-documentation">Official documentation</h3>
+<p><strong>Cursor</strong>
+- <a href="https://cursor.com/changelog/2-0">Cursor 2.0 changelog</a>
+- <a href="https://docs.cursor.com/agent/planning">Plan Mode docs</a>
+- <a href="https://cursor.com/blog/agent-best-practices">Agent best practices</a>
+- <a href="https://cursor.com/product">Cursor product page</a>
+- <a href="https://cursor.com/docs/configuration/worktrees">Worktrees docs</a></p>
+<p><strong>Claude Code</strong>
+- <a href="https://callsphere.ai/blog/claude-code-tool-system-explained">Claude Code tool system overview</a>
+- <a href="https://code.claude.com/docs/en/vs-code">VS Code integration</a>
+- <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/bash-tool">Bash tool reference</a>
+- <a href="https://code.claude.com/docs/en/headless">Headless / programmatic use</a>
+- <a href="https://www.anthropic.com/engineering/april-23-postmortem">Anthropic April 23 postmortem</a></p>
+<p><strong>Replit Agent</strong>
+- <a href="https://blog.replit.com/introducing-agent-3-our-most-autonomous-agent-yet">Agent 3 launch blog</a>
+- <a href="https://docs.replit.com/replitai/agent">Replit Agent docs</a>
+- <a href="https://www.theunwindai.com/p/replit-agent-runs-autonomously-for-200-mins-non-stop">200-minute autonomy writeup</a>
+- <a href="https://leaveit2ai.com/ai-tools/code-development/replit-agent-v3">Agent 3 deep dive</a></p>
+<p><strong>Devin</strong>
+- <a href="https://docs.devin.ai/get-started/devin-intro">Devin intro docs</a>
+- <a href="https://docs.devin.ai/work-with-devin/interactive-planning">Interactive Planning</a>
+- <a href="https://cognition.ai/blog/devin-2">Devin 2.0 update</a>
+- <a href="https://cognition.ai/blog/devin-february-25-product-update">Devin February 2025 update</a>
+- <a href="https://ppaolo.substack.com/p/in-depth-product-analysis-devin-cognition-labs">In-depth UI analysis (Substack)</a></p>
+<p><strong>Lovable</strong>
+- <a href="https://docs.lovable.dev/features/agent-mode">Agent Mode docs</a>
+- <a href="https://lovable.dev/blog/agent-mode-beta">Agent Mode launch blog</a>
+- <a href="https://lovable.dev/faq/ai-agent/agent-mode">Agent Mode FAQ</a>
+- <a href="https://lovable.dev/blog/agent">$100M ARR + Lovable Agent</a></p>
+<p><strong>n8n</strong>
+- <a href="https://www.rapidevelopers.com/n8n-tutorial/how-to-view-execution-history-in-n8n">Execution history walkthrough (RapidDev)</a>
+- <a href="https://docs.n8n.io/workflows/executions/">Executions docs</a>
+- <a href="https://docs.n8n.io/workflows/executions/all-executions/">All executions view</a></p>
+<p><strong>Zapier</strong>
+- <a href="https://help.zapier.com/hc/en-us/articles/8496291148685-View-and-manage-your-Zap-history">View and manage your Zap history</a>
+- <a href="https://help.zapier.com/hc/en-us/articles/20512774106125-View-specific-Zap-run-details">View specific Zap run details</a>
+- <a href="https://help.zapier.com/hc/en-us/articles/8496294549005-Export-your-Zap-history">Export your Zap history</a></p>
+<p><strong>Make</strong>
+- <a href="https://help.make.com/scenario-history">Scenario history</a>
+- <a href="https://help.make.com/scenario-execution-history">Scenario execution history</a></p>
+<h3 id="complaint-sources">Complaint sources</h3>
+<p><strong>Cursor (forum threads)</strong>
+- <a href="https://forum.cursor.com/t/to-do-lists-not-appearing-in-agent-mode-despite-feature-enabled/114317">To-Do lists not appearing in Agent Mode</a>
+- <a href="https://forum.cursor.com/t/plan-mode-todo-list-does-not-update/137115">Plan mode todo list does not update</a>
+- <a href="https://forum.cursor.com/t/plan-mode-does-not-finalize-the-to-do-list/137002">Plan mode does not finalize the to-do list</a>
+- <a href="https://forum.cursor.com/t/how-can-you-make-thinking-visible/147544">How can you make thinking visible?</a>
+- <a href="https://forum.cursor.com/t/multi-agent-mode-loose-worktree-and-apply-undo-apply/149072">Multi agent mode loose worktree</a></p>
+<p><strong>Claude Code (GitHub issues, third-party writeups)</strong>
+- <a href="https://github.com/anthropics/claude-code/issues/52640">Add toggle to hide extended thinking blocks (#52640)</a>
+- <a href="https://github.com/anthropics/claude-code/issues/14280">Stream bash command output in real-time (#14280)</a>
+- <a href="https://github.com/anthropics/claude-code/issues/30863">Tab stuck on "Thinking" (#30863)</a>
+- <a href="https://github.com/anthropics/claude-code/issues/31489">VS Code extension has no setting for extended thinking (#31489)</a>
+- <a href="https://www.infoq.com/news/2026/05/anthropic-claude-code-postmortem/">InfoQ on the Claude Code quality postmortem</a></p>
+<p><strong>Replit (community forum)</strong>
+- <a href="https://replit.discourse.group/t/agent-3-is-slow-broken-and-unusable-it-just-stops-working-any-work-arounds/7061">Agent 3 is SLOW, BROKEN and UNUSABLE</a>
+- <a href="https://replit.discourse.group/t/honest-replit-agent-3-review-not-sponsored/7044">Honest Replit Agent 3 Review</a>
+- <a href="https://replit.discourse.group/t/agent-3-issues-continue/7312">Agent 3 Issues Continue</a>
+- <a href="https://replit.discourse.group/t/replit-agent-getting-stuck-in-a-loop-any-advice/1279">Replit Agent getting stuck in a loop</a>
+- <a href="https://replit.discourse.group/t/summary-of-replit-issues-all-members-please-contribute-asap/7033">Summary of Replit issues thread</a></p>
+<p><strong>Devin (Hacker News, reviews)</strong>
+- <a href="https://news.ycombinator.com/item?id=39688913">Ask HN: What do you think about Devin?</a>
+- <a href="https://news.ycombinator.com/item?id=42734681">Thoughts on a month with Devin (HN)</a>
+- <a href="https://www.lindy.ai/blog/devin-review">Devin AI review on Lindy (non-coder perspective)</a>
+- <a href="https://www.datacamp.com/tutorial/devin-ai">DataCamp Devin tutorial / impressions</a></p>
+<p><strong>Lovable (status page, FAQ)</strong>
+- <a href="https://statuspage.incident.io/lovable/incidents/01KNA4H46ZTT17ER0H72SKJRGH">Agent queue gets stuck after first message (incident)</a>
+- <a href="https://status.lovable.dev/incidents/01K7KVK8PVQ1GDXQSJRZ1BC2JE">Reports of Lovable stuck in chat mode (incident)</a>
+- <a href="https://lovable.dev/faq/ai-agent/errors">Error loops &amp; bug fixes FAQ</a></p>
+<p><strong>n8n (community)</strong>
+- <a href="https://community.n8n.io/t/all-my-executions-disappeared-after-reaching-100k-how-to-fix-and-prevent-again/94256">All my executions disappeared after 100k</a>
+- <a href="https://community.n8n.io/t/v2-execution-history-limited-to-13-hours-despite-720-hour-retention-configuration/87622">Execution history limited to 13 hours despite 720-hour config</a>
+- <a href="https://community.n8n.io/t/execution-history-disappears-before-executions-data-max-age/39873">Execution history disappears before max-age</a>
+- <a href="https://community.n8n.io/t/executions-history-filter-doesnt-seem-to-return-expected-executions/58011">Executions filter only returns last 20 runs</a></p>
+<p><strong>Zapier (community)</strong>
+- <a href="https://community.zapier.com/how-do-i-3/task-history-5192">Task history older than a month</a>
+- <a href="https://community.zapier.com/troubleshooting-99/what-is-the-point-of-zap-reruns-when-you-can-t-run-the-whole-zap-from-the-begining-how-to-do-a-proper-rerun-23242">What is the point of Zap reruns (half-baked rerun)</a></p>
+<p><strong>Make.com (community, reviews)</strong>
+- <a href="https://community.make.com/t/make-has-been-going-downhill-with-these-recent-updates/91711">Make going downhill with recent updates (Run ID pushback)</a>
+- <a href="https://community.make.com/t/is-it-possible-to-have-data-history-of-execution-and-the-possibility-to-replay-it/83570">Data history of execution and the possibility to replay it</a>
+- <a href="https://community.make.com/t/is-there-a-way-to-see-timeline-of-scenario-runs-across-all-my-scenarios/28260">Timeline of scenario runs across all scenarios</a>
+- <a href="https://www.g2.com/products/integromat-by-celonis-make/reviews">G2 reviews, Make.com</a></p>
+<p><strong>Activepieces / Gumloop (community)</strong>
+- <a href="https://community.activepieces.com/t/activepieces-ability-to-search-through-flow-execution-history/4376">Search through flow execution history</a>
+- <a href="https://forum.gumloop.com/t/could-really-use-a-log/2736">Could really use a log</a></p>
+<p><strong>AI agent audit trail</strong>
+- <a href="https://www.tierzero.ai/blog/ai-agent-audit-trail/">TierZero — AI agent audit trail research</a></p>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIRO Checkpoints — Rewind (Claude Code style)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.34.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Roboto+Mono&display=swap">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;font-family:'Source Sans 3',-apple-system,sans-serif;color:#373d47}
+  .mono{font-family:'Roboto Mono',Menlo,monospace}
+  .frame{padding:14px;height:100vh}
+  .app{height:100%;background:#fff;border:1px solid #d5dbe4;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .appbar{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #e5eaf1;flex-shrink:0}
+  .appbar .ttl{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600}
+  .appbar .ttl i{color:#586373}
+  .btn{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #d5dbe4;background:#fff;cursor:pointer;color:#373d47}
+  .btn:hover{background:#f4f6fa}
+  .btn-pri{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #1a57e5;background:#1a57e5;color:#fff;cursor:pointer}
+  .btn-pri:hover{background:#1549c0}
+  .body{flex:1;min-height:0;display:flex}
+
+  /* editor / diff stage */
+  .editor{flex:1;min-width:0;display:flex;flex-direction:column;background:#fbfcfe}
+  .ehead{display:flex;align-items:center;justify-content:space-between;padding:7px 13px;border-bottom:1px solid #e5eaf1;flex-shrink:0;font-size:12px;color:#586373;min-height:46px}
+  .code{flex:1;overflow:auto;padding:8px 0;font-size:12.5px;line-height:1.95;color:#586373}
+  .cline{display:flex}
+  .cn{width:38px;text-align:right;padding-right:8px;color:#aab3c0;font-size:11px;flex-shrink:0;user-select:none}
+  .cg{width:16px;text-align:center;flex-shrink:0;color:#9aa4b2;font-size:11px;user-select:none}
+  .ct{white-space:pre}
+  .code .cline.add{background:#e9f7ee}
+  .code .cline.del{background:#fdecec}
+  .code .cline.add .cg{color:#1a7f37;font-weight:700}
+  .code .cline.del .cg{color:#b42318;font-weight:700}
+  .code .cline.del .ct{color:#b42318}
+  .code .cline.hl{box-shadow:inset 3px 0 0 #1a57e5}
+
+  /* rewind diff view */
+  .rewind{flex:1;min-width:0;display:flex;flex-direction:column;background:#fff}
+  .rw-banner{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #c7dbff;background:#eef3ff;box-shadow:inset 4px 0 0 #1a57e5;flex-shrink:0}
+  .rw-banner i{color:#1a57e5;font-size:17px}
+  .rw-banner b{color:#1a57e5}
+  .rw-banner .sub{font-size:12px;color:#586373}
+  .rw-banner .x{margin-left:auto;cursor:pointer;color:#586373;font-size:18px}
+  .rw-hint{font-size:12px;color:#586373;padding:10px 14px 4px}
+  .rw-files{flex:1;overflow:auto;padding:4px 14px}
+  .fcard{border:1px solid #e5eaf1;border-radius:9px;margin-bottom:8px;overflow:hidden}
+  .fhead{display:flex;align-items:center;gap:9px;padding:9px 11px;cursor:pointer;font-size:12.5px;background:#fbfcfe}
+  .fhead .chev{color:#586373;transition:transform .15s}
+  .fcard.open .fhead .chev{transform:rotate(90deg)}
+  .fhead .fn{font-family:'Roboto Mono',monospace;color:#373d47}
+  .fhead .what{color:#586373}
+  .fhead .stat{margin-left:auto;font-family:'Roboto Mono',monospace;font-size:11.5px}
+  .pos{color:#2f7d46}.neg{color:#b42318}
+  .fbody{display:none;border-top:1px solid #eef1f6;font-family:'Roboto Mono',monospace;font-size:11.5px;line-height:1.8;padding:6px 0}
+  .fcard.open .fbody{display:block}
+  .drow{display:flex}
+  .drow.add{background:#e6f4ea}.drow.del{background:#fde8e8}
+  .drow.add .ct{color:#2f7d46}.drow.del .ct{color:#b42318}
+  .dg{width:26px;text-align:center;flex-shrink:0;color:#aab3c0}
+  .drow.add .dg{color:#2f7d46}.drow.del .dg{color:#b42318}
+
+  .scope{flex-shrink:0;border-top:1px solid #e5eaf1;padding:12px 14px}
+  .scope-l{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8a96a3;margin-bottom:8px}
+  .segs{display:flex;gap:8px;margin-bottom:6px}
+  .seg{flex:1;display:flex;align-items:flex-start;gap:8px;border:1px solid #d5dbe4;border-radius:9px;padding:9px 11px;cursor:pointer;background:#fff}
+  .seg.on{border-color:#1a57e5;background:#f4f8ff}
+  .seg .rd{width:15px;height:15px;border-radius:50%;border:1.5px solid #bcc3ce;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center}
+  .seg.on .rd{border-color:#1a57e5}
+  .seg.on .rd::after{content:'';width:7px;height:7px;border-radius:50%;background:#1a57e5}
+  .seg .nm{font-size:12.5px;font-weight:600}
+  .seg .ds{font-size:11px;color:#586373;line-height:1.4}
+  .scope-note{display:flex;gap:7px;align-items:flex-start;font-size:11.5px;color:#bd5200;background:#faf0e3;border:1px solid #ffd9a8;border-radius:8px;padding:8px 10px;margin:8px 0 12px}
+  .scope-note i{font-size:14px;margin-top:1px}
+  .scope-btns{display:flex;gap:9px}
+
+  /* AIRO panel */
+  .panel{width:412px;flex-shrink:0;display:flex;flex-direction:column;border-left:1px solid #e5eaf1;background:#fff}
+  .phead{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid #e5eaf1;flex-shrink:0;min-height:46px}
+  .dchev{color:#1a57e5;font-weight:700;letter-spacing:-3px;font-size:15px}
+  .pname{font-size:14px;font-weight:600;color:#1a57e5}
+  .beta{font-size:10px;padding:1px 6px;border-radius:6px;background:#dce6ff;color:#1a57e5}
+  .chat{flex:1;overflow:auto;padding:14px}
+  .urow{display:flex;justify-content:flex-end;margin-bottom:9px}
+  .ubub{background:#dce6ff;max-width:84%;padding:9px 12px;border-radius:13px 13px 4px 13px;font-size:13px;line-height:1.45}
+  .arow{margin-bottom:6px}
+  .asum{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#586373}
+  .asum .ck{width:16px;height:16px;border-radius:50%;background:#1a57e5;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;flex-shrink:0}
+  .cpmark{display:flex;align-items:center;gap:9px;margin:12px 0 18px;font-size:12px;color:#586373;cursor:pointer}
+  .cpmark::before,.cpmark::after{content:'';flex:1;border-top:1px dashed #cfd8e3}
+  .cpmark:hover{color:#373d47}
+  .cpmark:hover span{text-decoration:underline}
+  .cpmark i{color:#8a96a3;font-size:14px}
+  .cpmark.active{color:#1a57e5}
+  .cpmark.active i{color:#1a57e5}
+  .cpmark.active::before,.cpmark.active::after{border-top-color:#1a57e5}
+  /* agent summary reply */
+  .built{display:flex;align-items:center;gap:7px;font-size:13px;color:#1a57e5;cursor:pointer;margin:2px 0 4px}
+  .built .dchev2{font-weight:700;letter-spacing:-3px;font-size:14px}
+  .built .bt{color:#586373}
+  .built .bchev{margin-left:2px;color:#8a96a3;font-size:15px;transition:transform .15s}
+  .bsteps{display:none;margin:2px 0 6px 14px;border-left:2px solid #eef1f6;padding-left:12px}
+  .bsteps.open{display:block}
+  .built.open .bchev{transform:rotate(90deg)}
+  .bstep{display:flex;align-items:center;gap:7px;font-size:12px;color:#586373;padding:3px 6px;border-radius:6px;cursor:pointer}
+  .bstep:hover{background:#f4f6fa;color:#1f2328}
+  .bstep.on{background:#f4f8ff;color:#1a57e5}
+  .bstep i{color:#1a57e5;font-size:13px}
+  .bstep .bstat{margin-left:auto;font-family:'Roboto Mono',monospace;font-size:11px}
+  .msglabel{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8a96a3;margin:10px 0 4px}
+  .amsg{font-size:13px;line-height:1.55;color:#2f353e;margin-bottom:12px}
+  .viewchanges{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#373d47;border:1px solid #d5dbe4;border-radius:9px;padding:8px 13px;cursor:pointer;margin-bottom:4px}
+  .viewchanges:hover{background:#f4f6fa;border-color:#bcc3ce}
+  .viewchanges i{color:#586373;font-size:15px}
+  .viewchanges.disabled,.cpmark.disabled{opacity:.5;cursor:default;pointer-events:none}
+  .viewchanges .vcchev{transition:transform .15s}
+  .viewchanges.open{border-color:#1a57e5;color:#1a57e5;background:#f4f8ff}
+  .viewchanges.open i{color:#1a57e5}
+  .viewchanges.open .vcchev{transform:rotate(90deg)}
+  .cgtable{border:1px solid #e5eaf1;border-radius:9px;overflow:hidden;margin:8px 0 4px}
+  .cgrow{display:flex;align-items:center;gap:9px;padding:8px 11px;font-size:12px;cursor:pointer;border-bottom:1px solid #f0f3f8}
+  .cgrow:last-child{border-bottom:none}
+  .cgrow:hover{background:#f6f8fb}
+  .cgrow.on{background:#f4f8ff;box-shadow:inset 3px 0 0 #1a57e5}
+  .cgrow i{color:#586373;font-size:15px}
+  .cgrow .cgf{font-family:'Roboto Mono',monospace;color:#586373}
+  .cgrow .cgw{color:#1f2328;flex:1;min-width:0}
+  .cgrow .cgd{flex-shrink:0;font-size:11.5px}
+  .composer{flex-shrink:0;padding:12px 14px;border-top:1px solid #e5eaf1}
+  .cbox{display:flex;align-items:center;gap:8px;border:1px solid #d5dbe4;border-radius:10px;padding:8px 11px;font-size:13px;color:#9aa4b2}
+  .cbox .send{margin-left:auto;width:28px;height:28px;border-radius:50%;background:#1a57e5;color:#fff;display:flex;align-items:center;justify-content:center}
+
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:#1f2937;color:#fff;font-size:13px;padding:10px 14px;border-radius:10px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:20}
+  .toast.show{opacity:1;pointer-events:auto}
+  .toast .undo{color:#9ec1ff;cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<div class="frame"><div class="app">
+  <div class="body">
+    <div id="stage"></div>
+    <div class="panel">
+      <div class="phead"><span class="dchev">&raquo;</span><span class="pname">AIRO</span><span class="beta">Beta</span><span style="flex:1"></span></div>
+      <div id="chat" class="chat"></div>
+      <div class="composer"><div class="cbox"><span>Ask AIRO anything</span><span class="send"><i class="ti ti-arrow-up"></i></span></div></div>
+    </div>
+  </div>
+</div></div>
+<div id="toast" class="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const NOHIST=new URLSearchParams(location.search).has('nohist'); // Problem 4: rewind/restore is out of scope, shown as a disabled placeholder
+
+/* connector.rb, tagged by the block each line belongs to */
+const CODE=[
+  {t:"connector = {",b:'base'},
+  {t:"  title: 'HubSpot',",b:'base'},
+  {t:"  connection: {",b:'connection'},
+  {t:"    authorization: { type: 'oauth2',",b:'connection'},
+  {t:"      token_url: '/oauth/token' } },",b:'connection'},
+  {t:"  object_definitions: {",b:'objects'},
+  {t:"    deal:    { fields: [...41] },",b:'objects'},
+  {t:"    company: { fields: [...28] },",b:'objects'},
+  {t:"    contact: { fields: [...35] } },",b:'objects'},
+  {t:"  actions: {",b:'actions'},
+  {t:"    create_deal, update_deal, search_deals,",b:'actions'},
+  {t:"    create_or_update_deal, archive_deal },",b:'actions'},
+  {t:"  triggers: { new_or_updated_deal },",b:'trigger'},
+  {t:"}",b:'base'},
+];
+
+/* checkpoints in build order. blocks[] = what this checkpoint introduced */
+const CPS=[
+  {id:0,title:'Connector scaffold',prompt:'Start a HubSpot connector',blocks:[],add:0,del:0,what:'empty connector shell'},
+  {id:1,title:'OAuth2 connection',prompt:'Set up the HubSpot connection',blocks:['connection'],add:6,del:0,what:'connection block'},
+  {id:2,title:'Deal, Company, Contact objects',prompt:'Define the CRM objects',blocks:['objects'],add:84,del:0,what:'object_definitions'},
+  {id:3,title:'5 deal actions',prompt:'Add the deal actions',blocks:['actions'],add:40,del:2,what:'actions block'},
+  {id:4,title:'new_or_updated_deal trigger',prompt:'Add a trigger for deal changes',blocks:['trigger'],add:18,del:0,what:'triggers block'},
+];
+const LATEST=CPS.length-1;
+
+let head=LATEST;      // which checkpoint the code currently sits at
+let rewindTo=null;    // checkpoint we're previewing a rewind to (null = not rewinding)
+let scope='both';     // code | conversation | both
+const open={};        // expanded file cards in the diff
+let prevHead=null;    // for undo
+let buildOpen=false;  // the "Built in Ns · N steps" disclosure
+let viewBlock=null;   // a single change shown in the editor (block key), null = full diff
+let changesOpen=false; // the "View N changes" table disclosure
+
+// the agent's final reply for the build conversation
+const BUILD={ prompt:'Build a HubSpot CRM connector', secs:13, steps:15, changes:4, name:'HubSpot CRM connector',
+  msg:'Done. I built the HubSpot CRM connector: OAuth2 connection, Deal / Company / Contact objects, 5 deal actions, and a new-or-updated-deal trigger. Review it, then test from the Test code tab.' };
+
+const allowed=n=>{ const s=new Set(['base']); CPS.forEach(c=>{ if(c.id<=n) c.blocks.forEach(b=>s.add(b)); }); return s; };
+const blockOf=b=>({connection:'Set up OAuth2 connection',objects:'Define Deal / Company / Contact',actions:'Add 5 deal actions',trigger:'Add new_or_updated_deal trigger'}[b]);
+
+function renderCode(n){
+  // the editor shows the agent's work as a diff: added lines green (+), one representative removed line red (-)
+  const set=allowed(n); let html='',ln=1;
+  CODE.forEach(l=>{ if(!set.has(l.b)) return;
+    if(l.t.includes('create_or_update_deal')) html+=`<div class="cline del"><span class="cn"></span><span class="cg">-</span><span class="ct mono">    delete_deal,</span></div>`;
+    html+=`<div class="cline add"><span class="cn">${ln++}</span><span class="cg">+</span><span class="ct mono">${l.t.replace(/</g,'&lt;')}</span></div>`;
+  });
+  return html;
+}
+
+// full current file with only `blockKey`'s lines marked as a diff; everything else is plain context
+function renderCodeFocused(blockKey){
+  const set=allowed(head); let html='',ln=1;
+  CODE.forEach(l=>{ if(!set.has(l.b)) return;
+    if(l.t.includes('create_or_update_deal') && blockKey==='actions')
+      html+=`<div class="cline del hl"><span class="cn"></span><span class="cg">-</span><span class="ct mono">    delete_deal,</span></div>`;
+    if(l.b===blockKey)
+      html+=`<div class="cline add hl"><span class="cn">${ln++}</span><span class="cg">+</span><span class="ct mono">${l.t.replace(/</g,'&lt;')}</span></div>`;
+    else
+      html+=`<div class="cline"><span class="cn">${ln++}</span><span class="cg"></span><span class="ct mono">${l.t.replace(/</g,'&lt;')}</span></div>`;
+  });
+  return html;
+}
+
+function undoneBlocks(n){ // blocks that disappear if we rewind to n
+  let out=[]; CPS.forEach(c=>{ if(c.id>n) c.blocks.forEach(b=>out.push({b,cp:c})); }); return out;
+}
+
+function renderStage(){
+  const st=$('#stage');
+  if(rewindTo===null){
+    st.className='editor';
+    const label = viewBlock ? blockOf(viewBlock)+' · <a href="#" data-clearview style="color:#1a57e5;text-decoration:none">show all</a>' : (head===LATEST?'latest':'restored to: '+CPS[head].title);
+    const codeHtml = viewBlock ? renderCodeFocused(viewBlock) : renderCode(head);
+    st.innerHTML=`<div class="ehead"><span class="mono">connector.rb</span><span>${label}</span></div><div class="code">${codeHtml}</div>`;
+    return;
+  }
+  st.className='rewind';
+  const undo=undoneBlocks(rewindTo);
+  const cp=CPS[rewindTo];
+  let files='';
+  if(!undo.length){ files=`<div class="rw-hint">Nothing to undo — this is already the latest checkpoint.</div>`; }
+  else {
+    files=`<div class="rw-hint">Rewinding will undo <b>${undo.length}</b> change${undo.length>1?'s':''} made after this point:</div><div class="rw-files">`;
+    undo.forEach(({b,cp})=>{
+      const isOpen=open[b];
+      const lines=CODE.filter(l=>l.b===b).map(l=>`<div class="drow del"><span class="dg">−</span><span class="ct">${l.t.replace(/</g,'&lt;')}</span></div>`).join('');
+      files+=`<div class="fcard${isOpen?' open':''}"><div class="fhead" data-exp="${b}"><i class="ti ti-chevron-right chev"></i><span class="fn">connector.rb</span><span class="what">${cp.what}</span><span class="stat"><span class="neg">−${cp.add}</span></span></div><div class="fbody">${lines}</div></div>`;
+    });
+    files+='</div>';
+  }
+  st.innerHTML=`
+    <div class="rw-banner"><i class="ti ti-arrow-back-up"></i><div><b>Rewind to: ${cp.title}</b><div class="sub">${cp.prompt}</div></div><i class="ti ti-x x" data-cancel></i></div>
+    ${files}
+    <div class="scope">
+      <div class="scope-note"><i class="ti ti-alert-triangle"></i><div>The OAuth2 <b>connection</b> AIRO authorized stays connected. Rewinding the code won't revoke it. <a href="#" style="color:#bd5200">Disconnect separately</a> if you need to.</div></div>
+      <div class="scope-btns"><button class="btn-pri" data-restore ${undo.length?'':'disabled style=opacity:.5'}>Restore checkpoint</button><button class="btn" data-cancel>Cancel</button></div>
+    </div>`;
+}
+
+function changesTable(){
+  // the expanded change manifest; each row highlights that block in the editor on click
+  const rows=CPS.filter(c=>c.id>0).map(c=>{ const bk=c.blocks[0];
+    return `<div class="cgrow${viewBlock===bk?' on':''}" data-change="${bk}"><i class="ti ti-file-diff"></i><span class="cgf">connector.rb</span><span class="cgw">${c.what}</span><span class="cgd mono"><span class="pos">+${c.add}</span>${c.del?' <span class="neg">-'+c.del+'</span>':''}</span></div>`;
+  }).join('');
+  return `<div class="cgtable">${rows}</div>`;
+}
+function renderChat(){
+  const b=BUILD;
+  let steps='';
+  CPS.forEach(cp=>{ if(cp.id>0){ const bk=cp.blocks[0]; steps+=`<div class="bstep${viewBlock===bk?' on':''}" data-change="${bk}"><i class="ti ti-check"></i><span>${cp.title}</span><span class="bstat"><span class="pos">+${cp.add}</span>${cp.del?' <span class="neg">-'+cp.del+'</span>':''}</span></div>`; } });
+  let h=`<div class="urow"><div class="ubub">${b.prompt}</div></div>`;
+  h+=`<div class="built${buildOpen?' open':''}" data-buildtoggle><span class="dchev2">&raquo;</span><span class="bt">Built in ${b.secs}s · ${b.steps} steps</span><i class="ti ti-chevron-right bchev"></i></div>`;
+  h+=`<div class="bsteps${buildOpen?' open':''}">${steps}</div>`;
+  h+=`<div class="msglabel">Message</div>`;
+  h+=`<div class="amsg">${b.msg}</div>`;
+  h+=`<div class="msglabel">${b.changes} changes</div>`;
+  h+=changesTable();
+  const rw = NOHIST ? '' : 'data-rw="0"';
+  h+=`<div class="cpmark${NOHIST?' disabled':(rewindTo===0?' active':'')}" ${rw}><i class="ti ti-clock"></i><span>Checkpoint · ${b.name}</span></div>`;
+  $('#chat').innerHTML=h;
+}
+
+function render(){ renderStage(); renderChat(); }
+
+let tt;
+function toast(msg,withUndo){
+  const e=$('#toast');
+  e.innerHTML=msg+(withUndo?' <span class="undo" data-undo>Undo</span>':'');
+  e.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>e.classList.remove('show'),4200);
+}
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-rw],[data-cancel],[data-exp],[data-scope],[data-restore],[data-undo],[data-buildtoggle],[data-viewchanges],[data-change],[data-clearview]');
+  if(!t) return;
+  if(t.hasAttribute('data-buildtoggle')){ buildOpen=!buildOpen; renderChat(); }
+  else if(t.hasAttribute('data-viewchanges')){ changesOpen=!changesOpen; renderChat(); }
+  else if(t.hasAttribute('data-clearview')){ e.preventDefault(); viewBlock=null; render(); }
+  else if(t.dataset.change!==undefined){ viewBlock = viewBlock===t.dataset.change ? null : t.dataset.change; render(); }
+  else if(t.dataset.rw!==undefined){ viewBlock=null; rewindTo=+t.dataset.rw; Object.keys(open).forEach(k=>delete open[k]); render(); }
+  else if(t.hasAttribute('data-cancel')){ rewindTo=null; render(); }
+  else if(t.dataset.exp){ open[t.dataset.exp]=!open[t.dataset.exp]; renderStage(); }
+  else if(t.dataset.scope){ scope=t.dataset.scope; renderStage(); }
+  else if(t.hasAttribute('data-restore')){
+    prevHead=head;
+    if(scope!=='conversation') head=rewindTo;
+    const cp=CPS[rewindTo]; rewindTo=null; render();
+    toast(`Restored to “${cp.title}” (${scope==='both'?'code + conversation':scope==='code'?'code only':'conversation only'}).`,true);
+  }
+  else if(t.hasAttribute('data-undo')){ if(prevHead!==null){ head=prevHead; prevHead=null; render(); toast('Restore undone — back to latest.'); } }
+});
+
+render();
+</script>
+</body>
+</html>

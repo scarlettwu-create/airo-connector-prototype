@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Discoverability — Customer Complaints</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  color: #1f2328;
+  line-height: 1.65;
+  font-size: 16px;
+  background: #fff;
+}
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; margin-top: 0.5em; }
+h2 { font-size: 1.4em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h3 { font-size: 1.05em; color: #1f2328; margin-top: 1.6em; }
+p { margin: 0.6em 0; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+hr { border: none; border-top: 1px solid #d1d9e0; margin: 2.5em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.4em 0; }
+li { margin: 0.35em 0; }
+strong { font-weight: 600; }
+
+/* TOC */
+.toc {
+  background: #f6f8fa;
+  border: 1px solid #d1d9e0;
+  border-radius: 8px;
+  padding: 16px 22px;
+  margin: 0 0 36px 0;
+  font-size: 0.92em;
+}
+.toc-title {
+  font-weight: 600;
+  font-size: 0.82em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #57606a;
+  margin-bottom: 10px;
+}
+.toc ol { margin: 0; padding-left: 1.4em; }
+.toc li { margin: 4px 0; }
+.toc a { color: #424a53; }
+
+/* Meta */
+.meta {
+  font-size: 0.88em;
+  color: #57606a;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #d1d9e0;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+/* Product header badge */
+.product-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8em;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.badge-notion   { background: #f3e8ff; color: #6b21a8; }
+.badge-msft     { background: #dbeafe; color: #1d4ed8; }
+.badge-snow     { background: #dcfce7; color: #166534; }
+.badge-sfdc     { background: #fef3c7; color: #92400e; }
+
+/* Problem tag */
+.tag {
+  display: inline-block;
+  font-size: 0.75em;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-right: 4px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.tag-p1 { background: #fef9c3; color: #854d0e; }
+.tag-p2 { background: #fee2e2; color: #991b1b; }
+.tag-p3 { background: #e0f2fe; color: #0369a1; }
+
+/* Quote block */
+blockquote {
+  border-left: 3px solid #d1d9e0;
+  margin: 1em 0;
+  padding: 0.4em 1em;
+  color: #424a53;
+  background: #f8fafc;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.95em;
+}
+blockquote .attribution {
+  font-size: 0.82em;
+  color: #57606a;
+  margin-top: 6px;
+  display: block;
+}
+
+/* Stat callout */
+.stat-row {
+  display: flex;
+  gap: 16px;
+  margin: 1.2em 0;
+  flex-wrap: wrap;
+}
+.stat {
+  background: #f6f8fa;
+  border: 1px solid #d1d9e0;
+  border-radius: 8px;
+  padding: 14px 18px;
+  flex: 1;
+  min-width: 140px;
+}
+.stat-number {
+  font-size: 1.6em;
+  font-weight: 700;
+  color: #1f2328;
+  line-height: 1.1;
+}
+.stat-label {
+  font-size: 0.8em;
+  color: #57606a;
+  margin-top: 4px;
+}
+
+/* Summary table */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.92em;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 9px 13px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f6f8fa; font-weight: 600; }
+tr:nth-child(even) td { background: #fafbfc; }
+
+/* Legend */
+.legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 0 0 24px 0;
+  font-size: 0.85em;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+</style>
+</head>
+<body>
+
+<h1>Agent Discoverability — Customer Complaints</h1>
+
+<div class="meta">
+  <span>Products: Notion AI, Microsoft 365 Copilot, ServiceNow Now Assist, Salesforce Agentforce</span>
+  <span>Focus: Entry points, trigger surfaces, adoption friction</span>
+  <span>May 2026</span>
+</div>
+
+<div class="toc">
+  <div class="toc-title">Contents</div>
+  <ol>
+    <li><a href="#framing">How discoverability breaks down</a></li>
+    <li><a href="#notion">Notion AI</a></li>
+    <li><a href="#msft">Microsoft 365 Copilot</a></li>
+    <li><a href="#snow">ServiceNow Now Assist</a></li>
+    <li><a href="#sfdc">Salesforce Agentforce</a></li>
+    <li><a href="#summary">Cross-product patterns</a></li>
+    <li><a href="#contrast">What good looks like</a></li>
+  </ol>
+</div>
+
+<hr>
+
+<h2 id="framing">How discoverability breaks down</h2>
+
+<p>Across every product researched, user complaints cluster into three distinct problems that are often conflated but require different solutions.</p>
+
+<div class="legend">
+  <div class="legend-item"><span class="tag tag-p1">P1</span> I can't find the entry point</div>
+  <div class="legend-item"><span class="tag tag-p2">P2</span> I don't know when to use it</div>
+  <div class="legend-item"><span class="tag tag-p3">P3</span> I don't know what to ask once I'm there</div>
+</div>
+
+<p>Most teams focus on P1 (placement and prominence). The products with the worst adoption numbers had already solved P1 and still failed because P2 and P3 were untouched.</p>
+
+<hr>
+
+<h2 id="notion">Notion AI <span class="product-badge badge-notion">Notion</span></h2>
+
+<h3><span class="tag tag-p1">P1</span> The entry point moved — and users missed it entirely</h3>
+
+<p>Notion AI originally lived in the bottom-right sparkle icon and behind the Search entry. Neither was prominent enough. Notion's own March 2026 changelog for version 3.4 acknowledged the problem directly: <em>"the sidebar was getting too crowded"</em> and reorganized it into four dedicated tabs, giving AI Chat its own tab in the primary nav for the first time.</p>
+
+<p>The need for a full navigation redesign is itself evidence that earlier placement had failed. Users were not finding the AI.</p>
+
+<h3><span class="tag tag-p1">P1</span> <span class="tag tag-p2">P2</span> The spacebar trigger — right idea, wrong execution</h3>
+
+<p>Pressing spacebar on an empty line was designed to make inline AI impossible to miss. It worked for awareness, but created a worse problem: once users exhaust their free AI credits, the spacebar still fires a paid upgrade popup on every new line. Users have to press Shift+Space instead just to type normally.</p>
+
+<blockquote>
+  "It can be distracting... many users have been annoyed by this feature and are looking for a way to disable or circumvent it."
+  <span class="attribution">— nerdschalk.com, documenting the wave of disable requests</span>
+</blockquote>
+
+<blockquote>
+  "The addition of AI to the app [is] kind of annoying, especially when a note-taking banner would automatically pop up every time I started a Zoom call."
+  <span class="attribution">— Stephanie P., Capterra review (E-Learning, 2+ years)</span>
+</blockquote>
+
+<p>Notion published a dedicated support article on how to disable "Press Space for AI." The existence of that article is the complaint.</p>
+
+<h3><span class="tag tag-p2">P2</span> <span class="tag tag-p3">P3</span> The most useful features are invisible</h3>
+
+<p>A Medium article titled <em>"7 Insanely Powerful Notion AI Features Hiding in Plain Sight"</em> lists capabilities most users have never encountered:</p>
+<ul>
+  <li><strong>AI Database Properties</strong> — buried inside database settings behind multiple clicks; described as "perhaps the most powerful yet overlooked feature in Notion"</li>
+  <li><strong>Research Mode</strong> — hidden behind a toggle in the Home tab; "users miss this entirely"</li>
+  <li><strong>AI Agents</strong> — "most users don't realize this shortcut works from any application"</li>
+  <li><strong>Model selection</strong> (GPT-4, Claude, Gemini) — "most users don't realize Notion offers multiple AI models"</li>
+</ul>
+
+<p>The pattern: users interact only with the most visible surface (the chat panel) and never discover the capabilities that would give them the most value.</p>
+
+<hr>
+
+<h2 id="msft">Microsoft 365 Copilot <span class="product-badge badge-msft">Microsoft</span></h2>
+
+<h3><span class="tag tag-p1">P1</span> Users can't find the entry point — even after paying for it</h3>
+
+<blockquote>
+  "I literally am unable to find Copilot on my ribbon."
+  <span class="attribution">— UrbanKaoboy, Microsoft Tech Community</span>
+</blockquote>
+
+<blockquote>
+  "Copilot appeared at the top of the Teams chat list... then suddenly this week it disappeared. Did something change?"
+  <span class="attribution">— LucidBike1140, Microsoft Tech Community, March 2024</span>
+</blockquote>
+
+<blockquote>
+  "In Teams we are missing the icon for Copilot within chats."
+  <span class="attribution">— TorstenKluge, Microsoft Tech Community, February 2024</span>
+</blockquote>
+
+<p>A recurring pattern: Microsoft offers multiple Copilot variants (Copilot for Sales, Copilot for Service, M365 Copilot) each with different entry points. Users who paid for one often can't distinguish it from the others or locate the right icon.</p>
+
+<h3><span class="tag tag-p1">P1</span> The floating button is the most complained-about Copilot UI element</h3>
+
+<p>Microsoft added a floating Copilot button that hovers over documents in Word, Excel, and PowerPoint. It became the most-upvoted negative feedback item Microsoft received on Copilot.</p>
+
+<blockquote>
+  "This annoying bubble actually gets in the way of using Word. It covers any text behind it. The bubble cannot be moved. The area surrounding the bubble is also part of the bubble — clicking a hyperlink near it opens the Copilot chat instead."
+  <span class="attribution">— Jesse C., Microsoft Q&A, 2025</span>
+</blockquote>
+
+<blockquote>
+  "Even if you don't ever use it, you have to make the effort to tell it to go away each and every time it shows up."
+  <span class="attribution">— Anonymous, Microsoft Q&A</span>
+</blockquote>
+
+<blockquote>
+  "This forced AI garbage needs to stop. Put the icon in the ribbon and I'll use it if I want to!"
+  <span class="attribution">— Anonymous, Microsoft Q&A</span>
+</blockquote>
+
+<blockquote>
+  "Didn't you learn anything from the Clippy era?"
+  <span class="attribution">— Office Watch reader, commenting on the floating button backlash</span>
+</blockquote>
+
+<p>In May 2026, Microsoft officially acknowledged the floating button was a mistake and rolled out an option to hide it after sustained user backlash. (<a href="https://www.windowslatest.com/2026/05/22/microsoft-admits-the-floating-copilot-button-in-word-excel-and-powerpoint-was-a-mistake-lets-you-hide-it-after-backlash/" target="_blank">Windows Latest</a>)</p>
+
+<h3><span class="tag tag-p2">P2</span> Proactive surfacing without relevance creates resentment</h3>
+
+<blockquote>
+  "Copilot is running amok across Office 365. Outlook now blocks screen real estate with a message begging you to use 'AI Coach'. Word, PowerPoint and Excel all have Copilot buttons everywhere, with automatic PowerPoint summaries."
+  <span class="attribution">— rchaud, Hacker News</span>
+</blockquote>
+
+<blockquote>
+  "Putting Copilot front and center when they haven't subscribed to Copilot at all... adds an unnecessary extra click to go where we want to go. This is just one example of Copilot being rammed down the throats of people who may not want it at all."
+  <span class="attribution">— Marc D. Anderson, Microsoft MVP, June 2025</span>
+</blockquote>
+
+<p>An internal Microsoft source, quoted in Windows Central, described the root cause:</p>
+<blockquote>
+  "There is a delusion on our marketing side where literally everything has been renamed to have Copilot in it. Everything is Copilot. Nothing else matters."
+  <span class="attribution">— Anonymous Microsoft employee, Windows Central, 2025</span>
+</blockquote>
+
+<h3><span class="tag tag-p3">P3</span> Users don't know what Copilot can do — even after using it</h3>
+
+<blockquote>
+  "I flailed around on her work laptop for a few hours and I'll be damned if I came up with anything more useful than things I could already do. I have no clue what to do with it. I can't see any value in it at all."
+  <span class="attribution">— ikidd, Hacker News ("What Is Copilot Exactly?" thread)</span>
+</blockquote>
+
+<blockquote>
+  "When everything is labelled as Copilot it creates such confused ideas. It always invoked 20 questions to interrogate what was actually created."
+  <span class="attribution">— illwrks, Hacker News</span>
+</blockquote>
+
+<blockquote>
+  "She got in great distress because she opened a new document in Word and was faced with a message which told her to click something to use Copilot. She doesn't have any knowledge or need for Copilot — she just needs Word to write lists and send letters."
+  <span class="attribution">— Anonymous, describing a non-technical relative, Microsoft Q&A</span>
+</blockquote>
+
+<hr>
+
+<h2 id="snow">ServiceNow Now Assist <span class="product-badge badge-snow">ServiceNow</span></h2>
+
+<p>ServiceNow's complaints don't appear in public Reddit threads — they show up in enterprise adoption metrics and in ServiceNow's own implementation guidance. The signal is quieter but no less real.</p>
+
+<h3><span class="tag tag-p1">P1</span> The inline context menu is underused — ServiceNow measures it</h3>
+
+<p>ServiceNow publishes adoption dashboards for Now Assist and explicitly flags low context menu usage as a known problem:</p>
+
+<blockquote>
+  "If context menu usage is low despite having capable skills available, it may indicate a need for additional training or in-app guidance to help users discover this capability."
+  <span class="attribution">— ServiceNow Community, "Tracking Now Assist Usage" guide</span>
+</blockquote>
+
+<p>The sparkle icon that appears inside text fields (work notes, email replies) is the most contextually appropriate entry point in the product. The fact that ServiceNow built an adoption metric specifically to catch when users aren't finding it is an admission that it fails discoverability on its own.</p>
+
+<h3><span class="tag tag-p2">P2</span> Adoption requires a dedicated change management program</h3>
+
+<p>Industry data from Now Assist implementations:</p>
+
+<div class="stat-row">
+  <div class="stat">
+    <div class="stat-number">50%</div>
+    <div class="stat-label">lower initial adoption when change management budget is under 15% of implementation cost</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">"months"</div>
+    <div class="stat-label">typical implementation timeline, often requiring external consultants</div>
+  </div>
+</div>
+
+<p>ServiceNow wrote a white paper titled <em>"Now on Now: Our Now Assist Implementation Lessons Learned"</em> — documenting the challenges they encountered deploying their own product internally. The fact that the vendor needs to publish a lessons-learned document about their own tool's adoption is significant.</p>
+
+<p>The broader pattern: Now Assist is technically capable, but users don't know when the AI is relevant to what they're doing. The solution enterprises have reached for is training budgets and change management programs, not UI changes.</p>
+
+<hr>
+
+<h2 id="sfdc">Salesforce Agentforce <span class="product-badge badge-sfdc">Salesforce</span></h2>
+
+<p>Agentforce has the most quantified adoption problem of any product in this research.</p>
+
+<div class="stat-row">
+  <div class="stat">
+    <div class="stat-number">5.3%</div>
+    <div class="stat-label">adoption rate across Salesforce's customer base</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">31%</div>
+    <div class="stat-label">of Agentforce setups still active after 6 months</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">8,000+</div>
+    <div class="stat-label">companies using Agentforce out of 150,000+ Salesforce customers</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">77%</div>
+    <div class="stat-label">of B2B deployments fail due to data quality issues</div>
+  </div>
+</div>
+
+<h3><span class="tag tag-p2">P2</span> Users don't understand what Agentforce is for</h3>
+
+<blockquote>
+  "Their biggest questions aren't technical — they're about understanding what Agentforce does, how it delivers value, and how to make the case for investment."
+  <span class="attribution">— Salesforce Ben, "A Year of Agentforce" analysis, 2025</span>
+</blockquote>
+
+<p>This is a pure P2 failure. The entry point exists (panel in Lightning, Agent Shortcuts on record pages). Users find it. They just don't know what to do once they're there, or why they'd go there in the first place.</p>
+
+<h3><span class="tag tag-p1">P1</span> Renaming Einstein Copilot to Agentforce reset user awareness</h3>
+
+<p>In January 2025, Salesforce renamed Einstein Copilot to Agentforce without changing any features. The result was immediate confusion across the Salesforce admin community.</p>
+
+<blockquote>
+  "They renamed it because 'Einstein' had too much baggage from years of underwhelming delivery."
+  <span class="attribution">— Salesforce practitioner, Trailblazer community</span>
+</blockquote>
+
+<p>Users who had located and bookmarked the old Einstein Copilot entry point now had to re-find it under a new name. A rename that doesn't change the product effectively resets discoverability to zero for existing users.</p>
+
+<h3><span class="tag tag-p3">P3</span> Getting useful results requires expertise the UI doesn't provide</h3>
+
+<blockquote>
+  "Lots of clicking to get to the right options. Everything opens in new browser tabs, clustering the browser. Lots of jumping back and forth between tabs to enable settings."
+  <span class="attribution">— Verified user, G2 review</span>
+</blockquote>
+
+<blockquote>
+  "My primary concern is the significant learning curve involved in truly optimizing Agentforce. Getting consistent and accurate results isn't as simple as just telling the agent what to do."
+  <span class="attribution">— Alessandro N., Salesforce Administrator, G2</span>
+</blockquote>
+
+<blockquote>
+  "I built the default agent, went well, then went to create a second agent and could not get past an error when I clicked Create."
+  <span class="attribution">— Jessica C., Senior Business Analyst, G2</span>
+</blockquote>
+
+<hr>
+
+<h2 id="summary">Cross-product patterns</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Product</th>
+      <th>P1: Can't find it</th>
+      <th>P2: Don't know when</th>
+      <th>P3: Don't know what to ask</th>
+      <th>Outcome</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Notion AI</strong></td>
+      <td>Sidebar redesign needed; bottom-right icon missed</td>
+      <td>Spacebar trigger fires at wrong moments</td>
+      <td>Best features buried; users only use the visible chat</td>
+      <td>Forced nav redesign in 3.4</td>
+    </tr>
+    <tr>
+      <td><strong>M365 Copilot</strong></td>
+      <td>Icon disappears; different per app; naming confusion</td>
+      <td>Proactive popups feel irrelevant or intrusive</td>
+      <td>"I can't see any value in it at all"</td>
+      <td>Floating button officially called a mistake</td>
+    </tr>
+    <tr>
+      <td><strong>ServiceNow Now Assist</strong></td>
+      <td>Context menu icon not discovered; needs training</td>
+      <td>Users don't know when AI is relevant to their ticket</td>
+      <td>Adoption requires change management programs</td>
+      <td>Low context menu usage; 50% lower adoption without change mgmt</td>
+    </tr>
+    <tr>
+      <td><strong>Salesforce Agentforce</strong></td>
+      <td>Rename reset awareness; entry point confusion</td>
+      <td>"What does Agentforce do?" is the #1 customer question</td>
+      <td>UX requires expertise; blank panel gives no starting point</td>
+      <td>5.3% adoption; 69% stop using within 6 months</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The shared failure pattern: every product prioritized <strong>P1</strong> (making the entry point visible) and shipped. P2 and P3 were left for users to figure out. The adoption numbers show that P1 alone is not sufficient.</p>
+
+<p>The products that addressed P2 through context-triggering (ServiceNow's auto-populated panel when a ticket opens, Salesforce's proactive Service Console suggestions) had better results in those specific workflows — but the trigger had to be matched to something genuinely useful, or it produced a new complaint: intrusion.</p>
+
+<hr>
+
+<h2 id="contrast">What good looks like</h2>
+
+<p>Two products solved all three problems and show what the alternative looks like.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>GitHub Copilot</th>
+      <th>Grammarly</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>P1: Entry point</strong></td>
+      <td>Inline ghost text in the IDE — appears where you're already working</td>
+      <td>Browser extension in every text field — appears where you're already typing</td>
+    </tr>
+    <tr>
+      <td><strong>P2: When to use</strong></td>
+      <td>Always, automatically — the trigger is writing code</td>
+      <td>Always, automatically — the trigger is typing</td>
+    </tr>
+    <tr>
+      <td><strong>P3: What to ask</strong></td>
+      <td>Nothing. Ghost text shows what it will do before you accept it</td>
+      <td>Nothing. It responds to what you've already written</td>
+    </tr>
+    <tr>
+      <td><strong>Adoption</strong></td>
+      <td>96% of users start accepting suggestions the same day they get access; 20M+ users</td>
+      <td>30M+ daily active users; appears automatically without any user action</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The shared principle: <strong>the AI trigger is the workflow itself</strong>. There is no entry point to find, no moment of "should I open the AI now?", no cold-start problem. The AI responds to what the user is already doing.</p>
+
+<p>Neither product required a visible button, a left nav slot, or a prominent panel. Discoverability was solved by embedding the AI in the action the user was already taking — not by making the AI's front door harder to miss.</p>
+
+</body>
+</html>

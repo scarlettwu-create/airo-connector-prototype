@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIRO Activity Timeline</title>
+<link rel="stylesheet" href="references/fluid-tokens.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&family=Source+Code+Pro&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.34.0/tabler-icons.min.css">
+<style>
+  :root { --accent: #1A57E5; --proc: #637A87; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #eef1f6; font-family: "Source Sans 3", sans-serif; color: var(--text-primary, #373d47); }
+  .app { width: 100%; }
+  .wrap { display: flex; gap: 0; align-items: flex-start; max-width: none; margin: 0; padding: 0; }
+  .params { flex: 0 0 440px; align-self: flex-start; padding: 40px 28px 40px 48px; background: #ffffff; }
+  .stage { flex: 1; min-width: 0; background: transparent; padding: 24px 24px 24px 8px; box-sizing: border-box; position: sticky; top: 0; align-self: flex-start; }
+  .frame { background: #e5eaf1; border: 1px solid #d5dbe4; border-radius: 14px; padding: 12px; }
+  .stage.embed { position: static; top: auto; padding: 14px; }
+  .params { background: transparent; }
+  .rail-title { font-size: 18px; font-weight: 600; color: #1f2328; margin: 18px 0 4px; }
+  .rail-sub { font-size: 13px; line-height: 1.5; color: #586373; margin: 0 0 14px; max-width: 380px; }
+  .optcard { background: #fff; border: 1px solid #d5dbe4; border-radius: 10px; padding: 11px 13px; margin-bottom: 9px; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+  .optcard:hover { border-color: #bcc3ce; }
+  .optcard.rec { border-color: #bfe3cd; }
+  .oc-badge.rec { background: #e7f5ee; color: #1f8a4c; }
+  .viewchg { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #d5dbe4; background: #fff; border-radius: 8px; padding: 6px 12px; font-size: 12.5px; cursor: pointer; color: #373d47; margin-bottom: 10px; font-family: inherit; }
+  .viewchg:hover { background: #f4f6fa; border-color: #bcc3ce; }
+  .viewchg.open { background: #eef3ff; border-color: #1a57e5; color: #1a57e5; }
+  .optcard.on { border-color: #1a57e5; box-shadow: 0 0 0 2px #dce6ff; }
+  .oc-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .oc-num { width: 20px; height: 20px; border-radius: 50%; background: #eef1f6; color: #586373; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .optcard.on .oc-num { background: #1a57e5; color: #fff; }
+  .oc-name { font-size: 13.5px; font-weight: 600; color: #373d47; }
+  .oc-badge { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 2px 7px; border-radius: 5px; margin-left: auto; white-space: nowrap; }
+  .oc-badge.target { background: #dcfce7; color: #166534; }
+  .oc-badge.core { background: #e0e7ff; color: #3730a3; }
+  .oc-badge.explore { background: #fef3c7; color: #92400e; }
+  .oc-badge.avoid { background: #fee2e2; color: #991b1b; }
+  .oc-desc { font-size: 12px; line-height: 1.5; color: #586373; }
+  .oc-pc { display: flex; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eef1f6; }
+  .oc-col { flex: 1; min-width: 0; }
+  .oc-ph { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; margin-bottom: 4px; }
+  .oc-pros .oc-ph { color: #1f8a4c; }
+  .oc-cons .oc-ph { color: #b42318; }
+  .oc-pc ul { margin: 0; padding-left: 15px; }
+  .oc-pc li { font-size: 11.5px; line-height: 1.45; color: #373d47; margin-bottom: 4px; }
+  .defcta { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #d5dbe4; border-radius: 10px; padding: 11px 13px; margin-bottom: 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .defcta:hover { border-color: #1a57e5; background: #f4f8ff; }
+  .defcta > i { color: #1a57e5; font-size: 16px; flex-shrink: 0; }
+  .defcta-l { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; color: #586373; }
+  .defcta-t { font-size: 13px; font-weight: 600; color: #1f2328; }
+  .defcard { display: flex; align-items: center; gap: 9px; background: #fff; border: 1px solid #d5dbe4; border-radius: 10px; padding: 11px 13px; margin-bottom: 16px; cursor: pointer; transition: border-color .15s, box-shadow .15s, background .15s; }
+  .defcard:hover { border-color: #bcc3ce; }
+  .defcard.on { border-color: #1a57e5; background: #f4f8ff; box-shadow: 0 0 0 2px #dce6ff; }
+  .defcard > i { color: #1a57e5; font-size: 16px; flex-shrink: 0; }
+  .defcard-t { font-size: 13px; font-weight: 600; color: #1f2328; }
+  .defcard-arrow { margin-left: auto; color: #586373; font-size: 16px; }
+  .defcard.on .defcard-arrow { color: #1a57e5; }
+  .defacc { border: 1px solid #d5dbe4; border-radius: 10px; background: #fff; margin-bottom: 16px; }
+  .defacc-h { display: flex; align-items: center; gap: 9px; padding: 11px 13px; cursor: pointer; }
+  .defacc-h > i { color: #1a57e5; font-size: 16px; }
+  .defacc-t { font-size: 13px; font-weight: 600; color: #1f2328; }
+  .defacc-chev { margin-left: auto; color: #586373; font-weight: 700; }
+  .defacc-body { border-top: 1px solid #eef1f6; padding: 0 14px; max-height: 62vh; overflow-y: auto; }
+  .defacc-body .defwrap { padding: 12px 0 16px; max-width: none; margin: 0; }
+  .defacc-body .d-title { font-size: 17px; margin: 2px 0 10px; }
+  .defacc-body .d-h2 { font-size: 15px; margin: 16px 0 6px; }
+  .defacc-body .d-h3 { font-size: 13.5px; margin: 12px 0 4px; }
+  .defacc-body p, .defacc-body .d-ul li, .defacc-body .d-callout li, .defacc-body .d-callout p { font-size: 12.5px; }
+  .defacc-body .d-callout h4 { font-size: 13px; }
+  .defacc-body .principle { padding: 9px 12px; }
+  .defacc-body .principle .ptitle { font-size: 13px; }
+  .defacc-body .principle .pdesc { font-size: 12px; }
+  .defacc-body .principle .src { font-size: 11px; }
+  .editor { display: flex; gap: 16px; align-items: flex-start; }
+  .code-window { flex: 1; min-width: 360px; height: min(1208px, calc(100vh - 80px)); display: flex; flex-direction: column; background: var(--surface-default, #fff); border: 1px solid var(--border-default, #d5dbe4); border-radius: 12px; overflow: hidden; }
+  .code-head { flex: none; display: flex; align-items: center; gap: 18px; padding: 11px 14px; border-bottom: 1px solid var(--border-subtle, #e5eaf1); font-size: 13px; color: var(--text-primary, #373d47); }
+  .ltab { display: inline-flex; align-items: center; gap: 7px; color: var(--proc, #637A87); cursor: pointer; padding-bottom: 2px; border-bottom: 2px solid transparent; }
+  .ltab.on { color: var(--accent, #1A57E5); border-bottom-color: var(--accent, #1A57E5); font-weight: 600; }
+  .code-meta { font-size: 12px; color: var(--proc); }
+  .code-body { flex: 1; overflow: auto; padding: 12px 0; font-family: "Source Code Pro", monospace; font-size: 13px; line-height: 1.75; }
+  .code-line { display: flex; }
+  .ln { flex: none; width: 46px; text-align: right; padding-right: 14px; color: var(--neutral-muted, #bcc3ce); user-select: none; }
+  .lc { white-space: pre; color: var(--text-primary, #373d47); }
+  .plan-strip { flex: none; border-bottom: 1px solid var(--border-subtle, #e5eaf1); background: var(--surface-subtle, #f6f9fb); padding: 14px 16px; }
+  .chat-tracker { flex: none; border-top: 1px solid var(--border-subtle, #e5eaf1); background: var(--surface-subtle, #f6f9fb); padding: 12px 16px; }
+  .ct-head { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .ct-head i { color: var(--proc, #637A87); font-size: 16px; }
+  .ct-chev { margin-left: auto; color: var(--proc, #637A87); font-weight: 700; }
+  .chat-tracker .tracker-list { margin-top: 10px; }
+  .composer { flex: none; padding: 14px 16px; border-top: 1px solid var(--border-subtle, #e5eaf1); }
+  .composer-box { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border-default, #d5dbe4); border-radius: 10px; padding: 10px 12px; }
+  .composer-ph { flex: 1; font-size: 14px; color: var(--neutral-muted, #9aa4b2); }
+  .composer-send { flex: none; width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; }
+  .tracker-panel { width: 600px; }
+  .tracker { flex: none; border-top: 1px solid var(--border-subtle, #e5eaf1); background: var(--surface-subtle, #f6f9fb); padding: 16px 18px; }
+  .tracker-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+  .tracker-head .chev { color: var(--proc); font-size: 13px; }
+  .tracker-title { font-size: 14px; font-weight: 600; color: var(--text-primary, #373d47); }
+  .tracker-list { display: flex; flex-direction: column; gap: 3px; }
+  .trow { display: flex; align-items: center; gap: 11px; padding: 5px 0; }
+  .tdot { width: 16px; height: 16px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; border: 2px solid var(--neutral-muted, #bcc3ce); }
+  .tdot.queued { border-style: dashed; }
+  .tdot.run { border-color: var(--accent); border-right-color: transparent; animation: spin .7s linear infinite; }
+  .tdot.done { background: var(--accent); border-color: var(--accent); }
+  .tlabel { font-size: 14px; color: var(--text-primary, #373d47); }
+  .tlabel.done { color: var(--proc); }
+  .askbar { flex: none; border-top: 1px solid var(--border-subtle, #e5eaf1); padding: 15px 18px; font-size: 14px; color: var(--neutral-muted, #9aa4b2); }
+  .pc-grp { margin-top: 28px; }
+  .pc { max-width: 580px; border: 1px solid #e3e7ee; border-radius: 12px; padding: 16px 18px; margin-bottom: 10px; background: #fff; }
+  .pc.on { border-color: var(--accent,#1A57E5); background: #f4f8ff; }
+  .pc-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pc-name { font-size: 16px; font-weight: 600; color: #373d47; }
+  .pc-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 3px 9px; border-radius: 999px; }
+  .pc-badge.avoid { background: #fee2e2; color: #991b1b; }
+  .pc-badge.core { background: #e0e7ff; color: #3730a3; }
+  .pc-badge.target { background: #dcfce7; color: #166534; }
+  .pc-badge.explore { background: #fef3c7; color: #92400e; }
+  .seg-badge { flex: none; margin-left: auto; white-space: nowrap; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: 3px 7px; border-radius: 999px; }
+  .seg-badge.avoid { background: #fee2e2; color: #991b1b; }
+  .seg-badge.core { background: #e0e7ff; color: #3730a3; }
+  .seg-badge.target { background: #dcfce7; color: #166534; }
+  .seg-badge.explore { background: #fef3c7; color: #92400e; }
+  .act-diff { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-size: 12px; white-space: nowrap; }
+  .pc-sub { font-size: 13px; color: #637A87; margin: 5px 0 10px; }
+  .pc-pro, .pc-con { list-style: none; margin: 7px 0 0; padding: 0; }
+  .pc-pro li, .pc-con li { font-size: 14.5px; line-height: 1.55; margin: 5px 0; padding-left: 24px; position: relative; color: #2f353e; }
+  .pc-pro li::before { content: '✓'; position: absolute; left: 0; font-size: 15px; color: #44791e; font-weight: 700; }
+  .pc-con li::before { content: '✕'; position: absolute; left: 0; font-size: 15px; color: #b6270a; font-weight: 700; }
+  .pgrp { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .pl { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--proc); margin-bottom: 8px; }
+  .params .seg { display: inline-flex; width: auto; text-align: left; margin: 0; }
+  .pgrp .seg { display: flex; width: 100%; align-items: center; text-align: left; line-height: 1.35; padding: 9px 14px; }
+  .params .opt { display: inline-flex; width: auto; margin: 0; }
+  .pgrp .pl { flex: 0 0 100%; margin-bottom: 4px; }
+  .seg { font-size: 13px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-default, #d5dbe4); background: var(--surface-default, #fff); color: var(--text-primary, #373d47); cursor: pointer; }
+  .seg.on { border-color: var(--accent); background: var(--ai-subtle, #dce6ff); color: var(--accent); }
+  .opt { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-default, #d5dbe4); background: var(--surface-default, #fff); color: var(--text-primary, #373d47); cursor: pointer; }
+  .opt.on { border-color: var(--accent); color: var(--accent); }
+  .box { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--neutral-muted, #bcc3ce); display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; }
+  .opt.on .box { background: var(--accent); border-color: var(--accent); }
+  .panel { width: 610px; height: min(1208px, calc(100vh - 80px)); display: flex; flex-direction: column; margin: 0; background: var(--surface-default, #fff); border: 1px solid var(--border-default, #d5dbe4); border-radius: 12px; overflow: hidden; }
+  .phead { flex: none; display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle, #e5eaf1); }
+  .mark { display: flex; align-items: center; gap: 7px; }
+  .badge { width: 22px; height: 22px; border-radius: 8px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; letter-spacing: -3px; font-size: 12px; }
+  .mname { font-weight: 600; font-size: 13px; color: var(--accent); }
+  .vtag { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--ai-subtle, #dce6ff); color: var(--accent); }
+  .sp { flex: 1; }
+  .rbtn { font-size: 12px; padding: 5px 11px; border-radius: 8px; border: 1px solid var(--border-default, #d5dbe4); background: var(--surface-default, #fff); color: var(--proc); cursor: pointer; }
+  .rbtn.on { border-color: var(--accent); background: var(--ai-subtle, #dce6ff); color: var(--accent); }
+  .msgs { flex: 1; min-height: 0; overflow-y: auto; padding: 18px; }
+  .urow { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .ubub { background: var(--ai-subtle, #dce6ff); color: var(--text-primary, #373d47); max-width: 84%; padding: 9px 12px; border-radius: 13px 13px 4px 13px; font-size: 13px; line-height: 1.45; }
+  .who { font-size: 11px; color: var(--proc); margin: 4px 0 3px; }
+  .bub { font-size: 13.5px; line-height: 1.55; color: var(--text-primary, #373d47); margin-bottom: 12px; }
+  .proc-head { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
+  .proc-head.click { cursor: pointer; }
+  .dchev { color: var(--accent); font-weight: 700; letter-spacing: -4px; margin-right: 5px; }
+  .status { font-size: 13px; color: var(--proc); }
+  .task { margin-bottom: 2px; }
+  .task-head { display: flex; align-items: center; gap: 10px; padding: 5px 0; cursor: pointer; }
+  .task-title { font-size: 13px; color: var(--proc); }
+  .task.done .task-title { color: var(--text-primary, #373d47); }
+  .chev { color: var(--proc); margin-left: 4px; }
+  .task-body { padding-left: 6px; }
+  .rail { position: relative; padding: 8px 0 4px 2px; }
+  .rline { position: absolute; left: 7px; top: 12px; bottom: 14px; width: 2px; background: var(--ai-muted, #92b2fd); }
+  .rrow { display: flex; gap: 11px; align-items: flex-start; padding: 0 0 10px; }
+  .ck { position: relative; z-index: 1; width: 16px; height: 16px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface-default, #fff); border: 2px solid var(--accent); color: #fff; font-size: 10px; }
+  .ck.done { background: var(--accent); }
+  .ck.run { border-right-color: transparent; animation: spin .7s linear infinite; }
+  .ck.waiting { border-color: var(--warning-default, #e67009); }
+  .ck.error { background: var(--error-default, #da3b1c); border-color: var(--error-default, #da3b1c); }
+  .ck.retry { border-color: var(--warning-default, #e67009); border-right-color: transparent; animation: spin .7s linear infinite; }
+  .rmain { min-width: 0; }
+  .rlabel { font-size: 13px; color: var(--proc); line-height: 1.5; }
+  .rlabel.error { color: var(--error-emphasis, #b6270a); }
+  .rlabel.retry { color: var(--warning-emphasis, #bd5200); }
+  .fail { font-size: 12px; color: var(--error-emphasis, #b6270a); margin-top: 2px; }
+  .why { font-size: 12px; color: var(--proc); line-height: 1.45; margin-top: 2px; }
+  .chip { display: inline-flex; margin-top: 6px; font-size: 12px; padding: 3px 8px; border-radius: 4px; background: var(--surface-subtle, #f6f9fb); color: var(--proc); }
+  .subs { margin-top: 5px; }
+  .subrow { font-size: 12px; color: var(--proc); line-height: 1.5; padding-left: 12px; position: relative; }
+  .subrow::before { content: '↳'; position: absolute; left: 0; color: var(--neutral-muted, #bcc3ce); }
+  .ev { margin-top: 7px; border: 1px solid var(--border-subtle, #e5eaf1); border-radius: 4px; background: var(--surface-subtle, #f6f9fb); overflow: hidden; }
+  .ev-h { font-size: 10px; letter-spacing: .05em; text-transform: uppercase; color: var(--proc); padding: 5px 9px; border-bottom: 1px solid var(--border-subtle, #e5eaf1); }
+  .ev-l { font-family: "Source Code Pro", monospace; font-size: 12px; color: var(--text-primary, #373d47); padding: 1px 9px; white-space: pre; }
+  .ev-l.first { padding-top: 6px; } .ev-l.last { padding-bottom: 6px; }
+  .approvebar { flex: none; display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-top: 1px solid var(--border-subtle, #e5eaf1); background: var(--warning-tint, #faf0e3); }
+  .ab-t { font-size: 13px; color: var(--warning-emphasis, #bd5200); }
+  .cbtn { font-size: 12px; padding: 5px 11px; border-radius: 6px; border: 1px solid var(--border-default, #d5dbe4); background: var(--surface-default, #fff); cursor: pointer; }
+  .cbtn.ok { background: var(--success-default, #5aa028); border-color: var(--success-default, #5aa028); color: #fff; }
+  .planbox { border: 1px solid var(--border-default, #d5dbe4); border-radius: 8px; overflow: hidden; }
+  .plan-h { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--proc); padding: 9px 12px; border-bottom: 1px solid var(--border-subtle, #e5eaf1); }
+  .planrow { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle, #e5eaf1); }
+  .qdot { width: 12px; height: 12px; flex: none; border-radius: 50%; border: 2px solid var(--neutral-muted, #bcc3ce); }
+  .plabel { font-size: 13px; color: var(--text-primary, #373d47); }
+  .gate { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--warning-tint, #faf0e3); color: var(--warning-emphasis, #bd5200); }
+  .rm { font-size: 12px; color: var(--proc); cursor: pointer; }
+  .plan-foot { display: flex; align-items: center; gap: 11px; padding: 12px; }
+  .pbtn { font-size: 13px; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+  .plan-hint { font-size: 12px; color: var(--proc); }
+  .divider { display: flex; align-items: center; gap: 8px; }
+  .dl { flex: 1; height: 1px; background: var(--border-subtle, #e5eaf1); }
+  .dtxt { font-size: 12px; color: var(--proc); white-space: nowrap; }
+  .say { font-size: 13.5px; color: var(--text-primary, #373d47); line-height: 1.65; margin: 0 0 16px; }
+  .actline { display: flex; align-items: center; gap: 10px; padding: 5px 0; margin-bottom: 15px; }
+  .actline[data-act] { cursor: pointer; }
+  .aico { color: var(--proc, #637A87); display: flex; align-items: center; }
+  .aico i { font-size: 18px; }
+  .alabel { font-size: 14px; color: var(--proc, #637A87); }
+  .act-body { padding-left: 6px; margin: -4px 0 12px; }
+  .planlist { margin: 0 0 12px; padding-left: 20px; }
+  .planlist li { font-size: 13.5px; color: var(--text-primary, #373d47); line-height: 1.6; margin-bottom: 4px; }
+  .changes { border: 1px solid var(--border-default, #d5dbe4); border-radius: 8px; overflow: hidden; margin: 2px 0 12px; }
+  .ch-h { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--proc, #637A87); padding: 8px 11px; border-bottom: 1px solid var(--border-subtle, #e5eaf1); }
+  .ch-row { display: flex; align-items: center; gap: 8px; padding: 7px 11px; border-bottom: 1px solid var(--border-subtle, #e5eaf1); font-size: 12.5px; }
+  .ch-row:last-child { border-bottom: none; }
+  .ch-row i { color: var(--proc, #637A87); font-size: 15px; }
+  .ch-f { font-family: "Source Code Pro", monospace; color: var(--text-primary, #373d47); }
+  .ch-w { color: var(--proc, #637A87); }
+  .ch-d .add { color: var(--success-emphasis, #44791e); }
+  .ch-d .del { color: var(--error-emphasis, #b6270a); }
+  .layout { display: flex; gap: 14px; align-items: flex-start; }
+  .layout .panel { margin: 0; }
+  .side { width: 360px; height: min(1208px, calc(100vh - 80px)); display: flex; flex-direction: column; margin-top: 0; background: var(--surface-default,#fff); border: 1px solid var(--border-default,#d5dbe4); border-radius: 12px; overflow: hidden; }
+  .side-head { flex: none; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle,#e5eaf1); }
+  .stabs { display: flex; gap: 14px; }
+  .stab { font-size: 13px; color: var(--proc,#637A87); cursor: pointer; padding-bottom: 2px; border-bottom: 2px solid transparent; }
+  .stab.on { color: var(--accent,#1A57E5); border-bottom-color: var(--accent,#1A57E5); }
+  .side-title { font-size: 13px; font-weight: 600; color: var(--text-primary,#373d47); }
+  .back { margin-left: auto; font-size: 12px; color: var(--proc,#637A87); }
+  .side-sub { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--proc,#637A87); margin: 18px 0 6px; }
+  .side-sub::after { content: ''; flex: 1; height: 1px; background: var(--border-subtle,#e5eaf1); }
+  .side-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px; }
+  .tl-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; }
+  .tl-row i { color: var(--proc,#637A87); font-size: 16px; }
+  .tl-ed { color: var(--text-primary,#373d47); font-weight: 600; }
+  .tl-f { font-family: "Source Code Pro", monospace; font-size: 12px; background: var(--surface-subtle,#f6f9fb); border-radius: 4px; padding: 1px 6px; color: var(--text-primary,#373d47); }
+  .tl-w { color: var(--proc,#637A87); font-size: 12px; }
+  .tl-act { flex: 1; min-width: 0; color: var(--text-primary,#373d47); font-size: 13px; line-height: 1.4; }
+  .tl-row .ch-d { font-size: 12px; white-space: nowrap; }
+  .tl-row .ch-d .add { color: var(--success-emphasis,#44791e); }
+  .tl-row .ch-d .del { color: var(--error-emphasis,#b6270a); }
+  .side-sum { margin-top: 12px; border: 1px solid var(--border-subtle,#e5eaf1); border-radius: 8px; padding: 11px 12px; font-size: 13px; color: var(--text-primary,#373d47); line-height: 1.55; }
+  .card { border: 1px solid var(--border-default,#d5dbe4); border-radius: 10px; padding: 12px 14px; }
+  .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .card-t { font-size: 14px; font-weight: 600; color: var(--text-primary,#373d47); }
+  .card-top i { color: var(--proc,#637A87); }
+  .card-btns { display: flex; gap: 8px; }
+  .card-btns .cbtn { flex: 1; text-align: center; }
+  .codeblk { font-family: "Source Code Pro", monospace; font-size: 12px; line-height: 1.7; color: var(--text-primary,#373d47); background: var(--surface-subtle,#f6f9fb); border-radius: 6px; padding: 10px 12px; white-space: pre; overflow: auto; }
+  .modes { display: flex; gap: 8px; margin-bottom: 22px; }
+  .docpanel { background: #fff; border: 1px solid #d5dbe4; border-radius: 14px; max-height: calc(100vh - 48px); overflow-y: auto; }
+  .defwrap .d-title { font-size: 26px; font-weight: 600; color: #1f2328; margin: 0 0 14px; }
+  .defwrap { max-width: 920px; margin: 0 auto; padding: 28px 40px 60px; }
+  .defwrap .d-lead { font-size: 15px; color: #424a53; line-height: 1.5; margin: 0 0 4px; max-width: 880px; }
+  .defwrap .d-h2 { font-size: 19px; font-weight: 600; color: #1f2328; margin: 24px 0 8px; padding-bottom: 5px; border-bottom: 1px solid #e3e7ee; }
+  .defwrap .d-h3 { font-size: 15px; font-weight: 600; color: #1f2328; margin: 16px 0 4px; }
+  .defwrap p { font-size: 14.5px; color: #373d47; line-height: 1.55; margin: 6px 0; max-width: 880px; }
+  .defwrap ul.d-ul { margin: 6px 0; padding-left: 20px; max-width: 880px; }
+  .defwrap ul.d-ul li { font-size: 14.5px; color: #373d47; line-height: 1.5; margin: 4px 0; }
+  .defwrap a { color: var(--accent); text-decoration: none; }
+  .defwrap a:hover { text-decoration: underline; }
+  .defwrap code { background: #f6f8fa; padding: 1px 5px; border-radius: 4px; font-family: "Source Code Pro", monospace; font-size: .88em; }
+  .d-callout { background: #eff6ff; border: 1px solid #bcd6ff; border-left: 4px solid #3b82f6; border-radius: 8px; padding: 13px 16px; margin: 12px 0; max-width: 880px; }
+  .d-callout h4 { margin: 0 0 6px; color: #1e40af; font-size: 15px; font-weight: 600; }
+  .d-callout ul { margin: 0 0 6px; padding-left: 18px; }
+  .d-callout li { font-size: 14.5px; line-height: 1.5; margin: 4px 0; color: #373d47; }
+  .d-callout p { font-size: 14.5px; }
+  .principle { border: 1px solid #e3e7ee; border-radius: 8px; padding: 10px 14px; margin: 8px 0; max-width: 880px; }
+  .principle .ptitle { font-size: 15px; font-weight: 600; color: #1f2328; }
+  .principle .n { color: #6c5ce7; font-weight: 700; margin-right: 6px; }
+  .principle .pdesc { font-size: 14px; color: #424a53; line-height: 1.5; margin: 5px 0; }
+  .principle .src { font-size: 12.5px; color: #57606a; line-height: 1.5; }
+  .alt { border: 1px solid #e3e7ee; border-radius: 10px; padding: 14px 18px; margin: 12px 0; }
+  .alt h3 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 15px; font-weight: 600; color: #1f2328; margin: 0 0 4px; }
+  .dbadge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 9px; border-radius: 999px; }
+  .b-target { background: #dcfce7; color: #166534; }
+  .b-core { background: #e0e7ff; color: #3730a3; }
+  .b-avoid { background: #fee2e2; color: #991b1b; }
+  .b-later { background: #fef3c7; color: #92400e; }
+  .whatitis { color: #424a53; font-size: 13px; margin: 2px 0 10px; }
+  .altcols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .altcols h5 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #57606a; margin: 0 0 4px; }
+  .altcols ul { margin: 0; padding-left: 18px; }
+  .altcols li { font-size: 12.5px; color: #424a53; line-height: 1.5; margin: 3px 0; }
+  .rationale { font-size: 12.5px; color: #424a53; background: #fafbfc; border: 1px solid #eaecef; border-radius: 6px; padding: 9px 14px; margin-top: 10px; line-height: 1.5; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const COMPLEX = [
+  { id:'understand', active:'Understanding the API', summary:'Read the spec, scoped to Deals / Companies / Contacts', plan:'Understand the API', steps:[
+    {label:'Read the HubSpot API spec', why:'847 endpoints across CRM, Marketing, CMS', chip:'OpenAPI v3', dur:850},
+    {label:'Scoped to CRM objects', why:'Deals, Companies, Contacts', dur:750},
+    {label:'Drafted the connector blueprint', why:'1 connection · 3 objects · 5 actions · 1 trigger', dur:850},
+  ]},
+  { id:'connection', active:'Setting up the connection', summary:'OAuth2 connection with token refresh', plan:'Set up the connection (OAuth2)', planGate:'Needs your credentials', steps:[
+    {label:'Set up the OAuth2 connection', why:'spec exposes /oauth/token and refresh', chip:'OAuth2 + refresh', gate:'Approve creating the HubSpot connection?', approval:true, evidence:['connection:', "  authorization: { type: 'oauth2',", "    token_url: '/oauth/token' }"], dur:1050},
+  ]},
+  { id:'objects', active:'Defining the objects', summary:'Deal, Company, Contact (3 objects)', plan:'Define objects: Deal, Company, Contact', steps:[
+    {label:'Defined the Deal object', chip:'Deal · 41 fields', sub:['Mapped 41 properties','Flagged amount as money'], evidence:['object_definitions → deal','  amount: money · dealstage: enum','  closedate: datetime  (41 fields)'], dur:1000},
+    {label:'Defined the Company object', chip:'Company · 28 fields', dur:750},
+    {label:'Defined the Contact object', chip:'Contact · 35 fields', dur:750},
+    {label:'Resolved ambiguous field types', err:{fail:'amount came back as both string and number'}, why:'coerced amount to money, dates to ISO-8601', dur:900},
+  ]},
+  { id:'actions', active:'Building the actions', summary:'5 deal actions: create, update, search, upsert, archive', plan:'Build deal actions: create, update, search, archive', steps:[
+    {label:'Wrote create_deal', chip:'POST /objects/deals', evidence:["execute: post('/objects/deals')",'  .payload(input)'], dur:850},
+    {label:'Wrote update_deal', chip:'PATCH /objects/deals/{id}', dur:750},
+    {label:'Wrote search_deals', why:'cursor paging, page size 100', chip:'POST /objects/deals/search', sub:['Added after-cursor pagination','Mapped filter groups'], evidence:["post('/objects/deals/search')",'  paging.after · limit 100'], dur:1000},
+    {label:'Wrote create_or_update_deal', why:'upsert via idProperty', dur:850},
+    {label:'Wrote archive_deal', chip:'DELETE /objects/deals/{id}', dur:700},
+  ]},
+  { id:'trigger', active:'Adding the trigger', summary:'new_or_updated_deal trigger', plan:'Add the new-or-updated-deal trigger', steps:[
+    {label:'Wrote new_or_updated_deal trigger', why:'polls search by hs_lastmodifieddate', sub:['Dedupe by updatedAt','Resumable cursor'], evidence:['poll search by hs_lastmodifieddate','  dedupe(updatedAt) · resumable'], dur:1000},
+  ]},
+  { id:'review', active:'Reviewing the connector', summary:'Checked types and required inputs', plan:'Review the connector', steps:[
+    {label:'Checked types and required inputs', why:'static review against the spec, no live calls', dur:850},
+  ]},
+];
+
+const SIMPLE = [
+  { id:'simple', active:'Adding the action', summary:'Added create_contact action', plan:'Add a create_contact action', steps:[
+    {label:'Read the Contacts endpoint', why:'POST /objects/contacts', chip:'OpenAPI v3', dur:850},
+    {label:'Wrote create_contact', chip:'POST /objects/contacts', gate:'Approve creating the HubSpot connection?', approval:true, evidence:["execute: post('/objects/contacts')",'  .payload(input)'], dur:950},
+    {label:'Checked required inputs', why:'email is required', dur:750},
+  ]},
+];
+
+const PROMPTS = {
+  complex: 'Build a full HubSpot CRM connector: Deals, Companies and Contacts, with create / update / search / archive actions and a new-or-updated-deal trigger',
+  simple: 'Add a create_contact action to the HubSpot connector',
+};
+const SUMMARIES = {
+  complex: 'Done. I built the HubSpot CRM connector: OAuth2 connection, Deal / Company / Contact objects, 5 deal actions, and a new-or-updated-deal trigger. Review it, then test from the Test code tab.',
+  simple: 'Done. I added a create_contact action (POST /objects/contacts). Review it, then test from the Test code tab.',
+};
+const CHECKPOINTS = { complex: 'HubSpot CRM connector', simple: 'create_contact action' };
+const CHANGES = {
+  complex: [
+    {file:'connector.rb', what:'connection block', add:6, del:0},
+    {file:'connector.rb', what:'Deal / Company / Contact objects', add:84, del:0},
+    {file:'connector.rb', what:'5 deal actions', add:40, del:2},
+    {file:'connector.rb', what:'new_or_updated_deal trigger', add:18, del:0},
+  ],
+  simple: [ {file:'connector.rb', what:'create_contact action', add:9, del:0} ],
+};
+// Per-step file diff. Steps not listed here are read/verify activities with no edit.
+const DIFF = {
+  connection: {add:6,  del:0},
+  objects:    {add:84, del:0},
+  actions:    {add:40, del:2},
+  trigger:    {add:18, del:0},
+  simple:     {add:9,  del:0},
+};
+
+const DETAILS = [['combined','Details in conversation'],['detailed','Details in conversation, separate changes table'],['thoughts','Details in thoughts'],['compact','Summary + activity panel'],['tracker','Plan + progress tracker']];
+// Pros / cons per verbosity option, from the design-alternatives doc (A / C / D), plus the pinned plan tracker.
+const PROSCONS = {
+  combined: { alt:'Edits combined inline into the thinking stream', badge:'Avoid as default', tone:'avoid',
+    pros:['Maximum transparency; edits and reasoning read as one flow','Nothing hidden, nothing to expand','Cheapest to build (just render the event stream)'],
+    cons:['Noisiest option; buries intent in the stream','No clean change summary to review afterward','Long sessions become an unscrollable wall'] },
+  detailed: { alt:'Full narration, then a separate changes table', badge:'Worth exploring', tone:'explore',
+    pros:['Full play-by-play live, plus a reviewable changes table at the end','The change table can be scanned after without re-reading the stream','Diff-derived table keeps the summary honest'],
+    cons:['Still verbose while it works','Two representations (inline steps + table) can feel redundant'] },
+  thoughts: { alt:'Option C · Collapsed step list', badge:'Strong core', tone:'core',
+    pros:['Scannable and intent-forward; reads like a checklist','Each step is an intervention point, which serves stop mid-step','Maps cleanly onto the SDK tool calls','Completed steps collapse, so long sessions stay compact'],
+    cons:['Needs the backend to emit structured step events, not just a token stream','Vague labels like Working would waste the format','Planning surfaces are fragile and must be reliable to be trusted'] },
+  compact: { alt:'Option D · Step list + per-turn change summary', badge:'Target direction', tone:'target',
+    pros:['Digestible live, reviewable after; supports looking away','The diff-derived summary satisfies the kickoff should-have honestly','Clickable summary lines double as long-file navigation (the 1,000-line problem)','One feature covers three needs: summary, trust, navigation'],
+    cons:['More to build than C, and two surfaces (live steps, final summary) to keep coherent','Summary-from-diff requires the diff computed where the summary is generated'] },
+  tracker: { alt:'Persistent plan + progress tracker (Claude Code / Cursor / Devin)', badge:'Worth exploring', tone:'explore',
+    pros:['Whole plan is shown up front, so the user sees the full scope before work starts','A pinned tracker shows where you are overall (Task X of N) without scrolling the stream','Each task is a high-level checkpoint to redirect or stop at','Familiar pattern users already trust from Claude Code, Cursor, Devin'],
+    cons:['Planning surfaces are fragile; if the tracker stalls or drifts from the work, trust drops fast (Cursor todo not updating)','A persistent panel competes for vertical space with the work itself','Up-front plans can be wrong; committing to a plan can hide mid-course changes'] },
+};
+const CODE = [
+  'connector = {',
+  "  title: 'HubSpot',",
+  '  connection: {',
+  "    authorization: { type: 'oauth2',",
+  "      token_url: '/oauth/token' } },",
+  '  object_definitions: { deal, company, contact },',
+  '  actions: {',
+  "    create_deal, update_deal, search_deals,",
+  '    create_or_update_deal, archive_deal },',
+  '  triggers: { new_or_updated_deal },',
+  '}',
+];
+const EXAMPLES = [['simple','Simple'],['complex','Complex']];
+const OPTIONS = [['reasoning','Reasoning (why)'],['evidence','Evidence'],['gate','Approval gate'],['planFirst','Plan first']];
+
+const MODES = [['definition','Definition'],['exploration','Exploration']];
+const PRINCIPLES = [
+  {t:"Intent before narration.", d:"Announce what each step is about to do in one line, before or as the edit lands. This is what lets the user catch a wrong direction at the cheapest point."},
+  {t:"One default density, with an escape hatch both ways.", d:"Default to one line per action, collapse reasoning, and let users expand for detail or dial it down. Ship the collapse from day one, not as a retrofit."},
+  {t:"The change summary is computed from the diff, not the model's claim.", d:"Derive each summary line from the actual diff (which block changed, lines added and removed) and let the model only phrase it. A summary that cannot disagree with the editor is the feature."},
+  {t:"Always interruptible, mid-step, with a heartbeat.", d:"A persistent stop that halts mid-step, plus a live current-action line so silence never reads as frozen. A stream you cannot cancel mid-step is just a slow log."},
+  {t:"Earn the right to look away.", d:"A clean per-turn summary plus a reviewable highlighted diff means the user can disengage and come back, instead of monitoring every token."},
+  {t:"Narrate the process, show the code in the editor.", d:"The summary owns the steps, handoffs, tools, and status. The editor owns the code and the diff. The summary tells the story of what is being done; it does not re-render the connector."},
+];
+
+const INTRO = {
+  complex: "I'll build a full HubSpot CRM connector that exposes Deals, Companies and Contacts. It's a fair bit of work, so let me break it into steps.",
+  simple: "Sure — I'll add a create_contact action to the HubSpot connector.",
+};
+const NARR = {
+  understand: {icon:'search', act:'Read the API, scoped to CRM'},
+  connection: {icon:'plug-connected', act:'Set up the OAuth2 connection', say:"Now I'll set up how AIRO authenticates with HubSpot."},
+  objects: {icon:'list-details', act:'Defined Deal, Company, Contact', say:"Next, the data model the actions read and write."},
+  actions: {icon:'bolt', act:'Wrote 5 deal actions', say:"Now the actions people will use in recipes."},
+  trigger: {icon:'clock-bolt', act:'Added the new-or-updated-deal trigger', say:"And a trigger so recipes start when a deal changes."},
+  review: {icon:'checks', act:'Reviewed the connector', say:"Finally, a quick check before handing it over."},
+  simple: {icon:'bolt', act:'Added create_contact'},
+};
+
+let view = 'prototype';
+let changesOpen = false;
+const _params = new URLSearchParams(location.search);
+const EMBED = _params.has('embed');
+const _alt = _params.get('alt');
+let DETAIL = (_alt && DETAILS.some(([v])=>v===_alt)) ? _alt : 'compact';
+const EXAMPLE = 'complex';
+let sideTab = 'timeline', preview = false, leftTab = (DETAIL==='compact'?'activity':'code'), finalView = false, trackerOpen = true;
+const L = {reasoning:false, evidence:false, gate:false, planFirst:false};
+let tasks = [], planItems = [], done = false, collapsed = false, secs = 0, planning = false;
+let gateResolve = null, gen = 0;
+
+const esc = (s) => (s == null ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'));
+const SOURCE = () => EXAMPLE==='simple' ? SIMPLE : COMPLEX;
+const isFlat = () => EXAMPLE==='simple';
+const mapStep = (d) => ({...d, fail: d.err ? d.err.fail : null, state:'queued'});
+const taskDefs = () => { if (L.planFirst){ const ids=new Set(planItems.map(p=>p.id)); return SOURCE().filter(t=>ids.has(t.id)); } return SOURCE(); };
+const allSteps = () => tasks.flatMap(t=>t.steps);
+const visibleOf = (list) => list.filter(s => s.state!=='queued');
+
+function headLine(){
+  if (done) return 'Built in '+secs+'s · '+allSteps().length+' steps';
+  const cur = allSteps().find(s=>['run','error','retry','waiting'].includes(s.state));
+  if (!cur) return 'Working…';
+  if (cur.state==='error') return '✕ '+cur.label;
+  if (cur.state==='retry') return 'Retrying: '+cur.label;
+  if (cur.state==='waiting') return 'Waiting for approval';
+  return cur.label+'…';
+}
+function ckHTML(s){
+  const inner = s.state==='done' ? '✓' : s.state==='error' ? '✕' : '';
+  return '<span class="ck '+s.state+'">'+inner+'</span>';
+}
+function railRow(s){
+  let h = '<div class="rrow">'+ckHTML(s)+'<div class="rmain">';
+  const suffix = s.state==='run' ? '…' : s.state==='retry' ? ' · retrying…' : s.state==='waiting' ? ' · waiting' : '';
+  const lc = s.state==='error'?'error':s.state==='retry'?'retry':'';
+  h += '<div class="rlabel '+lc+'">'+esc(s.label)+suffix+'</div>';
+  if (s.state==='error' && s.fail) h += '<div class="fail">'+esc(s.fail)+'</div>';
+  if (L.reasoning && s.why && s.state==='done') h += '<div class="why">'+esc(s.why)+'</div>';
+  if (L.evidence && s.evidence && s.state==='done'){ h += '<div class="ev"><div class="ev-h">Evidence</div>'; s.evidence.forEach((l,i)=>{ h += '<div class="ev-l'+(i===0?' first':'')+(i===s.evidence.length-1?' last':'')+'">'+esc(l)+'</div>'; }); h += '</div>'; }
+  if (s.chip && s.state==='done') h += '<span class="chip">'+esc(s.chip)+'</span>';
+  if (s.sub && s.state==='done'){ h += '<div class="subs">'; s.sub.forEach(u=>h+='<div class="subrow">'+esc(u)+'</div>'); h += '</div>'; }
+  h += '</div></div>';
+  return h;
+}
+function procHeader(){
+  const chev = done ? '<span class="chev">'+(collapsed?'›':'⌄')+'</span>' : '';
+  return '<div class="proc-head'+(done?' click':'')+'"'+(done?' data-act="collapse"':'')+'><span class="dchev">&raquo;</span><span class="status">'+esc(headLine())+'</span>'+chev+'</div>';
+}
+function planBox(){
+  let h = '<div class="planbox"><div class="plan-h">Plan · '+planItems.length+' task'+(planItems.length>1?'s':'')+' · review before running</div>';
+  planItems.forEach((p,i)=>{ h += '<div class="planrow"><span class="qdot"></span><span class="plabel">'+esc(p.label)+'</span>'+(p.gate?'<span class="gate">'+esc(p.gate)+'</span>':'')+'<span class="sp"></span><span class="rm" data-act="remove" data-i="'+i+'">✕</span></div>'; });
+  h += '<div class="plan-foot"><button class="pbtn" data-act="run-plan">Run plan</button><span class="plan-hint">Edit the plan, then run.</span></div></div>';
+  return h;
+}
+function renderFlat(){
+  let h = procHeader();
+  h += '<div class="rail"><div class="rline"></div>';
+  visibleOf(allSteps()).forEach(s=>h+=railRow(s));
+  h += '</div>';
+  return h;
+}
+function renderTasks(){
+  let h = procHeader();
+  tasks.forEach((t,ti)=>{
+    if (t.state==='queued') return;
+    const running = t.state==='run';
+    const ck = running ? '<span class="ck run"></span>' : '<span class="ck done">✓</span>';
+    const title = running ? esc(t.active)+'…' : esc(t.summary);
+    const chev = t.state==='done' ? '<span class="chev">'+(t.open?'⌄':'›')+'</span>' : '';
+    h += '<div class="task '+(t.state==='done'?'done':'')+'"><div class="task-head" data-act="toggle-task" data-i="'+ti+'">'+ck+'<span class="task-title">'+title+'</span>'+chev+'</div>';
+    if (t.open){ h += '<div class="task-body"><div class="rail"><div class="rline"></div>'; visibleOf(t.steps).forEach(s=>h+=railRow(s)); h += '</div></div>'; }
+    h += '</div>';
+  });
+  return h;
+}
+function renderNarrated(opts){
+  const inlineEdits = !!(opts && opts.inlineEdits);
+  let h = '';
+  const started = allSteps().some(s=>s.state!=='queued');
+  h += '<div class="actline"><span class="aico"><i class="ti ti-brain"></i></span><span class="alabel">'+(started?'Thought for 4s':'Thinking…')+'</span></div>';
+  h += '<div class="say">'+esc(INTRO[EXAMPLE])+'</div>';
+  tasks.forEach((t,ti)=>{
+    if (t.state==='queued') return;
+    const meta = NARR[t.id] || {icon:'point', act:t.summary};
+    if (meta.say) h += '<div class="say">'+esc(meta.say)+'</div>';
+    const running = t.state==='run';
+    const label = running ? esc(t.active)+'…' : esc(meta.act||t.summary);
+    const chev = t.state==='done' ? '<span class="chev">'+(t.open?'⌄':'›')+'</span>' : '';
+    const d = DIFF[t.id];
+    let diff = '';
+    if (inlineEdits && d && t.state==='done') diff = '<span class="act-diff"><span class="tl-f">connector.rb</span> <span class="ch-d"><span class="add">+'+d.add+'</span> <span class="del">-'+d.del+'</span></span></span>';
+    h += '<div class="actline" data-act="toggle-task" data-i="'+ti+'"><span class="aico"><i class="ti ti-'+meta.icon+'"></i></span><span class="alabel">'+label+'</span>'+diff+chev+'</div>';
+    if (t.open){ h += '<div class="act-body"><div class="rail"><div class="rline"></div>'; visibleOf(t.steps).forEach(s=>h+=railRow(s)); h += '</div></div>'; }
+  });
+  if (done){
+    h += '<div class="say">'+esc(SUMMARIES[EXAMPLE])+'</div>';
+    if (!inlineEdits) h += changesHTML();
+    h += '<div class="divider"><span class="dl"></span><span class="dtxt">Checkpoint · '+CHECKPOINTS[EXAMPLE]+'</span><span class="dl"></span></div>';
+  }
+  return h;
+}
+function changesHTML(){
+  const list = CHANGES[EXAMPLE] || [];
+  if (!list.length) return '';
+  let h = '<div class="changes"><div class="ch-h">Changes · '+list.length+' edit'+(list.length>1?'s':'')+'</div>';
+  list.forEach(c=> h += '<div class="ch-row"><i class="ti ti-pencil"></i><span class="ch-f">'+esc(c.file)+'</span><span class="ch-w">'+esc(c.what)+'</span><span class="sp"></span><span class="ch-d"><span class="add">+'+c.add+'</span> <span class="del">-'+c.del+'</span></span></div>');
+  h += '</div>';
+  return h;
+}
+function renderProc(){
+  if (DETAIL==='combined') return renderNarrated({inlineEdits:true});
+  if (DETAIL==='detailed') return renderNarrated();
+  if (L.planFirst && planning) return planBox();
+  if (done && collapsed) return procHeader();
+  return renderTasks();
+}
+function renderPanelDirection(){
+  const title = (EXAMPLE==='simple'?'Added ':'Built ') + CHECKPOINTS[EXAMPLE];
+  let left = '<div class="urow"><div class="ubub">'+esc(PROMPTS[EXAMPLE])+'</div></div>';
+  left += '<div class="actline"><span class="aico"><i class="ti ti-brain"></i></span><span class="alabel">'+(done?'Thought for 6s':'Thinking…')+'</span></div>';
+  if (!done){
+    left += '<div class="say">Working on it… <span style="color:var(--accent)">see Details →</span></div>';
+  } else {
+    left += '<div class="card"><div class="card-top"><span class="card-t">'+esc(title)+'</span><i class="ti ti-bookmark"></i></div>'
+      + '<div class="card-btns"><button class="cbtn" data-act="lefttab" data-v="activity">Details</button><button class="cbtn" data-act="lefttab" data-v="code">Code</button></div></div>';
+  }
+  let footer = ''; const w = allSteps().find(s=>s.state==='waiting');
+  if (w) footer = '<div class="approvebar"><span class="ab-t">'+esc(w.gate||'Approve this step?')+'</span><span class="sp"></span><button class="cbtn ok" data-act="approve">Approve</button><button class="cbtn" data-act="approve">Skip</button></div>';
+  return chatShell(left, footer);
+}
+function definitionHTML(){
+  return `
+  <h1 class="d-title">Stream of thoughts &amp; activities</h1>
+
+  <h2 class="d-h2">1. The real problem and the goal</h2>
+  <p>When AIRO edits a connector, the user has to be able to follow what it is doing to their code. Today the panel just says "AIRO is thinking." That is the starting point we are replacing, and the reason this is worth defining carefully rather than copying a coding tool's stream wholesale.</p>
+  <h3 class="d-h3">The real problem</h3>
+  <p>A connector developer watching AIRO work needs to answer two questions, continuously, and the current UI answers neither:</p>
+  <ul class="d-ul">
+    <li><strong>"What is it doing to my code right now?"</strong> A blank "thinking" spinner gives no content. The opposite move, dumping the full reasoning and tool stream inline the way Claude Code does by default, over-answers it and buries the signal in noise (filed as "significant visual noise" with no way to collapse, <a href="https://github.com/anthropics/claude-code/issues/52640" target="_blank" rel="noopener">Claude Code #52640</a>).</li>
+    <li><strong>"Is this going the right way, or do I stop it?"</strong> The one that actually matters, and the hardest. By the time a wrong edit has finished landing in a 1,000-line connector, the cheap moment to intervene has passed.</li>
+  </ul>
+
+  <div class="d-callout">
+    <h4>The goal</h4>
+    <p style="margin:0 0 6px">An activity summary that is:</p>
+    <ul>
+      <li><strong>Glanceable.</strong> One line of intent per step, in plain language, so the user understands what is happening without reading a transcript.</li>
+      <li><strong>Interruptible at the cheapest moment.</strong> The user can stop mid-step the instant a wrong direction shows, not only after the edit lands.</li>
+      <li><strong>Trustworthy enough to look away.</strong> The summary and the resulting diff are good enough to review afterward, so the user does not have to babysit the stream.</li>
+    </ul>
+    <p style="margin:0">In one line: the activity summary is a <strong>control surface, not a log</strong>. That reframe (from the research's "biggest gap" finding) shapes the panel more than the visual layout does.</p>
+  </div>
+
+  <h2 class="d-h2">2. Principles we want to follow</h2>
+  <p>Six principles, each grounded in how other tools got it right or wrong. The Options toggles in Exploration turn principles 1 through 4 on and off.</p>
+
+  <div class="principle"><div class="ptitle"><span class="n">1.</span>Say what it's about to do, in one line.</div>
+    <div class="pdesc">As each edit lands, show one plain line of intent — "Editing connection auth", "Adding get_user action". That line is what lets the user catch a wrong turn early.</div>
+    <div class="src">Pattern: <a href="https://www.shapeof.ai/patterns/stream-of-thought" target="_blank" rel="noopener">Shape of AI, Stream of Thought</a>; <a href="https://docs.cursor.com/agent/planning" target="_blank" rel="noopener">Cursor Plan Mode</a>.</div></div>
+
+  <div class="principle"><div class="ptitle"><span class="n">2.</span>One density by default; let users go deeper or quieter.</div>
+    <div class="pdesc">Show one line per action and collapse the reasoning. Let users expand a step for detail, or turn the whole thing down. Ship the collapse on day one, not as a retrofit.</div>
+    <div class="src">Claude Code's no-toggle inline thinking was filed as noise (<a href="https://github.com/anthropics/claude-code/issues/52640" target="_blank" rel="noopener">#52640</a>); Cursor later added a compact / detailed control (<a href="https://cursor.com/changelog/2-0" target="_blank" rel="noopener">Cursor 2.0</a>).</div></div>
+
+  <div class="principle"><div class="ptitle"><span class="n">3.</span>Build the summary from the diff, not the model's word.</div>
+    <div class="pdesc">Generate each summary line from the real diff (which block changed, lines added and removed) and let the model only phrase it. A summary that can't disagree with the editor is the whole point.</div>
+    <div class="src"><a href="airo-sdk-editor-diff-lifecycle-competitive-research.html" target="_blank" rel="noopener">Diff lifecycle research</a>: users caught agents claiming changes that never happened. <a href="https://arxiv.org/abs/2510.04494" target="_blank" rel="noopener">NaturalEdit</a>: summaries help most when they link to the code.</div></div>
+
+  <div class="principle"><div class="ptitle"><span class="n">4.</span>Always stoppable mid-step, with a heartbeat.</div>
+    <div class="pdesc">A stop that halts right away, plus a live "doing X now" line so silence never looks frozen. A stream you can't cancel mid-step is just a slow log.</div>
+    <div class="src">Claude Code users asked to cancel early on buffered output (<a href="https://github.com/anthropics/claude-code/issues/14280" target="_blank" rel="noopener">#14280</a>).</div></div>
+
+  <div class="principle"><div class="ptitle"><span class="n">5.</span>Earn the right to look away.</div>
+    <div class="pdesc">A clean per-turn summary plus a reviewable diff let the user step away and come back, instead of watching every token.</div>
+    <div class="src"><a href="https://microsoft.design/articles/ux-design-for-agents/" target="_blank" rel="noopener">Microsoft, UX Design for Agents</a>; past 10s of wait, show real progress and an interrupt (<a href="https://www.nngroup.com/articles/response-times-3-important-limits/" target="_blank" rel="noopener">NN/g</a>).</div></div>
+
+  <div class="principle"><div class="ptitle"><span class="n">6.</span>Narrate the process; the editor shows the code.</div>
+    <div class="pdesc">The summary covers the steps, tools, and status. The editor owns the code and the diff — don't render the connector twice.</div>
+    <div class="src">Carried over from the AIRO working-view principle: the "agent working" view shows the process, not the blueprint.</div></div>
+  `;
+}
+function prosConsHTML(){
+  const d = PROSCONS[DETAIL]; if (!d) return '';
+  const l = (DETAILS.find(([v])=>v===DETAIL) || [,''])[1];
+  let h = '<div class="pgrp pc-grp"><div class="pl">Pros &amp; cons</div>';
+  h += '<div class="pc on">';
+  h += '<div class="pc-h"><span class="pc-name">'+esc(l)+'</span></div>';
+  h += '<div class="pc-sub">'+esc(d.alt)+'</div>';
+  h += '<ul class="pc-pro">'+d.pros.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+  h += '<ul class="pc-con">'+d.cons.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+  h += '</div>';
+  return h+'</div>';
+}
+function trackerStrip(){
+  const list = tasks.length ? tasks : taskDefs().map(t=>({...t, state:'queued'}));
+  const total = list.length;
+  const runIdx = list.findIndex(t=>t.state==='run');
+  let title;
+  if (done) title = 'All '+total+' tasks complete';
+  else if (runIdx>=0) title = 'Task '+(runIdx+1)+' of '+total+' in progress';
+  else title = total+' tasks planned';
+  let h = '<div class="chat-tracker"><div class="ct-head" data-act="toggle-tracker"><i class="ti ti-list-check"></i><span class="tracker-title">'+title+'</span><span class="ct-chev">'+(trackerOpen?'⌄':'›')+'</span></div>';
+  if (trackerOpen){
+    h += '<div class="tracker-list">';
+    list.forEach(t=>{
+      const st = t.state || 'queued';
+      const dot = st==='done' ? '✓' : '';
+      h += '<div class="trow"><span class="tdot '+st+'">'+dot+'</span><span class="tlabel '+(st==='done'?'done':'')+'">'+esc(t.plan||t.summary||t.active)+'</span></div>';
+    });
+    h += '</div>';
+  }
+  return h+'</div>';
+}
+function composer(){
+  return '<div class="composer"><div class="composer-box"><span class="composer-ph">Ask anything…</span><span class="composer-send"><i class="ti ti-arrow-up"></i></span></div></div>';
+}
+function activityList(){
+  let sb = '<div class="actline"><span class="aico"><i class="ti ti-brain"></i></span><span class="alabel">'+(done?'Thought for 6s':'Thinking…')+'</span></div>';
+  tasks.forEach(t=>{
+    if (t.state==='queued') return;
+    const running = t.state==='run';
+    const meta = NARR[t.id] || {icon:'point'};
+    const label = running ? esc(t.active)+'…' : esc(meta.act||t.summary);
+    const d = DIFF[t.id];
+    let h = '<div class="tl-row"><i class="ti ti-'+(d?'file-pencil':meta.icon)+'"></i><span class="tl-act">'+label+'</span>';
+    if (d){
+      h += '<span class="tl-f">connector.rb</span>';
+      if (t.state==='done') h += '<span class="ch-d"><span class="add">+'+d.add+'</span> <span class="del">-'+d.del+'</span></span>';
+    }
+    sb += h+'</div>';
+  });
+  if (done) sb += '<div class="side-sum">'+esc(SUMMARIES[EXAMPLE])+'</div>';
+  return sb;
+}
+function codeWindow(){
+  // The Details tab only exists for the "Summary + activity panel" (compact) option.
+  const hasDetails = DETAIL==='compact';
+  const lt = hasDetails ? leftTab : 'code';
+  let h = '<div class="code-window"><div class="code-head">'
+    + '<span class="ltab '+(lt==='code'?'on':'')+'" data-act="lefttab" data-v="code"><i class="ti ti-file-code"></i> connector.rb</span>'
+    + (hasDetails ? '<span class="ltab '+(lt==='activity'?'on':'')+'" data-act="lefttab" data-v="activity"><i class="ti ti-list-details"></i> Details</span>' : '')
+    + '<span class="sp"></span>'+(lt==='code'?'<span class="code-meta">Ruby</span>':'')+'</div>';
+  if (lt==='activity'){
+    h += '<div class="side-body">'+activityList()+'</div>';
+  } else {
+    h += '<div class="code-body">';
+    CODE.forEach((l,i)=> h += '<div class="code-line"><span class="ln">'+(i+1)+'</span><span class="lc">'+esc(l)+'</span></div>');
+    h += '</div>';
+  }
+  return h+'</div>';
+}
+function phead(){
+  return '<div class="phead"><div class="mark"><span class="badge">&raquo;</span><span class="mname">AIRO</span></div><span class="sp"></span><button class="rbtn '+(finalView?'on':'')+'" data-act="finalview">Final view</button><button class="rbtn" data-act="replay">Replay</button></div>';
+}
+function chatShell(body, footer, extra){
+  return '<div class="panel">'+phead()+'<div class="msgs">'+body+'</div>'+(footer||'')+(extra||'')+composer()+'</div>';
+}
+function renderTracker(){
+  // Lean conversation: just working, then one final summary. All the step detail lives in the tracker below.
+  let body = '<div class="urow"><div class="ubub">'+esc(PROMPTS[EXAMPLE])+'</div></div>';
+  body += '<div class="actline"><span class="aico"><i class="ti ti-brain"></i></span><span class="alabel">'+(done?'Thought for 6s':'Thinking…')+'</span></div>';
+  if (done){
+    body += '<div class="say">'+esc(SUMMARIES[EXAMPLE])+'</div>';
+    body += '<div class="divider"><span class="dl"></span><span class="dtxt">Checkpoint · '+CHECKPOINTS[EXAMPLE]+'</span><span class="dl"></span></div>';
+  } else {
+    body += '<div class="say">Working on it… <span style="color:var(--accent)">follow the plan below ↓</span></div>';
+  }
+  let footer = '';
+  const w = allSteps().find(s=>s.state==='waiting');
+  if (w) footer = '<div class="approvebar"><span class="ab-t">'+esc(w.gate||'Approve this step?')+'</span><span class="sp"></span><button class="cbtn ok" data-act="approve">Approve</button><button class="cbtn" data-act="approve">Skip</button></div>';
+  return chatShell(body, footer, trackerStrip());
+}
+function render(){
+  let p = '<div class="defcard'+(view==='definition'?' on':'')+'" data-act="showdef"><i class="ti ti-book-2"></i><span class="defcard-t">Problem definition &amp; design principles</span><i class="ti ti-arrow-right defcard-arrow"></i></div>';
+  p += '<div class="rail-title">Make it digestible &amp; controllable</div>';
+  p += '<p class="rail-sub">Five ways AIRO can surface the live activity, not just display it. Pick one to preview and see its trade-offs.</p>';
+  p += '<div class="opts">';
+  DETAILS.forEach(([v,l],i)=>{
+    const d = PROSCONS[v] || {};
+    const on = view!=='definition' && DETAIL===v;
+    const rec = (v==='thoughts' || v==='compact');
+    const badge = rec ? '<span class="oc-badge rec">Recommended</span>' : (d.badge ? '<span class="oc-badge '+d.tone+'">'+esc(d.badge)+'</span>' : '');
+    p += '<div class="optcard'+(on?' on':'')+(rec?' rec':'')+'" data-act="detail" data-v="'+v+'">';
+    p += '<div class="oc-top"><span class="oc-num">'+(i+1)+'</span><span class="oc-name">'+esc(l)+'</span>'+badge+'</div>';
+    if (d.alt) p += '<div class="oc-desc">'+esc(d.alt)+'</div>';
+    if (on && d.pros){
+      p += '<div class="oc-pc"><div class="oc-col oc-pros"><div class="oc-ph">Pros</div><ul>'+d.pros.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>'
+         + '<div class="oc-col oc-cons"><div class="oc-ph">Cons</div><ul>'+d.cons.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div></div>';
+    }
+    p += '</div>';
+  });
+  p += '</div>';
+
+  let chat;
+  if (DETAIL==='compact'){
+    chat = renderPanelDirection();
+  } else if (DETAIL==='tracker'){
+    chat = renderTracker();
+  } else {
+    let body = '<div class="urow"><div class="ubub">'+esc(PROMPTS[EXAMPLE])+'</div></div>';
+    body += '<div class="proc">'+renderProc()+'</div>';
+    if (done && DETAIL==='thoughts'){
+      body += '<div class="who">Message</div><div class="bub">'+esc(SUMMARIES[EXAMPLE])+'</div>';
+      const nc = (CHANGES[EXAMPLE]||[]).length;
+      body += '<button class="viewchg'+(changesOpen?' open':'')+'" data-act="toggle-changes"><i class="ti ti-git-compare" style="font-size:14px;"></i>View '+nc+' change'+(nc>1?'s':'')+'</button>';
+      if (changesOpen) body += changesHTML();
+      body += '<div class="divider"><span class="dl"></span><span class="dtxt">Checkpoint · '+CHECKPOINTS[EXAMPLE]+'</span><span class="dl"></span></div>';
+    }
+    let footer = '';
+    const w = allSteps().find(s=>s.state==='waiting');
+    if (w) footer = '<div class="approvebar"><span class="ab-t">'+esc(w.gate||'Approve this step?')+'</span><span class="sp"></span><button class="cbtn ok" data-act="approve">Approve</button><button class="cbtn" data-act="approve">Skip</button></div>';
+    chat = chatShell(body, footer);
+  }
+  const stage = (view==='definition')
+    ? '<div class="docpanel"><div class="defwrap">'+definitionHTML()+'</div></div>'
+    : '<div class="frame"><div class="editor">'+codeWindow()+chat+'</div></div>';
+
+  document.getElementById('app').innerHTML = EMBED
+    ? '<div class="stage embed">'+stage+'</div>'
+    : '<div class="wrap"><div class="params">'+p+'</div><div class="stage">'+stage+'</div></div>';
+}
+
+function replay(force){
+  done = false; collapsed = false; secs = 0; gateResolve = null; sideTab = 'timeline'; preview = false; changesOpen = false;
+  if (finalView && !force){ showFinal(); return; }
+  if (L.planFirst && DETAIL==='thoughts'){ planItems = SOURCE().map(t=>({id:t.id, label:t.plan, gate:t.planGate})); tasks = []; planning = true; render(); }
+  else { planning = false; execute(); }
+}
+function showFinal(){
+  ++gen; // cancel any running animation
+  planning = false;
+  tasks = taskDefs().map(t=>({...t, state:'done', open:false, steps:t.steps.map(s=>({...mapStep(s), state:'done'}))}));
+  const total = tasks.flatMap(t=>t.steps).reduce((a,s)=>a+(s.dur||0),0);
+  secs = Math.max(1, Math.round(total/1000));
+  done = true; collapsed = true;
+  render();
+}
+async function execute(){
+  const my = ++gen;
+  tasks = taskDefs().map(t=>({...t, state:'queued', open:false, steps:t.steps.map(mapStep)}));
+  render();
+  const t0 = Date.now();
+  for (let ti=0; ti<tasks.length; ti++){
+    if (my!==gen) return;
+    const task = tasks[ti];
+    task.state='run'; task.open=true; render();
+    for (let si=0; si<task.steps.length; si++){
+      if (my!==gen) return;
+      const step = task.steps[si];
+      step.state='run'; render();
+      await sleep(step.dur); if (my!==gen) return;
+      if (L.gate && step.approval){ step.state='waiting'; render(); await new Promise(r=>gateResolve=r); if (my!==gen) return; }
+      if (step.err){ step.state='error'; render(); await sleep(800); if (my!==gen) return; step.state='retry'; render(); await sleep(1000); if (my!==gen) return; }
+      step.state='done'; render();
+    }
+    task.state='done'; task.open=false; render();
+  }
+  secs = Math.max(1, Math.round((Date.now()-t0)/1000));
+  done = true; collapsed = true; render();
+}
+
+document.getElementById('app').addEventListener('click', (e)=>{
+  const a = e.target.closest('[data-act]'); if (!a) return;
+  const act = a.dataset.act;
+  if (act==='showdef'){ view = 'definition'; render(); }
+  else if (act==='toggle-changes'){ changesOpen = !changesOpen; render(); }
+  else if (act==='detail'){ DETAIL = a.dataset.v; view = 'prototype'; leftTab = (DETAIL==='compact'?'activity':'code'); replay(); }
+  else if (act==='lefttab'){ leftTab = a.dataset.v; render(); }
+  else if (act==='finalview'){ finalView = !finalView; replay(); }
+  else if (act==='toggle-tracker'){ trackerOpen = !trackerOpen; render(); }
+  else if (act==='layer'){ const k=a.dataset.v; L[k]=!L[k]; (k==='reasoning'||k==='evidence') ? render() : replay(); }
+  else if (act==='replay'){ replay(true); }
+  else if (act==='run-plan'){ planning=false; execute(); }
+  else if (act==='approve'){ if (gateResolve){ gateResolve(); gateResolve=null; } }
+  else if (act==='remove'){ planItems.splice(+a.dataset.i,1); render(); }
+  else if (act==='toggle-task'){ const t=tasks[+a.dataset.i]; if (t && t.state==='done'){ t.open=!t.open; render(); } }
+  else if (act==='collapse'){ if (done){ collapsed=!collapsed; render(); } }
+  else if (act==='sidetab'){ sideTab=a.dataset.v; preview=false; render(); }
+  else if (act==='preview'){ preview=true; render(); }
+  else if (act==='details'){ preview=false; render(); }
+});
+
+replay();
+</script>
+</body>
+</html>

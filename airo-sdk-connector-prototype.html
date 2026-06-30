@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIRO SDK Connector — Clickable Prototype</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.34.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=Roboto+Mono:ital@0;1&display=swap">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:28px 18px;font-family:'Source Sans 3',-apple-system,sans-serif;color:#373d47}
+  .wrap{width:100%;max-width:1120px}
+  .mono{font-family:'Roboto Mono','SFMono-Regular',Menlo,monospace}
+  .chip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #d5dbe4;border-radius:6px;padding:3px 8px;font-size:12px;color:#373d47}
+  .lnk{color:#1a57e5;text-decoration:underline}
+  .dchev{color:#1a57e5;font-weight:700;letter-spacing:-4px;margin-right:4px}
+  .ck{position:relative;z-index:1;width:16px;height:16px;border-radius:50%;background:#1a57e5;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #fff}
+  .ckr{position:relative;z-index:1;width:16px;height:16px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #1a57e5}
+  .spin{animation:sp 1s linear infinite;display:inline-block}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .btn{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #d5dbe4;color:#373d47;background:#fff;cursor:pointer}
+  .btn:hover{background:#f4f6fa}
+  .btn-pri{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #1a57e5;color:#fff;background:#1a57e5;cursor:pointer}
+  .btn-pri:hover{background:#1549c0}
+  .tab{font-size:13px;padding:8px 0;color:#586373;cursor:pointer;border-bottom:2px solid transparent}
+  .tab.on{color:#1a57e5;border-bottom-color:#1a57e5}
+  .sug{display:block;width:100%;text-align:left;font-size:13px;padding:9px 11px;border:1px solid #d5dbe4;border-radius:8px;background:#fff;color:#373d47;cursor:pointer;margin-bottom:8px}
+  .sug:hover{background:#f4f6fa;border-color:#bcc3ce}
+  .head{cursor:pointer;display:flex;align-items:center;gap:4px;margin-bottom:9px}
+  .ln{width:32px;text-align:right;padding-right:10px;color:#aab3c0;font-size:11px;flex-shrink:0}
+  ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#cdd4de;border-radius:8px}
+  .toast{position:absolute;left:50%;transform:translateX(-50%);bottom:84px;background:#373d47;color:#fff;font-size:12px;padding:7px 13px;border-radius:8px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:5}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div style="background:#e5eaf1;border-radius:12px;padding:10px;border:1px solid #d5dbe4;">
+<div style="background:#fff;border:1px solid #d5dbe4;border-radius:10px;overflow:hidden;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #e5eaf1;">
+    <div style="display:flex;align-items:center;gap:7px;"><i class="ti ti-vector-triangle" style="font-size:15px;color:#586373;"></i><span style="font-size:13px;font-weight:600;">Create or update deals</span></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="btn-pri">Save</span>
+      <span class="btn">Exit</span>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:stretch;height:640px;">
+
+    <div style="flex:1;min-width:0;background:#fbfcfe;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #e5eaf1;flex-shrink:0;">
+        <span class="mono" style="font-size:12px;color:#586373;">connector.rb</span>
+        <span id="editTag" style="font-size:11px;color:#aab3c0;">idle</span>
+      </div>
+      <div id="code" class="mono" style="font-size:12px;line-height:1.85;padding:8px 0;color:#586373;flex:1;overflow:auto;"></div>
+    </div>
+
+    <div style="width:10px;background:#e5eaf1;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:2px;height:26px;border-radius:2px;background:#bcc3ce;"></div></div>
+
+    <div style="width:454px;flex-shrink:0;display:flex;flex-direction:column;background:#fff;position:relative;">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:6px;"><span class="dchev" style="font-size:15px;">&raquo;</span><span style="font-size:14px;font-weight:600;color:#1a57e5;">AIRO</span><span style="font-size:10px;padding:1px 6px;border-radius:6px;background:#dce6ff;color:#1a57e5;">Beta</span></div>
+        <div style="display:flex;align-items:center;gap:14px;color:#586373;"><span class="btn" id="newChat" style="border:none;padding:0;font-size:12px;">New chat</span><i class="ti ti-history" style="font-size:15px;"></i><i class="ti ti-arrows-diagonal" style="font-size:15px;"></i></div>
+      </div>
+      <div style="display:flex;gap:18px;padding:0 14px;border-bottom:1px solid #e5eaf1;flex-shrink:0;">
+        <span class="tab on" id="tab-chat" onclick="setTab('chat')">Chat</span>
+        <span class="tab" id="tab-test" onclick="setTab('test')">Test code</span>
+        <span class="tab" id="tab-recent" onclick="setTab('recent')">Recent tests</span>
+      </div>
+
+      <div style="flex:1;min-height:0;position:relative;">
+        <div id="pane-chat" style="height:100%;overflow:auto;padding:14px;">
+          <div id="chat"></div>
+        </div>
+        <div id="pane-test" style="height:100%;overflow:auto;padding:14px;display:none;"></div>
+        <div id="pane-recent" style="height:100%;overflow:auto;padding:14px;display:none;"></div>
+      </div>
+
+      <div id="toast" class="toast"></div>
+
+      <div style="padding:12px 14px;border-top:1px solid #e5eaf1;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:8px;border:1px solid #d5dbe4;border-radius:10px;padding:8px 11px;">
+          <input id="msg" placeholder="Ask AIRO anything" style="flex:1;border:none;outline:none;font-size:13px;font-family:inherit;color:#373d47;background:transparent;">
+          <i class="ti ti-paperclip" style="font-size:16px;color:#586373;"></i>
+          <span id="send" style="width:28px;height:28px;border-radius:50%;background:#1a57e5;display:flex;align-items:center;justify-content:center;cursor:pointer;"><span style="color:#fff;font-weight:700;letter-spacing:-3px;font-size:14px;">&raquo;</span></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+let lineNo=1, generating=false;
+
+function addCode(lines, green){
+  lines.forEach(t=>{
+    const row=document.createElement('div'); row.style.display='flex';
+    if(green) row.style.background='#e6f4ea';
+    const ln=document.createElement('span'); ln.className='ln'; ln.textContent=lineNo++;
+    if(green) ln.style.color='#2f7d46';
+    const tx=document.createElement('span'); tx.style.whiteSpace='pre'; tx.textContent=t;
+    if(green) tx.style.color='#2f7d46';
+    row.appendChild(ln); row.appendChild(tx); $('code').appendChild(row);
+  });
+  $('code').scrollTop=$('code').scrollHeight;
+}
+
+function seedEditor(){
+  $('code').innerHTML=''; lineNo=1;
+  addCode(["connector = {","  title: 'HubSpot',","  connection: { authorization:","    { type: 'oauth2' } },","  actions: {","  },","}"], false);
+}
+
+function scenarioFor(text){
+  const t=text.toLowerCase();
+  if(t.includes('archive')) return {
+    steps:[
+      {label:'Read the HubSpot API spec', dur:1100},
+      {label:'Found the archive endpoint', dur:1200, chip:{i:'ti-api', t:'DELETE /objects/deals/{id}'}},
+      {label:'Wrote archive_deal action', dur:1500, code:["  archive_deal: {","    execute: lambda do |conn, input|","      delete(\"/objects/deals/#{input['id']}\")","    end,","  },"]},
+    ],
+    summary:"Done. I added an archive_deal action that deletes a deal by its id.",
+    cp:"archive_deal action", what:"archive_deal"
+  };
+  return {
+    steps:[
+      {label:'Read the HubSpot API spec', dur:1100},
+      {label:'Set up the connection', dur:1400, chip:{i:'ti-plug-connected', t:'HubSpot · OAuth2'}, code:["  connection: {","    authorization: { type: 'oauth2',","      token_url: '/oauth/token' } },"]},
+      {label:'Defined the Deal object', dur:1200, chip:{i:'ti-list', t:'Deal · 12 fields'}},
+      {label:'Wrote create_or_update_deal action', dur:1600, code:["  create_or_update_deal: {","    execute: lambda do |conn, input|","      post('/objects/deals').payload(input)","    end,","  },"]},
+    ],
+    summary:"Done. I built the HubSpot connector with OAuth2 and a create_or_update_deal action that maps 12 Deal fields.",
+    cp:"HubSpot connector", what:"create_or_update_deal"
+  };
+}
+
+function userBubble(text){
+  const w=document.createElement('div'); w.style.cssText='display:flex;justify-content:flex-end;margin-bottom:10px;';
+  w.innerHTML=`<div style="background:#dce6ff;color:#373d47;max-width:82%;padding:9px 12px;border-radius:13px 13px 4px 13px;font-size:13px;line-height:1.45;">${esc(text)}</div>`;
+  $('chat').appendChild(w);
+}
+function scrollChat(){ $('pane-chat').scrollTop=$('pane-chat').scrollHeight; }
+
+function mkRow(step){
+  const row=document.createElement('div'); row.style.cssText='display:flex;gap:11px;padding:3px 0 10px;align-items:flex-start;';
+  row.innerHTML=`<span class="ckr"><i class="ti ti-loader-2 spin" style="font-size:10px;color:#1a57e5;"></i></span>
+    <div style="flex:1;"><div class="mono lbl" style="font-size:13px;color:#1a57e5;font-style:italic;line-height:1.5;">${esc(step.label)}…</div></div>`;
+  return row;
+}
+function completeRow(row, step){
+  row.querySelector('.ckr').outerHTML='<span class="ck"><i class="ti ti-check" style="font-size:11px;color:#fff;"></i></span>';
+  const lbl=row.querySelector('.lbl'); lbl.style.fontStyle='normal'; lbl.textContent=step.label;
+  if(step.chip){ const c=document.createElement('span'); c.className='chip mono'; c.style.marginTop='6px'; c.innerHTML=`<i class="ti ${step.chip.i}" style="font-size:13px;color:#586373;"></i><span class="lnk">${esc(step.chip.t)}</span>`; lbl.parentNode.appendChild(c); }
+}
+
+async function run(text){
+  generating=true; $('msg').value=''; $('msg').placeholder='AIRO is working…';
+  $('send').innerHTML='<i class="ti ti-loader-2 spin" style="font-size:14px;color:#fff;"></i>';
+  $('editTag').textContent='AIRO editing'; $('editTag').style.color='#1a57e5';
+  const starter=$('starter'); if(starter) starter.remove();
+  userBubble(text); scrollChat();
+  const sc=scenarioFor(text);
+
+  const turn=document.createElement('div'); turn.style.marginBottom='6px';
+  const head=document.createElement('div'); head.className='head';
+  head.innerHTML='<span class="mono" style="font-size:13px;color:#1a57e5;font-style:italic;"><span class="dchev">&raquo;</span>Building the connector…</span> <i class="ti ti-chevron-down" style="font-size:14px;color:#586373;vertical-align:-2px;"></i>';
+  const railWrap=document.createElement('div'); railWrap.style.cssText='position:relative;padding-left:2px;';
+  railWrap.innerHTML='<div class="railline" style="position:absolute;left:7px;top:11px;bottom:16px;width:2px;background:#aac4f7;"></div>';
+  turn.appendChild(head); turn.appendChild(railWrap); $('chat').appendChild(turn);
+
+  const t0=performance.now();
+  for(const step of sc.steps){
+    const row=mkRow(step); railWrap.appendChild(row); scrollChat();
+    await sleep(step.dur);
+    completeRow(row, step);
+    if(step.code) addCode(step.code, true);
+    scrollChat();
+  }
+  const secs=Math.max(1,Math.round((performance.now()-t0)/1000));
+
+  let open=true;
+  const setHead=()=>{ head.innerHTML=`<span class="mono" style="font-size:13px;color:#1a57e5;"><span class="dchev">&raquo;</span>Built the connector in ${secs}s</span> <i class="ti ti-chevron-${open?'down':'right'}" style="font-size:14px;color:#586373;vertical-align:-2px;"></i>`; };
+  open=false; railWrap.style.display='none'; setHead();
+  head.onclick=()=>{ open=!open; railWrap.style.display=open?'block':'none'; setHead(); };
+
+  const msg=document.createElement('div'); msg.style.marginBottom='11px';
+  msg.innerHTML=`<div style="font-size:11px;color:#586373;margin-bottom:3px;">Message</div><div style="font-size:13px;line-height:1.5;color:#373d47;">${esc(sc.summary)}</div>`;
+  $('chat').appendChild(msg);
+
+  const ho=document.createElement('div'); ho.style.cssText='display:flex;align-items:center;gap:10px;border:1px solid #d5dbe4;border-radius:8px;padding:10px 12px;margin-bottom:13px;';
+  ho.innerHTML='<i class="ti ti-flask" style="font-size:18px;color:#586373;"></i><div style="flex:1;"><div style="font-size:13px;">Ready to test</div><div style="font-size:12px;color:#586373;">Run it from the Test code tab.</div></div>';
+  const otc=document.createElement('span'); otc.className='btn'; otc.textContent='Open Test code'; otc.onclick=()=>setTab('test'); ho.appendChild(otc);
+  $('chat').appendChild(ho);
+
+  const cp=document.createElement('div'); cp.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:15px;';
+  cp.innerHTML=`<div style="flex:1;height:1px;background:#e5eaf1;"></div><span style="font-size:12px;color:#586373;white-space:nowrap;">Checkpoint · ${esc(sc.cp)}</span><div style="flex:1;height:1px;background:#e5eaf1;"></div>`;
+  const rest=document.createElement('span'); rest.style.cssText='font-size:12px;color:#1a57e5;white-space:nowrap;cursor:pointer;'; rest.innerHTML='<i class="ti ti-arrow-back-up" style="font-size:13px;vertical-align:-2px;"></i> Restore'; rest.onclick=()=>toast('Restored to this checkpoint');
+  cp.insertBefore(rest, cp.lastChild); $('chat').appendChild(cp);
+
+  scrollChat();
+  generating=false; $('msg').placeholder='Ask AIRO anything';
+  $('send').innerHTML='<span style="color:#fff;font-weight:700;letter-spacing:-3px;font-size:14px;">&raquo;</span>';
+  $('editTag').textContent='saved'; $('editTag').style.color='#2f7d46';
+}
+
+function send(){ const v=$('msg').value.trim(); if(!v||generating) return; run(v); }
+$('send').onclick=send;
+$('msg').addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
+$('newChat').onclick=()=>{ if(generating) return; $('chat').innerHTML=''; seedEditor(); $('editTag').textContent='idle'; $('editTag').style.color='#aab3c0'; greet(); setTab('chat'); };
+
+let toastTimer;
+function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),1600); }
+
+function setTab(name){
+  ['chat','test','recent'].forEach(n=>{ $('tab-'+n).classList.toggle('on',n===name); $('pane-'+n).style.display=(n===name)?'block':'none'; });
+}
+
+function greet(){
+  const g=document.createElement('div'); g.id='starter';
+  g.innerHTML='<div style="font-size:11px;color:#586373;margin-bottom:3px;">Message</div><div style="font-size:13px;line-height:1.5;color:#373d47;margin-bottom:12px;">Hi, I\'m AIRO. Tell me what connector to build, or try one of these:</div>';
+  const a=document.createElement('button'); a.className='sug'; a.textContent='Build a connector for HubSpot to create or update deals'; a.onclick=()=>run(a.textContent);
+  const b=document.createElement('button'); b.className='sug'; b.textContent='Add an action to archive a deal'; b.onclick=()=>run(b.textContent);
+  g.appendChild(a); g.appendChild(b); $('chat').appendChild(g);
+}
+
+let runs=[{name:'create_or_update_deal', status:'success', code:200, when:'just now'}];
+function renderTest(){
+  $('pane-test').innerHTML=`
+    <div style="border:1px solid #d5dbe4;border-radius:8px;padding:14px;">
+      <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Run a test</div>
+      <div style="font-size:12px;color:#586373;margin-bottom:5px;">Connection</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <span class="chip"><i class="ti ti-plug-connected"></i> HubSpot · OAuth2</span>
+        <span id="connBtn" class="btn">Connect</span>
+      </div>
+      <div style="font-size:12px;color:#586373;margin-bottom:5px;">Action</div>
+      <select style="width:100%;font-size:13px;padding:7px 9px;border:1px solid #d5dbe4;border-radius:8px;margin-bottom:12px;font-family:inherit;color:#373d47;">
+        <option>create_or_update_deal</option><option>archive_deal</option>
+      </select>
+      <div style="font-size:12px;color:#586373;margin-bottom:5px;">Input · id</div>
+      <input id="testId" value="158291" style="width:100%;font-size:13px;padding:7px 9px;border:1px solid #d5dbe4;border-radius:8px;margin-bottom:14px;font-family:inherit;">
+      <button id="runTest" class="btn-pri" style="width:100%;padding:9px;">Run test</button>
+      <div id="testResult" style="margin-top:12px;"></div>
+    </div>`;
+  let connected=false;
+  $('connBtn').onclick=function(){ connected=!connected; this.textContent=connected?'Connected':'Connect'; this.style.color=connected?'#2f7d46':'#373d47'; this.style.borderColor=connected?'#9fd3b1':'#d5dbe4'; };
+  $('runTest').onclick=async function(){
+    const r=$('testResult'); r.innerHTML='<div style="font-size:13px;color:#586373;"><i class="ti ti-loader-2 spin" style="font-size:14px;vertical-align:-2px;"></i> Running…</div>';
+    await sleep(1000);
+    r.innerHTML='<div style="border:1px solid #9fd3b1;background:#e6f4ea;border-radius:8px;padding:10px 12px;font-size:13px;color:#2f7d46;"><i class="ti ti-circle-check" style="font-size:15px;vertical-align:-2px;"></i> 200 OK · deal updated</div>';
+    runs.unshift({name:'create_or_update_deal', status:'success', code:200, when:'just now'}); renderRecent();
+  };
+}
+function renderRecent(){
+  $('pane-recent').innerHTML='<div style="font-weight:600;font-size:13px;margin-bottom:10px;">Recent tests</div>'+
+    runs.map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;border:1px solid #d5dbe4;border-radius:8px;padding:9px 11px;margin-bottom:8px;">
+      <div><div class="mono" style="font-size:12.5px;color:#373d47;">${r.name}</div><div style="font-size:11px;color:#586373;">${r.when}</div></div>
+      <span style="font-size:11.5px;padding:3px 9px;border-radius:6px;background:${r.status==='success'?'#e6f4ea':'#fde8e8'};color:${r.status==='success'?'#2f7d46':'#b42318'};">${r.code} ${r.status}</span>
+    </div>`).join('');
+}
+
+seedEditor(); greet(); renderTest(); renderRecent();
+</script>
+</body>
+</html>

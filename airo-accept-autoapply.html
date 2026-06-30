@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIRO — Auto-apply + undo</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.34.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Roboto+Mono&display=swap">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;font-family:'Source Sans 3',-apple-system,sans-serif;color:#373d47}
+  .mono{font-family:'Roboto Mono',Menlo,monospace}
+  .frame{padding:14px;height:100vh}
+  .app{height:100%;background:#fff;border:1px solid #d5dbe4;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .appbar{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #e5eaf1;flex-shrink:0}
+  .appbar .ttl{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600}
+  .appbar .ttl i{color:#586373}
+  .grow{flex:1}
+  .pillnote{font-size:11.5px;color:#1a7f37;background:#e9f7ee;border:1px solid #bfe3cd;border-radius:999px;padding:3px 11px;display:inline-flex;align-items:center;gap:6px}
+  .body{flex:1;min-height:0;display:flex}
+  .editor{flex:1;min-width:0;display:flex;flex-direction:column;background:#fbfcfe}
+  .ehead{display:flex;align-items:center;gap:10px;padding:7px 13px;border-bottom:1px solid #e5eaf1;flex-shrink:0;font-size:12px;color:#586373}
+  .code{flex:1;overflow:auto;padding:8px 0;font-size:12.5px;line-height:1.95;color:#586373}
+  .cline{display:flex}
+  .cn{width:34px;text-align:right;padding-right:8px;color:#aab3c0;font-size:11px;flex-shrink:0}
+  .cg{width:16px;text-align:center;flex-shrink:0;color:#9aa4b2;font-size:11px}
+  .ct{white-space:pre}
+  .cline.flash{animation:fl 1.4s ease}
+  @keyframes fl{0%,55%{background:#e9f7ee}100%{background:transparent}}
+  .cline.gone .ct{color:#b42318;text-decoration:line-through;opacity:.7}
+  .cline.gone{background:#fdecec}
+  .panel{width:392px;flex-shrink:0;display:flex;flex-direction:column;border-left:1px solid #e5eaf1;background:#fff}
+  .phead{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid #e5eaf1;flex-shrink:0}
+  .dchev{color:#1a57e5;font-weight:700;letter-spacing:-3px;font-size:15px}
+  .pname{font-size:14px;font-weight:600;color:#1a57e5}
+  .beta{font-size:10px;padding:1px 6px;border-radius:6px;background:#dce6ff;color:#1a57e5}
+  .hbtn{margin-left:auto;cursor:pointer;color:#586373;font-size:12.5px;display:inline-flex;align-items:center;gap:5px;border:1px solid #d5dbe4;border-radius:8px;padding:5px 10px}
+  .chat{flex:1;overflow:auto;padding:14px}
+  .urow{display:flex;justify-content:flex-end;margin-bottom:9px}
+  .ubub{background:#dce6ff;max-width:84%;padding:9px 12px;border-radius:13px 13px 4px 13px;font-size:13px;line-height:1.45}
+  .amsg{font-size:13px;line-height:1.5;color:#373d47;margin-bottom:6px}
+  .applied{display:flex;align-items:center;gap:8px;font-size:12px;margin:2px 0 16px;color:#1a7f37}
+  .applied .lnk{color:#1a57e5;cursor:pointer;margin-left:auto}
+  .applied .lnk:hover{text-decoration:underline}
+  .applied.undone{color:#b42318}
+  .composer{flex-shrink:0;padding:12px 14px;border-top:1px solid #e5eaf1}
+  .cbox{display:flex;align-items:center;gap:8px;border:1px solid #d5dbe4;border-radius:10px;padding:8px 11px;font-size:13px;color:#9aa4b2}
+  .cbox .send{margin-left:auto;width:28px;height:28px;border-radius:50%;background:#1a57e5;color:#fff;display:flex;align-items:center;justify-content:center}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1f2937;color:#fff;font-size:13px;padding:10px 14px;border-radius:10px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:20}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="frame"><div class="app">
+  <div class="appbar"><div class="ttl"><i class="ti ti-vector-triangle"></i><span>HubSpot connector</span></div><span class="grow"></span><span class="pillnote"><i class="ti ti-bolt"></i>Changes apply as AIRO works</span></div>
+  <div class="body">
+    <div class="editor">
+      <div class="ehead"><span class="mono">hubspot_connector.rb</span></div>
+      <div class="code" id="code"></div>
+    </div>
+    <div class="panel">
+      <div class="phead"><span class="dchev">&raquo;</span><span class="pname">AIRO</span><span class="beta">Beta</span><span class="hbtn"><i class="ti ti-history"></i>History</span></div>
+      <div class="chat" id="chat"></div>
+      <div class="composer"><div class="cbox"><span>Ask AIRO anything</span><span class="send"><i class="ti ti-arrow-up"></i></span></div></div>
+    </div>
+  </div>
+</div></div>
+<div id="toast" class="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s); const E=s=>s.replace(/</g,'&lt;');
+const LINES=[
+ {k:'ctx', t:"connector = {"},
+ {k:'ctx', t:"  title: 'HubSpot',"},
+ {k:'ctx', t:"  connection: {"},
+ {k:'add', turn:1, t:"    fields: [{ name: 'api_token' }],"},
+ {k:'add', turn:3, t:"    authorization: { type: 'oauth2',"},
+ {k:'add', turn:3, t:"      token_url: '/oauth/token' } },"},
+ {k:'ctx', t:"  },"},
+ {k:'ctx', t:"  actions: {"},
+ {k:'add', turn:2, t:"    create_deal: {"},
+ {k:'add', turn:2, t:"      execute: ->(c,i){ post('/deals').payload(i) } },"},
+ {k:'ctx', t:"    create_or_update_deal },"},
+ {k:'ctx', t:"  triggers: { new_or_updated_deal },"},
+ {k:'ctx', t:"}"},
+];
+const TURNS=[
+ {id:1, user:"Build a connector for HubSpot to create or update deals.", ai:"Built the connector with an api_token connection."},
+ {id:2, user:"Add a way to create deals", ai:"Added a create_deal action that takes name, amount, and stage."},
+ {id:3, user:"Switch the auth to OAuth2", ai:"Switched the connection to OAuth2. The token now attaches automatically."},
+];
+const applied={}; TURNS.forEach(t=>applied[t.id]=true);   // auto-applied by default
+
+function renderCode(){
+  let html='', n=1; const norm=(t,cls)=>{ const h=`<div class="cline ${cls||''}"><span class="cn">${n}</span><span class="cg"></span><span class="ct">${E(t)}</span></div>`; n++; return h; };
+  let i=0;
+  while(i<LINES.length){
+    const l=LINES[i];
+    if(l.k==='ctx'){ html+=norm(l.t); i++; continue; }
+    const turn=l.turn, g=[]; while(i<LINES.length && LINES[i].k!=='ctx' && LINES[i].turn===turn){ g.push(LINES[i]); i++; }
+    if(applied[turn]){ g.forEach(x=>{ if(x.k==='add') html+=norm(x.t); }); }   // live in the file
+    else { g.forEach(x=>{ if(x.k==='add') html+=norm(x.t,'gone'); }); }          // undone: shown struck, about to vanish
+  }
+  $('#code').innerHTML=html;
+}
+function renderChat(){
+  let html='';
+  TURNS.forEach(t=>{
+    html+=`<div class="urow"><div class="ubub">${E(t.user)}</div></div><div class="amsg">${E(t.ai)}</div>`;
+    if(applied[t.id]) html+=`<div class="applied"><i class="ti ti-check"></i>Applied automatically<span class="lnk" data-undo="${t.id}">Undo</span></div>`;
+    else html+=`<div class="applied undone"><i class="ti ti-arrow-back-up"></i>Undone<span class="lnk" data-redo="${t.id}">Reapply</span></div>`;
+  });
+  $('#chat').innerHTML=html;
+}
+function render(){ renderCode(); renderChat(); }
+let tt; function toast(m){ const e=$('#toast'); e.textContent=m; e.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>e.classList.remove('show'),3000); }
+document.addEventListener('click',e=>{
+  const u=e.target.closest('[data-undo]'); if(u){ applied[+u.dataset.undo]=false; render(); toast('Undone. The change was rolled back from the file.'); return; }
+  const r=e.target.closest('[data-redo]'); if(r){ applied[+r.dataset.redo]=true; render(); toast('Reapplied.'); return; }
+});
+render();
+</script>
+</body>
+</html>

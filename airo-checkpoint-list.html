@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIRO Checkpoints — Checkpoint list (Replit style)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.34.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Roboto+Mono&display=swap">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;font-family:'Source Sans 3',-apple-system,sans-serif;color:#373d47}
+  .mono{font-family:'Roboto Mono',Menlo,monospace}
+  .frame{padding:14px;height:100vh}
+  .app{height:100%;background:#fff;border:1px solid #d5dbe4;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .appbar{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #e5eaf1;flex-shrink:0}
+  .appbar .ttl{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600}
+  .appbar .ttl i{color:#586373}
+  .grow{flex:1}
+  .btn{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #d5dbe4;background:#fff;cursor:pointer;color:#373d47;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{background:#f4f6fa}
+  .btn-pri{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #1a57e5;background:#1a57e5;color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .btn-pri:hover{background:#1549c0}
+  .hbtn{cursor:pointer;color:#586373;font-size:12.5px;display:inline-flex;align-items:center;gap:5px;border:1px solid #d5dbe4;border-radius:8px;padding:5px 10px}
+  .hbtn:hover{background:#f4f6fa}
+  .hbtn.on{border-color:#1a57e5;color:#1a57e5;background:#f4f8ff}
+  .hbtn.disabled{opacity:.4;cursor:default;pointer-events:none}
+  .body{flex:1;min-height:0;display:flex}
+
+  /* persistent top bar + swappable content columns */
+  .topbar{display:flex;flex-shrink:0}
+  .tb-left{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;padding:7px 13px;border-bottom:1px solid #e5eaf1;font-size:12px;color:#586373;min-height:46px}
+  .tb-right{width:360px;flex-shrink:0;display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid #e5eaf1;border-left:1px solid #e5eaf1;min-height:46px}
+  .leftcol{flex:1;min-width:0;display:flex;flex-direction:column;background:#fbfcfe;overflow:hidden}
+  .rightcol{width:360px;flex-shrink:0;border-left:1px solid #e5eaf1;display:flex;flex-direction:column;background:#fff;overflow:hidden}
+
+  /* editor + AIRO (default) */
+  .editor{flex:1;min-width:0;display:flex;flex-direction:column;background:#fbfcfe}
+  .ehead{display:flex;align-items:center;justify-content:space-between;padding:7px 13px;border-bottom:1px solid #e5eaf1;flex-shrink:0;font-size:12px;color:#586373;min-height:46px}
+  .code{flex:1;overflow:auto;padding:8px 0;font-size:12.5px;line-height:1.95;color:#586373}
+  .cline{display:flex}
+  .cn{width:38px;text-align:right;padding-right:8px;color:#aab3c0;font-size:11px;flex-shrink:0;user-select:none}
+  .code .cg{width:16px;text-align:center;flex-shrink:0;color:#9aa4b2;font-size:11px;user-select:none}
+  .ct{white-space:pre}
+  .code .cline.add{background:#e9f7ee}
+  .code .cline.del{background:#fdecec}
+  .code .cline.add .cg{color:#1a7f37;font-weight:700}
+  .code .cline.del .cg{color:#b42318;font-weight:700}
+  .code .cline.del .ct{color:#b42318}
+  .code .cline.hl{box-shadow:inset 3px 0 0 #1a57e5}
+  @keyframes chgflash{0%,55%{box-shadow:inset 3px 0 0 #1a57e5, inset 0 0 0 400px rgba(26,87,229,.14)}100%{box-shadow:none}}
+  .code .cline.flash{animation:chgflash 1.2s ease}
+  /* review bar: redirect nav + accept/reject all (ported from Problem 3's "Accept in the editor") */
+  .rv{display:flex;align-items:center;gap:8px}
+  .rv .cnt{font-size:12px;color:#586373;font-family:'Roboto Mono',monospace}
+  .rv .nav{width:26px;height:26px;border-radius:7px;border:1px solid #d5dbe4;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#586373}
+  .rv .nav:hover{border-color:#1a57e5;color:#1a57e5}
+  .rv .vbar2{width:1px;height:22px;background:#e5eaf1;margin:0 2px}
+  .rv .b{font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+  .rv .rej{border:1px solid #d5dbe4;background:#fff;color:#373d47}
+  .rv .rej:hover{border-color:#b42318;color:#b42318}
+  .rv .acc{border:1px solid #1a57e5;background:#1a57e5;color:#fff}
+  .rv .acc:hover{background:#1549c0}
+  .panel{width:360px;flex-shrink:0;display:flex;flex-direction:column;border-left:1px solid #e5eaf1;background:#fff}
+  .phead{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid #e5eaf1;flex-shrink:0;min-height:46px}
+  .dchev{color:#1a57e5;font-weight:700;letter-spacing:-3px;font-size:15px}
+  .pname{font-size:14px;font-weight:600;color:#1a57e5}
+  .beta{font-size:10px;padding:1px 6px;border-radius:6px;background:#dce6ff;color:#1a57e5}
+  .chat{flex:1;overflow:auto;padding:14px}
+  .urow{display:flex;justify-content:flex-end;margin-bottom:9px}
+  .ubub{background:#dce6ff;max-width:84%;padding:9px 12px;border-radius:13px 13px 4px 13px;font-size:13px;line-height:1.45}
+  .arow{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#586373;margin-bottom:6px}
+  .arow .ck{width:16px;height:16px;border-radius:50%;background:#1a57e5;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;flex-shrink:0}
+  .cpsaved{display:flex;align-items:center;gap:8px;margin:6px 0 16px;font-size:11.5px;color:#7a8694;cursor:pointer}
+  .cpsaved::before,.cpsaved::after{content:'';flex:1;border-top:1px dashed #d7dde6}
+  .cpsaved i{color:#9aa4b2;font-size:13px}
+  .cpsaved:hover{color:#1a57e5}
+  .cpsaved:hover i,.cpsaved:hover .cpchev{color:#1a57e5}
+  .cpsaved .cpchev{font-size:13px;color:#aab3c0}
+  /* collapsible actions group + summary */
+  .actions-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #e5eaf1;border-radius:9px;padding:5px 9px;cursor:pointer;margin:2px 0 4px}
+  .actions-chip:hover{background:#f6f8fb;border-color:#d5dbe4}
+  .actions-chip .amini{width:22px;height:22px;border-radius:6px;background:#f0f3f8;display:inline-flex;align-items:center;justify-content:center}
+  .actions-chip .amini i{font-size:13px;color:#586373}
+  .actions-chip .amini+.amini{margin-left:-2px}
+  .actions-chip .acount{font-size:12.5px;color:#586373;margin-left:4px}
+  .actions-chip .achev{color:#8a96a3;font-size:15px;transition:transform .15s}
+  .actions-chip.open .achev{transform:rotate(90deg)}
+  .actions-list{display:none;margin:2px 0 8px 6px;border-left:2px solid #eef1f6;padding-left:12px}
+  .actions-list.open{display:block}
+  .astep{display:flex;align-items:center;gap:8px;font-size:12px;color:#586373;padding:4px 6px;border-radius:6px;cursor:pointer}
+  .astep:hover{background:#f6f8fb;color:#1f2328}
+  .astep.on{background:#f4f8ff;color:#1a57e5}
+  .astep i{color:#586373;font-size:14px;flex-shrink:0}
+  .astep.on i{color:#1a57e5}
+  .astep .at{flex:1;min-width:0}
+  .astep .ast{font-size:11px;flex-shrink:0}
+  /* per-turn agent reply line in the multi-turn chat */
+  .turn{cursor:pointer;border-radius:6px;padding:4px 6px}
+  .turn:hover{background:#f6f8fb;color:#1f2328}
+  .turn.on{background:#f4f8ff;color:#1a57e5}
+  .turn.on .ck{background:#1a57e5}
+  .turn .at{flex:1;min-width:0}
+  .turn .ast{font-size:11px;flex-shrink:0;margin-left:auto}
+  .asummary{font-size:13px;line-height:1.55;color:#2f353e;margin:8px 0 12px}
+  /* per-turn agent answer: one summary + an expandable "View N changes" button */
+  .amsg2{font-size:13px;line-height:1.5;color:#2f353e;margin:2px 0 7px}
+  .vcbtn{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#373d47;border:1px solid #d5dbe4;border-radius:9px;padding:7px 12px;cursor:pointer;margin:0 0 8px;min-width:158px}
+  .vcbtn:hover{background:#f4f6fa;border-color:#bcc3ce}
+  .vcbtn .vci{color:#586373;font-size:15px}
+  .vcbtn .vchev{margin-left:auto;color:#8a96a3;font-size:15px}
+  .vclist{margin:0 0 10px 2px;border-left:2px solid #eef1f6;padding-left:12px}
+  .vcitem{display:flex;align-items:center;gap:8px;font-size:12px;color:#586373;padding:4px 6px;border-radius:6px;cursor:pointer}
+  .vcitem:hover{background:#f6f8fb;color:#1f2328}
+  .vcitem.on{background:#f4f8ff;color:#1a57e5}
+  .vcitem .at{flex:1;min-width:0}
+  .vcitem .ast{font-size:11px;flex-shrink:0;margin-left:auto}
+  .pos{color:#2f7d46}.neg{color:#b42318}
+  .composer{flex-shrink:0;padding:12px 14px;border-top:1px solid #e5eaf1}
+  .cbox{display:flex;align-items:center;gap:8px;border:1px solid #d5dbe4;border-radius:10px;padding:8px 11px;font-size:13px;color:#9aa4b2}
+  .cbox .send{margin-left:auto;width:28px;height:28px;border-radius:50%;background:#1a57e5;color:#fff;display:flex;align-items:center;justify-content:center}
+
+  /* history takeover: list (left) + commit detail (right) */
+  .hwrap{flex:1;min-height:0;display:flex}
+  .hlist{width:360px;flex-shrink:0;border-left:1px solid #e5eaf1;display:flex;flex-direction:column;background:#fff;order:2}
+  .hlist-h{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid #e5eaf1;font-size:13px;font-weight:600}
+  .hlist-h i{color:#586373}
+  .hlist-h .x{margin-left:auto;cursor:pointer;color:#586373}
+  .hscroll{flex:1;overflow:auto;padding:8px}
+  .started{font-size:11.5px;color:#8a96a3;padding:6px 8px 10px}
+  .cp{padding:11px 12px;border-radius:10px;border:1px solid transparent;margin-bottom:3px;cursor:pointer}
+  .cp:hover{background:#f6f8fb}
+  .cp.on{background:#f4f8ff;border-color:#1a57e5}
+  .cp .cph{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#2f7d46}
+  .cp .cph i{font-size:14px}
+  .cp .cph .t{margin-left:auto;color:#aab3c0;font-size:11px}
+  .cp .cpt{font-size:13px;color:#1f2328;margin:6px 0 8px}
+  .cp .cpb{display:flex;gap:8px}
+  .cp .mini{font-size:11.5px;padding:5px 10px;border-radius:7px;border:1px solid #d5dbe4;background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:5px;color:#373d47}
+  .cp .mini:hover{background:#f0f3f8}
+  .cp .mini.rb:hover{border-color:#1a57e5;color:#1a57e5}
+  .waiting{display:flex;align-items:center;gap:8px;padding:11px 12px;border-radius:10px;background:#f1f0fb;color:#5b53b8;font-size:12.5px;margin-top:4px}
+
+  .commit{flex:1;min-width:0;display:flex;flex-direction:column;background:#fff}
+  .commit-h{padding:12px 16px;border-bottom:1px solid #e5eaf1;flex-shrink:0}
+  .commit-h .ttl{font-size:16px;font-weight:600;color:#1f2328;margin-bottom:8px}
+  .commit-h .meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .tag{font-size:11.5px;padding:3px 9px;border-radius:7px;background:#f0f3f8;color:#586373;display:inline-flex;align-items:center;gap:6px;font-family:'Roboto Mono',monospace}
+  .restoreAll{font-size:11.5px;padding:4px 11px;border-radius:7px;border:1px solid #d5dbe4;background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:#373d47}
+  .restoreAll:hover{border-color:#1a57e5;color:#1a57e5}
+  .commit-body{flex:1;overflow:auto;padding:14px 16px}
+  .cbar{display:flex;align-items:center;margin-bottom:10px}
+  .cbar .cnt{font-size:13px;color:#586373}
+  .cbar .cnt b{color:#1f2328}
+  .uv{margin-left:auto;display:flex;border:1px solid #d5dbe4;border-radius:8px;overflow:hidden}
+  .uv span{font-size:12px;padding:5px 12px;cursor:pointer;color:#586373}
+  .uv span.on{background:#eef3ff;color:#1a57e5;font-weight:600}
+  .filebox{border:1px solid #e5eaf1;border-radius:9px;overflow:hidden}
+  .filebox-h{display:flex;align-items:center;gap:8px;padding:9px 12px;background:#fbfcfe;font-size:12.5px}
+  .filebox-h .fn{font-family:'Roboto Mono',monospace}
+  .filebox-h .mod{margin-left:auto;font-size:11px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px}
+  .filebox.hunk{margin-bottom:10px}
+  .filebox-h .hstat{margin-left:auto;font-size:11.5px}
+  .diff{font-family:'Roboto Mono',monospace;font-size:11.5px;line-height:1.85;overflow-x:auto}
+  .drow{display:flex;border-top:1px solid #f4f6fa;width:max-content;min-width:100%}
+  .drow.add{background:#e6f4ea}.drow.del{background:#fde8e8}
+  .dg{width:26px;text-align:center;flex-shrink:0;color:#aab3c0}
+  .drow.add .dg,.drow.add .dt{color:#2f7d46}.drow.del .dg,.drow.del .dt{color:#b42318}
+  .dt{white-space:pre;flex-shrink:0}
+  .split{display:flex}
+  .split .col{flex:1;min-width:0;overflow:hidden;border-right:1px solid #eef1f6}
+  .split .col:last-child{border-right:none}
+  .col-h{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#8a96a3;padding:5px 10px;background:#fbfcfe}
+  .empty-diff{padding:18px;color:#8a96a3;font-size:13px;text-align:center}
+  .hide{display:none!important}
+
+  /* restore confirmation modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(31,41,55,.45);display:flex;align-items:center;justify-content:center;z-index:30;padding:26px}
+  .modal{background:#fff;border-radius:14px;width:min(940px,94%);max-height:88%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.28)}
+  .modal-h{padding:15px 18px;border-bottom:1px solid #e5eaf1;flex-shrink:0}
+  .modal-h .ttl{font-size:16px;font-weight:600;color:#1f2328}
+  .modal-body{flex:1;overflow:auto;padding:14px 18px}
+  .modal-foot{flex-shrink:0;border-top:1px solid #e5eaf1;padding:12px 18px;display:flex;gap:9px;justify-content:flex-end}
+  .cmp-sub{font-size:13px;color:#586373;margin-bottom:10px}
+  .restore-note{display:flex;gap:7px;align-items:flex-start;font-size:11.5px;line-height:1.45;color:#bd5200;background:#faf0e3;border:1px solid #ffd9a8;border-radius:8px;padding:8px 10px;margin-top:10px}
+  .restore-note i{font-size:14px;margin-top:1px;flex-shrink:0}
+
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:#1f2937;color:#fff;font-size:13px;padding:10px 14px;border-radius:10px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:20}
+  .toast.show{opacity:1}
+  .toast .undo{color:#9ec1ff;cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<div class="frame"><div class="app">
+  <!-- persistent top bar: editor file (left) + AIRO header (right). Stays put when History toggles. -->
+  <div class="topbar">
+    <div class="tb-left"><span class="mono">connector.rb</span><span style="display:flex;align-items:center;gap:12px"><span class="rv" id="rv"></span><span id="estate">latest</span></span></div>
+    <div class="tb-right"><span class="dchev">&raquo;</span><span class="pname">AIRO</span><span class="beta">Beta</span><span style="flex:1"></span><span class="hbtn" id="hbtn" data-historytoggle><i class="ti ti-history"></i>History</span></div>
+  </div>
+  <!-- only the content below swaps between editor/chat and commit-diff/checkpoint-list -->
+  <div class="body">
+    <div class="leftcol" id="leftcol"></div>
+    <div class="rightcol" id="rightcol"></div>
+  </div>
+</div></div>
+<div id="modal" class="modal-overlay hide"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const NOHIST=new URLSearchParams(location.search).has('nohist'); // Problem 4: history is out of scope, shown as a disabled placeholder
+const CODE=[
+  {t:"connector = {",b:'base'},
+  {t:"  title: 'HubSpot',",b:'base'},
+  {t:"  connection: {",b:'connection'},
+  {t:"    authorization: {",b:'connection'},
+  {t:"      type: 'oauth2',",b:'connection'},
+  {t:"      client_id: 'HS_CLIENT_ID',",b:'connection'},
+  {t:"      client_secret: 'HS_CLIENT_SECRET',",b:'connection'},
+  {t:"      authorization_url: '/oauth/authorize',",b:'connection'},
+  {t:"      token_url: '/oauth/token',",b:'connection'},
+  {t:"      apply: ->(c){ headers(authorization: c['access_token']) }",b:'connection'},
+  {t:"    }",b:'connection'},
+  {t:"  },",b:'connection'},
+  {t:"  object_definitions: {",b:'objects'},
+  {t:"    deal: { fields: lambda do",b:'objects'},
+  {t:"      [ { name: 'dealname' }, { name: 'amount' },",b:'objects'},
+  {t:"        { name: 'pipeline' }, { name: 'closedate' } ]",b:'objects'},
+  {t:"    end },",b:'objects'},
+  {t:"    company: { fields: lambda do",b:'objects'},
+  {t:"      [ { name: 'name' }, { name: 'domain' } ]",b:'objects'},
+  {t:"    end },",b:'objects'},
+  {t:"    contact: { fields: lambda do",b:'objects'},
+  {t:"      [ { name: 'email' }, { name: 'firstname' } ]",b:'objects'},
+  {t:"    end }",b:'objects'},
+  {t:"  },",b:'objects'},
+  {t:"  actions: {",b:'actions'},
+  {t:"    create_deal:           { execute: ->(c,i){ post('/deals').payload(i) } },",b:'actions'},
+  {t:"    update_deal:           { execute: ->(c,i){ patch('/deals').payload(i) } },",b:'actions'},
+  {t:"    search_deals:          { execute: ->(c,i){ post('/deals/search', i) } },",b:'actions'},
+  {t:"    create_or_update_deal: { execute: ->(c,i){ post('/deals/upsert', i) } },",b:'actions'},
+  {t:"    archive_deal:          { execute: ->(c,i){ delete('/deals/' + i['id']) } }",b:'actions'},
+  {t:"  },",b:'actions'},
+  {t:"  triggers: {",b:'trigger'},
+  {t:"    new_or_updated_deal: {",b:'trigger'},
+  {t:"      poll: ->(c){ get('/deals/recent') }",b:'trigger'},
+  {t:"    }",b:'trigger'},
+  {t:"  }",b:'trigger'},
+  {t:"}",b:'base'},
+];
+// Each checkpoint = one conversation round, which can contain MULTIPLE changes (hunks).
+// `changes`: [{label, add, del, before:[removed lines], lines:[added lines]}]
+// Each checkpoint = one conversation turn (its own user prompt + agent reply), so the chat
+// shows the same set of checkpoints the History panel lists.
+const CPS=[
+  {id:0,title:'Connector scaffold',prompt:'Start a HubSpot connector',say:'Scaffolded an empty connector shell.',blocks:[],add:0,del:0,hash:'a1b2c3',when:'5 min ago',changes:[]},
+  {id:1,title:'Set up OAuth2 connection',prompt:'Set up the HubSpot connection',say:'Added an OAuth2 connection with a token endpoint.',blocks:['connection'],add:11,del:2,hash:'67edbfe',when:'4 min ago',changes:[
+    {label:'OAuth2 authorization',add:11,del:2,before:["    authorization: { type: 'api_key',","      api_key: 'HS_KEY' } },"],lines:["  connection: {","    authorization: {","      type: 'oauth2',","      client_id: 'HS_CLIENT_ID',","      client_secret: 'HS_CLIENT_SECRET',","      authorization_url: '/oauth/authorize',","      token_url: '/oauth/token',","      apply: ->(c){ headers(authorization: c['access_token']) }","    }","  },"]}
+  ]},
+  {id:2,title:'Define Deal, Company, Contact objects',prompt:'Define the CRM objects',say:'Defined the Deal, Company and Contact objects.',blocks:['objects'],add:84,del:0,hash:'4f75051',when:'3 min ago',changes:[
+    {label:'Deal object',add:41,del:0,lines:["  object_definitions: {","    deal: { fields: lambda do","      [ { name: 'dealname' }, { name: 'amount' },","        { name: 'pipeline' }, { name: 'closedate' } ]","    end },"]},
+    {label:'Company object',add:28,del:0,lines:["    company: { fields: lambda do","      [ { name: 'name' }, { name: 'domain' } ]","    end },"]},
+    {label:'Contact object',add:15,del:0,lines:["    contact: { fields: lambda do","      [ { name: 'email' }, { name: 'firstname' } ]","    end }","  },"]}
+  ]},
+  {id:3,title:'Add 5 deal actions',prompt:'Add the deal actions',say:'Wrote 5 deal actions: create, update, search, upsert, archive.',blocks:['actions'],add:40,del:2,hash:'9c0aa12',when:'2 min ago',changes:[
+    {label:'Read + create actions',add:24,del:0,lines:["  actions: {","    create_deal:           { execute: ->(c,i){ post('/deals').payload(i) } },","    update_deal:           { execute: ->(c,i){ patch('/deals').payload(i) } },","    search_deals:          { execute: ->(c,i){ post('/deals/search', i) } },"]},
+    {label:'Upsert + archive actions',add:16,del:2,before:["    delete_deal:           { execute: ->(c,i){ delete('/deals/' + i['id']) } },"],lines:["    create_or_update_deal: { execute: ->(c,i){ post('/deals/upsert', i) } },","    archive_deal:          { execute: ->(c,i){ delete('/deals/' + i['id']) } }","  },"]}
+  ]},
+  {id:4,title:'Add new_or_updated_deal trigger',prompt:'Add a trigger for deal changes',say:'Added the new_or_updated_deal trigger.',blocks:['trigger'],add:18,del:0,hash:'d3e8f90',when:'1 min ago',changes:[
+    {label:'new_or_updated_deal trigger',add:18,del:0,lines:["  triggers: {","    new_or_updated_deal: {","      poll: ->(c){ get('/deals/recent') }","    }","  }"]}
+  ]},
+];
+let head=CPS.length-1;
+let showHistory=false;
+let reviewSel=null;       // checkpoint being reviewed on the left (null = show the full current file)
+let mode='diff';          // diff | split
+let prevHead=null;
+let actionsOpen=false;    // the "N actions" disclosure in the chat
+const ACT_ICONS=['ti-plug','ti-list-details','ti-bolt','ti-clock'];
+const BUILD_SUMMARY="Built the HubSpot CRM connector from one prompt: set up the OAuth2 connection, defined the Deal, Company and Contact objects, wrote 5 deal actions, and added a new-or-updated-deal trigger. Review it, then test from the Test code tab.";
+let viewChange=null;  // {cp, ci} of the single change shown in the editor, or null = full file diff
+let confirmRestore=null; // target checkpoint id while confirming a restore, else null
+const expandedTurns={};  // cp.id -> whether that turn's "View N changes" is expanded
+// review bar (ported from Problem 3): step through the changes, accept/reject all
+const REVIEW_GROUPS=[['connection'],['objects'],['actions'],['trigger']];
+const groupIndex=b=>{ for(let i=0;i<REVIEW_GROUPS.length;i++) if(REVIEW_GROUPS[i].includes(b)) return i; return -1; };
+let reviewState='pending';  // pending | accepted | rejected
+let reviewCur=0;            // current change in the redirect stepper
+// accepted: changes committed, file reads as plain code; rejected: only the scaffold (base) remains
+function committedFile(){ const s=new Set(['base']); CPS.forEach(c=>{ if(c.id<=head) c.blocks.forEach(b=>s.add(b)); }); let html='',ln=1; CODE.forEach(l=>{ if(!s.has(l.b))return; html+=`<div class="cline"><span class="cn">${ln++}</span><span class="cg"></span><span class="ct mono">${l.t.replace(/</g,'&lt;')}</span></div>`; }); return html; }
+function baseFile(){ let html='',ln=1; CODE.forEach(l=>{ if(l.b!=='base')return; html+=`<div class="cline"><span class="cn">${ln++}</span><span class="cg"></span><span class="ct mono">${l.t.replace(/</g,'&lt;')}</span></div>`; }); return html; }
+function renderReviewBar(){
+  const rv=$('#rv'); if(!rv) return;
+  if(showHistory || viewChange){ rv.innerHTML=''; return; }   // hidden while browsing history or focused on one change
+  if(reviewState!=='pending'){ rv.innerHTML=`<span class="cnt" style="color:#1a7f37">All changes ${reviewState}</span>`; return; }
+  const total=REVIEW_GROUPS.length;
+  rv.innerHTML=`<i class="ti ti-chevron-up nav" data-rstep="-1"></i><span class="cnt">${reviewCur+1} / ${total}</span><i class="ti ti-chevron-down nav" data-rstep="1"></i><span class="vbar2"></span><span class="b rej" data-rejall><i class="ti ti-x"></i>Reject all</span><span class="b acc" data-accall><i class="ti ti-check"></i>Accept all</span>`;
+}
+function jumpReview(){
+  const c=$('#leftcol .code'); if(!c) return;
+  const lines=c.querySelectorAll('.cline[data-grp="'+reviewCur+'"]'); if(!lines.length) return;
+  const first=lines[0], cR=c.getBoundingClientRect(), eR=first.getBoundingClientRect();
+  c.scrollTop += (eR.top-cR.top)-(c.clientHeight/2)+(first.offsetHeight/2);
+  lines.forEach(l=>{ l.classList.remove('flash'); void l.offsetWidth; l.classList.add('flash'); setTimeout(()=>l.classList.remove('flash'),1200); });
+}
+const blockSetAt=n=>{ const s=new Set(['base']); CPS.forEach(c=>{ if(c.id<=n) c.blocks.forEach(b=>s.add(b)); }); return s; };
+
+// Resolve each change to the exact CODE line indices it added, matching its `lines` forward.
+// A per-checkpoint cursor walks CODE so duplicate lines (e.g. several "    end },") map to the right change.
+CPS.forEach(cp=>{
+  let cursor=0;
+  (cp.changes||[]).forEach(ch=>{
+    ch.codeIdx=[];
+    (ch.lines||[]).forEach(text=>{
+      for(let i=cursor;i<CODE.length;i++){ if(CODE[i].t===text){ ch.codeIdx.push(i); cursor=i+1; break; } }
+    });
+  });
+});
+
+// full file with only ONE change's lines highlighted (green); everything else is plain context
+function codeByChange(cpId, ci){
+  const cp=CPS.find(c=>c.id===cpId); const ch=cp.changes[ci]; const idx=new Set(ch.codeIdx||[]);
+  const present=blockSetAt(head);
+  const showDel=(ch.before||[]).length>0;   // this change also removed a line (e.g. delete_deal)
+  let html='',ln=1;
+  CODE.forEach((l,i)=>{ if(!present.has(l.b)) return;
+    if(l.t.includes('create_or_update_deal') && showDel)
+      html+=`<div class="cline del hl"><span class="cn"></span><span class="cg">-</span><span class="ct mono">    delete_deal,</span></div>`;
+    const on=idx.has(i);
+    html+=`<div class="cline${on?' add hl':''}"><span class="cn">${ln++}</span><span class="cg">${on?'+':''}</span><span class="ct mono">${l.t.replace(/</g,'&lt;')}</span></div>`;
+  });
+  return html;
+}
+
+function codeFor(n){
+  // the editor shows the agent's work as a diff: added lines green (+), one representative removed line red (-).
+  // The scaffold shell (the 'base' block from the first prompt) is the starting point, not a change, so it reads as plain context.
+  const s=new Set(['base']); CPS.forEach(c=>{ if(c.id<=n) c.blocks.forEach(b=>s.add(b)); });
+  let html='',ln=1; CODE.forEach(l=>{ if(!s.has(l.b)) return;
+    if(l.t.includes('create_or_update_deal')) html+=`<div class="cline del"><span class="cn"></span><span class="cg">-</span><span class="ct mono">    delete_deal,</span></div>`;
+    const base = l.b==='base';
+    const gi=groupIndex(l.b);
+    html+=`<div class="cline${base?'':' add'}"${(!base&&gi>=0)?' data-grp="'+gi+'"':''}><span class="cn">${ln++}</span><span class="cg">${base?'':'+'}</span><span class="ct mono">${l.t.replace(/</g,'&lt;')}</span></div>`;
+  });
+  return html;
+}
+function chatHtml(){
+  // one turn per checkpoint: user prompt -> agent answer (one summary + expandable "View N changes") -> checkpoint
+  const rounds=CPS.map(cp=>{
+    const chs=cp.changes||[]; const n=chs.length; const open=!!expandedTurns[cp.id]; const bk=cp.blocks[0];
+    let answer=`<div class="amsg2">${cp.say}</div>`;
+    if(n){
+      answer+=`<div class="vcbtn" data-vc="${cp.id}"><i class="ti ti-git-compare vci"></i>View ${n} change${n>1?'s':''}<i class="ti ti-chevron-${open?'down':'right'} vchev"></i></div>`;
+      if(open){
+        answer+=`<div class="vclist">`+chs.map((c,ci)=>`<div class="vcitem${(viewChange&&viewChange.cp===cp.id&&viewChange.ci===ci)?' on':''}" data-cp="${cp.id}" data-ci="${ci}"><span class="at">${c.label}</span><span class="ast mono"><span class="pos">+${c.add}</span>${c.del?' <span class="neg">-'+c.del+'</span>':''}</span></div>`).join('')+`</div>`;
+      }
+    }
+    return `<div class="urow"><div class="ubub">${cp.prompt}</div></div>
+      ${answer}
+      <div class="cpsaved" data-cpopen="${cp.id}"><i class="ti ti-clock"></i>Checkpoint created</div>`;
+  }).join('');
+  return `<div class="chat">${rounds}
+    </div>
+    <div class="composer"><div class="cbox"><span>Ask AIRO anything</span><span class="send"><i class="ti ti-arrow-up"></i></span></div></div>`;
+}
+function diffLines(cp){
+  return CODE.filter(l=>cp.blocks.includes(l.b)).map(l=>`<div class="drow add"><span class="dg">+</span><span class="dt">${l.t.replace(/</g,'&lt;')}</span></div>`).join('');
+}
+const esc=t=>t.replace(/</g,'&lt;');
+// one change (hunk) inside a checkpoint, rendered per the current mode (diff | split)
+function hunkHtml(c){
+  const del=(c.before||[]).map(t=>`<div class="drow del"><span class="dg">−</span><span class="dt">${esc(t)}</span></div>`).join('');
+  const add=c.lines.map(t=>`<div class="drow add"><span class="dg">+</span><span class="dt">${esc(t)}</span></div>`).join('');
+  let body;
+  if(mode==='diff'){ body=`<div class="diff">${del}${add}</div>`; }
+  else {
+    const beforeCol=(c.before&&c.before.length)?c.before.map(t=>`<div class="drow del"><span class="dg">−</span><span class="dt">${esc(t)}</span></div>`).join(''):`<div class="empty-diff" style="padding:18px 10px">did not exist</div>`;
+    body=`<div class="split"><div class="col"><div class="col-h">Before</div><div class="diff">${beforeCol}</div></div><div class="col"><div class="col-h">After</div><div class="diff">${add}</div></div></div>`;
+  }
+  const stat=`<span class="pos">+${c.add}</span>${c.del?' <span class="neg">−'+c.del+'</span>':''}`;
+  return `<div class="filebox hunk"><div class="filebox-h"><i class="ti ti-code" style="color:#586373"></i><span class="fn">${esc(c.label)}</span><span class="hstat mono">${stat}</span></div>${body}</div>`;
+}
+function commitView(i){
+  const cp=CPS[i];
+  const chs=cp.changes||[];
+  const totalAdd=chs.reduce((s,c)=>s+c.add,0), totalDel=chs.reduce((s,c)=>s+(c.del||0),0);
+  const body = chs.length ? chs.map(hunkHtml).join('') : `<div class="filebox"><div class="empty-diff">Initial scaffold — no prior version to diff against.</div></div>`;
+  return `<div class="commit"><div class="commit-h"><div class="ttl">${cp.title}</div>
+      <div class="meta"><span style="font-size:11.5px;color:#8a96a3">scarlettwxh committed · ${cp.when}</span></div></div>
+    <div class="commit-body"><div class="cbar"><span class="cnt">Showing <b>${chs.length}</b> change${chs.length!==1?'s':''} in <span class="mono">connector.rb</span> <span style="color:#2f7d46">+${totalAdd}</span> ${totalDel?'<span style="color:#b42318">−'+totalDel+'</span>':''}</span>
+      <span class="uv"><span class="${mode==='diff'?'on':''}" data-mode="diff">Unified</span><span class="${mode==='split'?'on':''}" data-mode="split">Split</span></span></div>
+      ${body}
+    </div></div>`;
+}
+function historyItemsHtml(){
+  let items=`<div class="started">Chat started 5 min ago</div>`;
+  for(let i=CPS.length-1;i>=0;i--){
+    const cp=CPS[i];
+    items+=`<div class="cp${reviewSel===i?' on':''}" data-sel="${i}"><div class="cph"><i class="ti ti-circle-check-filled"></i>Checkpoint${i===head?' · current':''}<span class="t">${cp.when}</span></div>
+      <div class="cpt">${cp.title}</div>
+      <div class="cpb"><span class="mini rb" data-rollback="${cp.id}"><i class="ti ti-history-toggle"></i>Rollback here</span></div></div>`;
+  }
+  return `<div class="hscroll">${items}</div>`;
+}
+// restore confirmation: compare the current file (head) against the file at the target checkpoint
+function restoreConfirmView(){
+  const cp=CPS[confirmRestore];
+  const cur=blockSetAt(head), tgt=blockSetAt(confirmRestore);
+  const undone=CPS.filter(c=>c.id>confirmRestore && c.id<=head).length;
+  let curRows='', aftRows='';
+  CODE.forEach(l=>{
+    const inCur=cur.has(l.b), inTgt=tgt.has(l.b);
+    if(inCur) curRows+=`<div class="drow${inTgt?'':' del'}"><span class="dg">${inTgt?' ':'−'}</span><span class="dt">${esc(l.t)}</span></div>`;
+    if(inTgt) aftRows+=`<div class="drow"><span class="dg"> </span><span class="dt">${esc(l.t)}</span></div>`;
+  });
+  return `<div class="modal">
+    <div class="modal-h"><div class="ttl">Restore to “${cp.title}”?</div>
+      <div class="restore-note"><i class="ti ti-alert-triangle"></i><div>Restoring undoes <b>${undone}</b> change${undone!==1?'s':''} made after this point. The OAuth2 <b>connection</b> AIRO authorized stays connected.</div></div>
+    </div>
+    <div class="modal-body"><div class="cmp-sub">Comparing <b>current</b> with <b>${cp.title}</b></div>
+      <div class="filebox"><div class="filebox-h"><i class="ti ti-file-code" style="color:#586373"></i><span class="fn">connector.rb</span><span class="mod">Restore preview</span></div>
+        <div class="split"><div class="col"><div class="col-h">Current</div><div class="diff">${curRows}</div></div><div class="col"><div class="col-h">After restore</div><div class="diff">${aftRows}</div></div></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn" data-cancelrestore>Cancel</button><button class="btn-pri" data-confirmrestore><i class="ti ti-history-toggle"></i>Restore to this checkpoint</button></div>
+  </div>`;
+}
+function render(){
+  $('#hbtn').classList.toggle('on', showHistory);
+  // restore confirmation is a modal layered over whatever view is underneath
+  const m=$('#modal');
+  if(confirmRestore!==null){ m.innerHTML=restoreConfirmView(); m.classList.remove('hide'); }
+  else { m.innerHTML=''; m.classList.add('hide'); }
+  if(showHistory){
+    // hybrid: opening History keeps the full file on the left; it only swaps to a diff once a checkpoint is reviewed
+    $('#estate').textContent = reviewSel===null ? 'browsing checkpoints' : `reviewing: ${CPS[reviewSel].title}`;
+    $('#leftcol').innerHTML = reviewSel===null ? `<div class="code">${codeFor(head)}</div>` : commitView(reviewSel);
+    $('#rightcol').innerHTML = historyItemsHtml();
+  } else if(viewChange){
+    $('#estate').innerHTML = `${CPS.find(c=>c.id===viewChange.cp).changes[viewChange.ci].label} · <a href="#" data-clearview style="color:#1a57e5;text-decoration:none">show all</a>`;
+    $('#leftcol').innerHTML = `<div class="code">${codeByChange(viewChange.cp,viewChange.ci)}</div>`;
+    $('#rightcol').innerHTML = chatHtml();
+  } else if(reviewState==='accepted'){
+    $('#estate').textContent='changes accepted';
+    $('#leftcol').innerHTML = `<div class="code">${committedFile()}</div>`;
+    $('#rightcol').innerHTML = chatHtml();
+  } else if(reviewState==='rejected'){
+    $('#estate').textContent='changes rejected';
+    $('#leftcol').innerHTML = `<div class="code">${baseFile()}</div>`;
+    $('#rightcol').innerHTML = chatHtml();
+  } else {
+    $('#estate').innerHTML = head===CPS.length-1?'latest':'rolled back to: '+CPS[head].title;
+    $('#leftcol').innerHTML = `<div class="code">${codeFor(head)}</div>`;
+    $('#rightcol').innerHTML = chatHtml();
+  }
+  renderReviewBar();
+}
+let tt; function toast(m,u){ const e=$('#toast'); e.innerHTML=m+(u?' <span class="undo" data-undo>Undo</span>':''); e.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>e.classList.remove('show'),4200); }
+
+document.addEventListener('click',e=>{
+  const rs=e.target.closest('[data-rstep]'); if(rs){ const total=REVIEW_GROUPS.length; reviewCur=(reviewCur+(+rs.dataset.rstep)+total)%total; renderReviewBar(); jumpReview(); return; }
+  if(e.target.closest('[data-accall]')){ reviewState='accepted'; render(); toast('Accepted all changes.'); return; }
+  if(e.target.closest('[data-rejall]')){ reviewState='rejected'; render(); toast('Rejected all changes.'); return; }
+  if(e.target.closest('[data-historytoggle]')){ showHistory=!showHistory; viewChange=null; reviewSel=null; confirmRestore=null; render(); return; }
+  if(e.target.closest('[data-clearview]')){ e.preventDefault(); viewChange=null; render(); return; }
+  if(e.target.closest('[data-actionstoggle]')){ actionsOpen=!actionsOpen; render(); return; }
+  const vc=e.target.closest('[data-vc]'); if(vc){ const id=+vc.dataset.vc; expandedTurns[id]=!expandedTurns[id]; render(); return; }
+  const cpo=e.target.closest('[data-cpopen]'); if(cpo){ showHistory=true; reviewSel=+cpo.dataset.cpopen; render(); return; }
+  const ci=e.target.closest('[data-ci]'); if(ci){ const cp=+ci.dataset.cp, k=+ci.dataset.ci; viewChange=(viewChange&&viewChange.cp===cp&&viewChange.ci===k)?null:{cp:cp,ci:k}; render(); return; }
+  // Restore is a two-step: a rollback control opens the confirmation; Restore commits, Cancel backs out.
+  const roll=e.target.closest('[data-rollback]'); if(roll){ confirmRestore=+roll.dataset.rollback; reviewSel=confirmRestore; render(); return; }
+  if(e.target.closest('[data-cancelrestore]') || e.target.id==='modal'){ confirmRestore=null; render(); return; }
+  if(e.target.closest('[data-confirmrestore]')){ const t=confirmRestore; prevHead=head; head=t; confirmRestore=null; showHistory=false; reviewSel=null; render(); toast(`Restored to “${CPS[t].title}”. The connection AIRO authorized stays connected.`,true); return; }
+  const s=e.target.closest('[data-sel]'); if(s){ reviewSel=+s.dataset.sel; render(); return; }
+  const m=e.target.closest('[data-mode]'); if(m){ mode=m.dataset.mode; render(); return; }
+  if(e.target.closest('[data-undo]')){ if(prevHead!==null){ head=prevHead; prevHead=null; render(); toast('Rollback undone.'); } }
+});
+if(NOHIST){ $('#hbtn').classList.add('disabled'); $('#hbtn').removeAttribute('data-historytoggle'); $('#hbtn').title='Checkpoint history is explored separately'; }
+render();
+</script>
+</body>
+</html>

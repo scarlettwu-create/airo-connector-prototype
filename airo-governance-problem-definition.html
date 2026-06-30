@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why we're building AIRO agent governance</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  color: #1f2328;
+  line-height: 1.65;
+  font-size: 16px;
+  background: #fff;
+}
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; color: #424a53; }
+p { margin: 0.6em 0; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+pre code { background: transparent; padding: 0; }
+blockquote {
+  border-left: 4px solid #d1d9e0;
+  margin: 1em 0;
+  padding: 0.2em 1em;
+  color: #424a53;
+  background: #f8fafc;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f6f8fa; font-weight: 600; }
+img {
+  max-width: 100%;
+  border: 1px solid #d1d9e0;
+  border-radius: 6px;
+  margin: 0.5em 0;
+}
+hr {
+  border: none;
+  border-top: 1px solid #d1d9e0;
+  margin: 2em 0;
+}
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.25em 0; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+
+/* Make missing screenshot placeholders less ugly */
+img[alt] {
+  position: relative;
+}
+img:not([src=""]):after {
+  content: attr(alt);
+  display: block;
+  padding: 24px;
+  background: #f6f8fa;
+  color: #57606a;
+  font-size: 0.85em;
+  text-align: center;
+  border: 1px dashed #d1d9e0;
+  border-radius: 6px;
+}
+
+/* Sticky nav at top */
+.toc {
+  background: #f6f8fa;
+  border: 1px solid #d1d9e0;
+  border-radius: 6px;
+  padding: 16px 24px;
+  margin: 0 0 32px 0;
+  font-size: 0.95em;
+}
+.toc strong { display: block; margin-bottom: 8px; }
+.toc a { display: block; padding: 2px 0; color: #424a53; }
+</style>
+</head>
+<body>
+<h1 id="why-were-building-airo-agent-governance">Why we're building AIRO agent governance</h1>
+<h2 id="the-shift">The shift</h2>
+<p>Everyone is racing to make agents easier to <strong>build</strong>. The bottleneck has moved. The hard part now is trusting an agent enough to let it <strong>act</strong> in real systems, and it's usually a whole crew of agents handing work to each other, which makes "who did what, and was it allowed" even harder to answer. That's a governance problem, and it's getting urgent fast.</p>
+<h2 id="our-own-customers-are-blocking-on-it">Our own customers are blocking on it</h2>
+<p>Straight from our research:</p>
+<ul>
+<li><strong>Security teams are blocking Genie rollouts.</strong> "Security teams blocking Genie deployments" (<a href="https://workato.atlassian.net/wiki/spaces/AIA/pages/2174124046">Guardrails PRD, PMO-2078</a>). "Enterprise security and legal block LLM adoption until this is solved" (<a href="https://workato.atlassian.net/wiki/spaces/AP/pages/2447015993">AI/LLM Gateway PRD, PMO-2900</a>).</li>
+<li><strong>They won't go to production</strong> without content/PII guardrails, real isolation, and an audit trail they trust.</li>
+<li><strong>No IT backdoor, keep their own audit logs.</strong> A payroll customer's hard line (<a href="https://workato.dovetail.com/projects/eoijQ2HjqVuEL2U1tAYFc">Dovetail · Automation HQ Feedback Study</a>).</li>
+<li><strong>Permissions are already painful to manage at scale</strong> (<a href="https://workato.dovetail.com/projects/1iyQz2rRcNGU7xsJjodYNk">Dovetail · Permissions &amp; Roles Foundational</a>).</li>
+<li><strong>They're explicitly asking for trust and governance</strong> (<a href="https://workato.dovetail.com/projects/7AE3AavWbHd46X7unytHXm">Dovetail · Airo Trust</a>).</li>
+</ul>
+<p>Governance is the gate between our agents and production. It's a revenue gate, not polish.</p>
+<h2 id="the-market-says-the-same-louder">The market says the same, louder</h2>
+<ul>
+<li>68% of orgs can't tell an agent's action from a human's after the fact (<a href="https://tierzero.ai/blog/ai-agent-audit-trail">TierZero</a>).</li>
+<li>74% of agents are over-permissioned (<a href="https://tierzero.ai/blog/ai-agent-audit-trail">TierZero</a>). 51% have no owner for their AI identities, which already outnumber humans 45 to 1 (<a href="https://labs.cloudsecurityalliance.org/research/csa-whitepaper-nonhuman-identity-agentic-ai-governance-v1-cs/">CSA</a>).</li>
+<li>Gartner expects <strong>40% of enterprises to decommission agents by 2027</strong> over governance gaps (<a href="https://www.gartner.com/en/newsroom/press-releases/2026-05-26-gartner-says-applying-uniform-governance-across-ai-agents-will-lead-to-enterprise-ai-agent-failure">Gartner</a>), and "guardian agents" that watch other agents to reach 10 to 15% of the market by 2030 (<a href="https://www.gartner.com/en/newsroom/press-releases/2025-06-11-gartner-predicts-that-guardian-agents-will-capture-10-15-percent-of-the-agentic-ai-market-by-2030">Gartner</a>).</li>
+</ul>
+<h2 id="its-already-going-wrong">It's already going wrong</h2>
+<p>The permission existed; the gate didn't. Replit's agent deleted a production database (<a href="https://www.theregister.com/2025/07/21/replit_saastr_vibe_coding_incident/">The Register</a>). A PocketOS agent wiped a database and every backup in nine seconds, all through "a permitted operation" (<a href="https://www.eon.io/blog/ai-agent-data-loss">Eon</a>). A poisoned GitHub issue made Devin escalate to remote code execution (<a href="https://embracethered.com/blog/posts/2025/devin-i-spent-usd500-to-hack-devin/">Embrace The Red</a>).</p>
+<h2 id="the-layer-we-own">The layer we own</h2>
+<p>Identity (Entra, Okta, WorkOS), network (Kong), execution (Claude Code, Agentforce, AWS, Devin), and observability (Galileo, Arize) are all taken. The <strong>business-action layer is open</strong>, and it's ours. Three things only we have together:</p>
+<ul>
+<li>stop a risky action <strong>before</strong> it happens (Rubrik only undoes it after),</li>
+<li>understand <strong>what the action means</strong>, like a grant of admin or a finance export (Kong only sees traffic),</li>
+<li>tie it <strong>back to a person</strong>, even when a whole crew of agents touched it.</li>
+</ul>
+<h2 id="why-this-is-our-breakthrough">Why this is our breakthrough</h2>
+<p>Two wins at once: unblock deployment by giving security what they're blocking on, and own the layer no one else does by governing the whole run, tied to a person, in the path where the action actually happens.</p>
+<h2 id="one-line">One line</h2>
+<p>We don't just help you build agents. We make them safe enough to actually put into production, and that's what unblocks the whole thing.</p>
+</body>
+</html>

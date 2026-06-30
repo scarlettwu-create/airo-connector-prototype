@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIRO SDK editor: diff lifecycle and review controls (competitive research)</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  color: #1f2328;
+  line-height: 1.65;
+  font-size: 16px;
+  background: #fff;
+}
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; color: #424a53; }
+p { margin: 0.6em 0; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+pre code { background: transparent; padding: 0; }
+blockquote {
+  border-left: 4px solid #d1d9e0;
+  margin: 1em 0;
+  padding: 0.2em 1em;
+  color: #424a53;
+  background: #f8fafc;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f6f8fa; font-weight: 600; }
+hr {
+  border: none;
+  border-top: 1px solid #d1d9e0;
+  margin: 2em 0;
+}
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.25em 0; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+</style>
+</head>
+<body>
+<h1 id="airo-sdk-editor-diff-lifecycle-and-review-controls-competitive-research">AIRO SDK editor: diff lifecycle and review controls (competitive research)</h1>
+<p><strong>Context.</strong> Research for the AIRO SDK editor integration (PMO-2980), following the UX kickoff. The kickoff settled on a working model: AIRO writes into the editor as inline highlights, highlights accumulate across chat turns (diff baseline is the last saved version), an Accept/Keep control clears highlights without creating a version, every AI edit banks a restorable local draft checkpoint, and explicit save/test still creates numbered versions. This doc researches how the mature products handle exactly those mechanics and where they break. It's a companion to the earlier <a href="airo-sdk-editor-code-insertion-competitive-research.md" target="_blank" rel="noopener noreferrer">in-editor code insertion research</a>, which covered insertion accuracy and destructive accept/reject; those findings are not repeated here.</p>
+<p><strong>Products covered.</strong> Cursor, GitHub Copilot in VS Code (agent mode / Edits), JetBrains AI Assistant + Junie, Windsurf (Cascade), Claude Code, Replit Agent.</p>
+<p><strong>Scope.</strong> Five mechanics of the in-editor diff lifecycle: how pending diffs accumulate across chat turns, what accept actually does and how it relates to versioning, per-edit restorable checkpoints, per-response change summaries, and navigating between changes in long files.</p>
+<p><strong>A note on Tier 1.</strong> The prior research already established that no direct iPaaS competitor (Tray, Celigo, Boomi, Fivetran in-product) does in-editor diffs at all, so this doc draws entirely from the coding tools where these mechanics actually exist. That selection skew is deliberate, not an oversight.</p>
+<hr />
+<h2 id="part-1-diff-lifecycle-behavior-per-product">Part 1 — Diff lifecycle behavior per product</h2>
+<p>The six products split into three lifecycle models. Gate-before-write: the AI proposes, the user approves, then the file changes (Claude Code's default mode, Windsurf diff zones, JetBrains). Write-then-review: edits land in the file immediately and the user resolves pending review state afterward (Cursor, Copilot agent mode). Write-then-rollback: no review gate at all, control happens after the fact through checkpoints (Replit). The PMO-2980 kickoff model is write-then-review with checkpoint undo layered on, so Cursor and Copilot are the closest structural references and also carry the most documented failure history.</p>
+<h3 id="11-cursor">1.1 Cursor</h3>
+<p>Agent edits apply to files as it works, and since <a href="https://cursor.com/changelog/2-0" target="_blank" rel="noopener noreferrer">2.0 (Oct 2025)</a> a single review pane aggregates all pending changes across the conversation, with Cmd+Return to accept all and <a href="https://cursor.com/changelog/2-1" target="_blank" rel="noopener noreferrer">committing auto-accepting diffs per file since 2.1</a>; <a href="https://cursor.com/docs/agent/chat/checkpoints" target="_blank" rel="noopener noreferrer">checkpoints are created before significant modifications (not every edit), restore per request, and are explicitly not version control</a>; each response ends with a change summary file list that <a href="https://cursor.com/changelog/2-3" target="_blank" rel="noopener noreferrer">links into the review pane since 2.3</a>. No hunk-level keyboard navigation is documented, only file-level jumps in the review pane.</p>
+<h3 id="12-github-copilot-in-vs-code">1.2 GitHub Copilot in VS Code</h3>
+<p>The agent <a href="https://code.visualstudio.com/docs/copilot/chat/copilot-edits" target="_blank" rel="noopener noreferrer">applies and saves edits to disk first</a>, then the user resolves them with Keep/Undo per file or for everything, and staging in Source Control auto-accepts pending edits, so accept is decoupled from saving but coupled to git staging; <a href="https://code.visualstudio.com/docs/copilot/chat/chat-checkpoints" target="_blank" rel="noopener noreferrer">checkpoints are opt-in via a setting</a> (snapshot before each request, restore also removes that request from the conversation, with a Redo to reapply); the <a href="https://code.visualstudio.com/docs/copilot/chat/review-code-edits" target="_blank" rel="noopener noreferrer">editor overlay has Up/Down controls that step through edits and auto-reveal the next pending change when one is resolved</a>. This is the most complete navigation story of the six.</p>
+<h3 id="13-jetbrains-ai-assistant-junie">1.3 JetBrains AI Assistant + Junie</h3>
+<p>Edit flows offer <a href="https://www.jetbrains.com/help/ai-assistant/refactoring-with-ai.html" target="_blank" rel="noopener noreferrer">Accept All / Discard All per response with a per-change Revert button in the gutter, and Next/Previous Change buttons to step through proposed modifications</a>; <a href="https://junie.jetbrains.com/docs/junie-ide-plugin.html" target="_blank" rel="noopener noreferrer">Junie adds a per-prompt "Rollback here" and a Done panel listing all changed files</a>, all sitting on top of the IDE's Local History as a separate safety net. Cross-turn accumulation is not documented; review is per response.</p>
+<h3 id="14-windsurf-cascade">1.4 Windsurf (Cascade)</h3>
+<p>Edits appear as <a href="https://docs.devin.ai/desktop/advanced" target="_blank" rel="noopener noreferrer">per-hunk "diff zones" (inline highlighted regions with accept/reject controls on each hunk) that persist until resolved</a>, and <a href="https://docs.devin.ai/desktop/cascade" target="_blank" rel="noopener noreferrer">each prior prompt has a hover revert that rolls all code back to that step, with the docs warning "Reverts are currently irreversible, so be careful!"</a>. No per-response change summary or hunk navigation is documented. (Windsurf has since been folded into Cognition's Devin Desktop; docs now live there.)</p>
+<h3 id="15-claude-code">1.5 Claude Code</h3>
+<p>Each edit is a gated proposal (side-by-side diff, approve before write), so there is no accumulated pending state by design; <a href="https://code.claude.com/docs/en/checkpointing" target="_blank" rel="noopener noreferrer">every user prompt creates a checkpoint, restorable via /rewind with separate options to restore code, conversation, or both</a>, with the documented limitation that files changed by bash commands or external edits are not tracked. No structured per-response change summary UI; <a href="https://code.claude.com/docs/en/vs-code" target="_blank" rel="noopener noreferrer">the VS Code extension opens diffs in the native diff viewer</a>.</p>
+<h3 id="16-replit-agent">1.6 Replit Agent</h3>
+<p>No pre-accept gate at all: the agent writes directly and control is retroactive through <a href="https://docs.replit.com/core-concepts/agent/checkpoints-and-rollbacks" target="_blank" rel="noopener noreferrer">checkpoints created at milestones (feature completed, before risky fixes), capturing files, conversation, environment, and optionally database, with bidirectional rollback</a>; checkpoints generate git commits, making Replit the only product that ties checkpoints to real versions. Closest of the six to Workato's user profile (non-professional developers in a hosted editor), and notably it skipped the review gate entirely.</p>
+<hr />
+<h2 id="part-2-user-pain-points-themed-insights">Part 2 — User pain points (themed insights)</h2>
+<p>Five themes, mined from forum.cursor.com, VS Code and Claude Code GitHub issues, the old Codeium/Windsurf tracker, Replit Discourse, and Hacker News. Two honesty notes. First, users complain about concrete breakage, not abstractions; "review fatigue" appears in research papers but not in user posts, so the themes below are named from what users actually hit. Second, Reddit and JetBrains YouTrack were not fetchable during this run, so JetBrains evidence is thin and noted as such.</p>
+<h3 id="theme-1-pending-highlights-turn-into-phantom-state-that-wont-clear">Theme 1: Pending highlights turn into phantom state that won't clear</h3>
+<p>In both write-then-review products, the pending-diff state regularly detaches from reality: highlights survive accepting, buttons survive restarts, and the overlay claims manual edits as AI edits.</p>
+<ul>
+<li>Copilot: "the leftover Keep or Undo button from previous session doesn't disappear which is confusing and I don't know which session generated which edits." (<em>saadjs</em>, <a href="https://github.com/microsoft/vscode/issues/295666" target="_blank" rel="noopener noreferrer">vscode #295666</a>, Feb 2026)</li>
+<li>Copilot: "The pending edits diff overlay shows changes from the session's last checkpoint. Even if I manually edited those files outside the chat session... I cannot clear the diff overlay." (<em>JoseCarrascoPujante</em>, <a href="https://github.com/microsoft/vscode/issues/307439" target="_blank" rel="noopener noreferrer">vscode #307439</a>, Apr 2026)</li>
+<li>Cursor: "at some point i had some pending changes from cursor that i accepted but the UI and green highlight persisted." (<em>ArinCantCode</em>, <a href="https://forum.cursor.com/t/stuck-with-changes-i-cannot-accept/140558" target="_blank" rel="noopener noreferrer">forum thread</a>, Nov 2025)</li>
+<li>Cursor: review controls appear "even when the file has no actual uncommitted or unreviewed changes" (<em>user1085</em>, <a href="https://forum.cursor.com/t/agent-review-controls-appearing-when-no-changes-pending/141530" target="_blank" rel="noopener noreferrer">forum thread</a>, Nov 2025)</li>
+<li>Cursor: "Review: All Changes shows the original changes that were made by the agent, disregarding the manual changes that the user did." (<em>Al Gor</em>, <a href="https://forum.cursor.com/t/all-changes-show-stale-agent-changes-and-disregard-user-changes/144331" target="_blank" rel="noopener noreferrer">forum thread</a>, Nov 2025)</li>
+<li>Windsurf: renaming a file with pending diffs "breaks the visual diff display and acceptance functionality for all diffs... users lose the ability to see or accept any changes." (<em>jeffcoughlin</em>, <a href="https://github.com/Exafunction/codeium/issues/114" target="_blank" rel="noopener noreferrer">codeium #114</a>, Jan 2025)</li>
+</ul>
+<p>The common root: these products track highlight state as a log of AI edit events, and the log drifts from the file whenever reality moves (a manual edit, a rename, a restart). The kickoff model defines the highlight as a comparison between two fixed states, current code vs last saved version, which is computed rather than remembered. <strong>For AIRO:</strong> that derived model is the single best protection against this whole theme, and it's worth defending it when implementation pressure pushes toward tracking individual edit events. It also cleanly answers "what happens when the user manually edits inside a highlight": recompute, and only real differences stay highlighted. The kickoff requirement that manual edits not be highlighted needs one refinement, though: if a manual edit changes a line relative to the last saved version, a pure two-state diff will highlight it anyway. Deciding whether that's acceptable (highlight means "changed since save") or not (highlight means "AIRO did this") is a real spec decision, because the two definitions diverge exactly when users mix manual and AI edits, which the workflow in the kickoff (prompt, review, refine by hand, test) guarantees they will.</p>
+<h3 id="theme-2-accept-granularity-is-never-right-and-accepts-relationship-to-versioning-is-fuzzy">Theme 2: Accept granularity is never right, and accept's relationship to versioning is fuzzy</h3>
+<h4 id="sub-pattern-a-one-accept-unit-doesnt-fit-review">Sub-pattern A: one accept unit doesn't fit review</h4>
+<p>Products that offer only coarse accept get asked for granular control, and products that offer only granular get asked for batch.</p>
+<ul>
+<li>Claude Code: "users must currently accept or reject entire modifications without granular review capabilities." (<em>Dhivyeshp</em>, <a href="https://github.com/anthropics/claude-code/issues/44787" target="_blank" rel="noopener noreferrer">claude-code #44787</a>, Apr 2026)</li>
+<li>Claude Code: "With 'Ask before edits' I have to approve each individual line change without knowing what's coming next, I'm making decisions blind." (<em>brilliant-directories user</em>, <a href="https://github.com/anthropics/claude-code/issues/31888" target="_blank" rel="noopener noreferrer">claude-code #31888</a>, Mar 2026)</li>
+<li>Cursor: "I don't see the Keep All changes in the chat like i used to... i need to approve each file that got changed!" (<em>rasheddev</em>, <a href="https://forum.cursor.com/t/how-to-accept-all-changes-at-once/131639" target="_blank" rel="noopener noreferrer">forum thread</a>, Aug 2025)</li>
+<li>Windsurf: "The ability to accept or reject individual code changes made by Cascade has been removed... Changes are automatically applied with only a non-interactive diff view shown." (<em>ff-will</em>, <a href="https://github.com/Exafunction/codeium/issues/131" target="_blank" rel="noopener noreferrer">codeium #131</a>, Feb 2025)</li>
+</ul>
+<p><strong>For AIRO:</strong> the V1 single connector file makes this simpler than multi-file tools, and the kickoff's batch accept is the right starting unit. The complaints suggest the pair that works is batch accept plus per-hunk visibility (see Theme 5), with per-hunk accept as a possible fast-follow rather than a V1 requirement.</p>
+<h4 id="sub-pattern-b-nobody-can-say-what-accept-commits">Sub-pattern B: nobody can say what accept commits</h4>
+<p>Users ask for accept to create a version, products quietly couple accept to git in one direction or another, and accepting sometimes does more than advertised.</p>
+<ul>
+<li>Cursor: "for every accepted composer solution by 'Accept all', it will create a git commit with the description of the current composer chat." (feature request, <em>Stavarc</em>, <a href="https://forum.cursor.com/t/composer-create-a-git-commit-for-every-accept-all/25923" target="_blank" rel="noopener noreferrer">forum thread</a>, Nov 2024)</li>
+<li>Copilot officially couples them: <a href="https://code.visualstudio.com/docs/copilot/chat/review-code-edits" target="_blank" rel="noopener noreferrer">staging changes in Source Control auto-accepts pending edits</a>; Cursor 2.1 made <a href="https://cursor.com/changelog/2-1" target="_blank" rel="noopener noreferrer">committing auto-accept diffs per file</a></li>
+<li>Windsurf: "Sometimes the Accept changes button doesn't work... Sometimes it DELETES a lot of your code, without you noticing." (<em>XCSme</em>, <a href="https://news.ycombinator.com/item?id=42685277" target="_blank" rel="noopener noreferrer">HN</a>, Jan 2025)</li>
+<li>Windsurf: "When there are changes and I accept one of them, then trying to accept the others gives an error saying the file was changed." (<em>sama004</em>, <a href="https://news.ycombinator.com/item?id=45814733" target="_blank" rel="noopener noreferrer">HN</a>, Nov 2025)</li>
+</ul>
+<p><strong>For AIRO:</strong> the kickoff already made the clean call (Accept clears highlights, save creates versions, the two are independent), and the competitor drift is in the opposite direction, toward coupling accept with commit. Both Copilot and Cursor auto-accept on commit because users treat saving as the stronger signal. Worth mirroring that one-way coupling: saving a version should clear highlights automatically (the kickoff says it does), and the accept control's only job is clearing highlights early. The label matters here; "Keep" describes clearing-without-versioning better than "Accept," which users read as "this is now committed."</p>
+<h4 id="sub-pattern-c-the-review-gate-changes-under-users-without-warning">Sub-pattern C: the review gate changes under users without warning</h4>
+<ul>
+<li>Cursor: "It has been so annoying that I do not get the explicit review of the files with highlighted changes which was one of the pros of using Cursor." (<em>Aniket_Churihar</em>, <a href="https://forum.cursor.com/t/how-to-enable-diff-review-ui-after-latest-update/154231" target="_blank" rel="noopener noreferrer">forum thread</a>, Apr 2026)</li>
+<li>Cursor: "Review and accepting/rejecting code is not a nice to have... I need this to work." (<em>wadsworj</em>, <a href="https://forum.cursor.com/t/stuck-with-changes-i-cannot-accept/140558" target="_blank" rel="noopener noreferrer">forum thread</a>, Nov 2025)</li>
+</ul>
+<p>The prior research flagged the same Cursor regression from the insertion angle. The signal repeats from this angle too: when the review surface disappears or silently changes granularity, users escalate immediately. <strong>For AIRO:</strong> treat the highlight-and-review surface as a stable contract once shipped.</p>
+<h3 id="theme-3-restore-promises-more-than-it-keeps">Theme 3: Restore promises more than it keeps</h3>
+<p>Checkpoint restore is the trust backstop of the whole model, and in every product that ships it, restore does less than the button copy implies.</p>
+<ul>
+<li>Cursor: "'Restore checkpoint' pop up saying 'you can always undo this later'. It seems you cannot undo this later." (<em>Ursalbus</em>, <a href="https://forum.cursor.com/t/restore-checkpoint-permanently-destroys-change-history/129652" target="_blank" rel="noopener noreferrer">forum thread</a>, Aug 2025)</li>
+<li>Cursor: "it appears to restore the checkpoint as of when the question was completed, not when the question was started." (<em>Charles</em>, <a href="https://forum.cursor.com/t/ux-ui-confusion-on-restoring-checkpoints/67614" target="_blank" rel="noopener noreferrer">forum thread</a>, Mar 2025)</li>
+<li>Claude Code: "Use /rewind and select a checkpoint. There will be no option to restore the code, only the conversation." (<em>hasen6</em>, <a href="https://github.com/anthropics/claude-code/issues/15403" target="_blank" rel="noopener noreferrer">claude-code #15403</a>, Dec 2025)</li>
+<li>Claude Code: "When the response rolls back, those side effects persist but the user has no record of what was done." (<em>martinogdenlabs</em>, <a href="https://github.com/anthropics/claude-code/issues/29684" target="_blank" rel="noopener noreferrer">claude-code #29684</a>, Feb 2026)</li>
+<li>Replit: "I started a new chat and lost all of the rollback options." (<em>mkennventure</em>, <a href="https://replit.discourse.group/t/rollback-build-to-deployed-version/1412" target="_blank" rel="noopener noreferrer">Replit Discourse</a>, Jan 2025)</li>
+<li>Replit: "their database rollback is throwing errors." (<em>ianmabie</em>, <a href="https://news.ycombinator.com/item?id=45870882" target="_blank" rel="noopener noreferrer">HN</a>, Nov 2025, after the agent truncated a production table)</li>
+</ul>
+<p>Two distinct failure shapes. The first is scope: checkpoints cover less than users assume (Claude Code doesn't track bash side effects, Replit excludes the database by default, Cursor restores a different moment than expected). The second is lifetime: checkpoints vanish when the session changes. <strong>For AIRO:</strong> the SDK editor's single-file scope makes a checkpoint genuinely complete in a way these products can't offer, which is worth saying in the UI. The lifetime question is live, though: the kickoff's open item about Arrow chat history scoping (shared across asset types vs per connector) directly decides whether local draft checkpoints survive a closed tab or a new chat, and Replit's complaint shows what it feels like when they don't. Worth folding checkpoint lifetime into the Iliana alignment conversation, not treating it as an implementation detail.</p>
+<h3 id="theme-4-the-chat-says-one-thing-the-code-says-another">Theme 4: The chat says one thing, the code says another</h3>
+<p>Across three products, the agent's own narration of what it changed routinely disagrees with the actual diff, in both directions.</p>
+<ul>
+<li>Cursor: "it explicitly says that the code has been updated or fixed, but when I check the target file, no actual changes have been applied." (<em>ehdgjs6203</em>, <a href="https://forum.cursor.com/t/cursor-pro-agent-mode-falsely-says-code-was-modified-but-no-file-changes-are-applied/155116" target="_blank" rel="noopener noreferrer">forum thread</a>, Mar 2026)</li>
+<li>Copilot: "The edit summary shows +0 -0... Clicking into the diff view shows no changes... the file content is clearly modified." (<em>cutepikachu-cn</em>, <a href="https://github.com/microsoft/vscode/issues/303827" target="_blank" rel="noopener noreferrer">vscode #303827</a>, Mar 2026)</li>
+<li>Copilot: "changes in file look like everything is changed, when in fact (git changes) only a few changes were made." (<em>obiwanjacobi</em>, <a href="https://github.com/microsoft/vscode/issues/297699" target="_blank" rel="noopener noreferrer">vscode #297699</a>, Feb 2026)</li>
+<li>Replit: "The agent specifically told me it has fixed the issue, but again no changes were done." (<em>Gcspratt</em>, <a href="https://replit.discourse.group/t/why-does-the-replit-agent-not-work-and-still-get-billed-even-when-the-agent-confirmed-it-had-completed-the-task-correctly/7453" target="_blank" rel="noopener noreferrer">Replit Discourse</a>, Oct 2025)</li>
+<li>Replit: "coming back to me with an A-Okay message that it's fixed but nothing at all has changed." (<em>rcrownholm</em>, <a href="https://replit.discourse.group/t/has-replit-gotten-worse/6815" target="_blank" rel="noopener noreferrer">Replit Discourse</a>, Aug 2025)</li>
+</ul>
+<p>This lands directly on the kickoff's change-summary requirement, and it sharpens it: the danger isn't a missing summary, it's a summary generated by the model's narration rather than the actual edit. Model narration is what these users caught lying. <strong>For AIRO:</strong> worth specifying that the one-line summary is derived from the computed diff (which blocks changed, how many lines added or removed), with the model only phrasing it. A summary that can't disagree with the diff is the feature; a summary that can is a liability the competitors already demonstrate.</p>
+<h3 id="theme-5-finding-the-changes-is-the-users-job">Theme 5: Finding the changes is the user's job</h3>
+<p>In long files, products under-invest in getting the reviewer to the changes, and the cost is unreviewed or accidentally accepted code.</p>
+<ul>
+<li>Cursor: "There need to be keyboard shortcuts... that let us quickly navigate up and down the applied changes block by block... I find myself scrolling to find and audit the changes." (<em>HTML</em>, <a href="https://forum.cursor.com/t/keyboard-and-ui-navigate-changes/17216" target="_blank" rel="noopener noreferrer">forum thread</a>, Sep 2024)</li>
+<li>Cursor: "it's easy to accidentally accept or reject off-screen changes." (<em>dimitri-vs</em>, <a href="https://forum.cursor.com/t/keyboard-and-ui-navigate-changes/17216" target="_blank" rel="noopener noreferrer">same thread</a>, Dec 2024)</li>
+<li>Cursor: "I asked to change several lines. It did, but I can review only first one." (<em>IAkumaI</em>, <a href="https://forum.cursor.com/t/only-some-diffs-are-shown-whhen-agent-makes-changes/152099" target="_blank" rel="noopener noreferrer">forum thread</a>, Feb 2026)</li>
+<li>Cursor: "any deletions it makes will NOT show up marked in red when reviewing changes." (<em>Marijn17s</em>, <a href="https://forum.cursor.com/t/stuck-with-changes-i-cannot-accept/140558" target="_blank" rel="noopener noreferrer">forum thread</a>, Nov 2025)</li>
+<li>A CHI 2026 study of agent workflows recorded the same moment in the lab: participants lost track of what changed, with one reporting "I did not expect 10 files... 1000 lines each" (<a href="https://arxiv.org/abs/2507.08149" target="_blank" rel="noopener noreferrer">Chen et al.</a>)</li>
+</ul>
+<p>Copilot is the counter-example worth copying: Up/Down overlay controls plus auto-reveal of the next pending change on resolve, so the reviewer is always taken to the next decision (<a href="https://code.visualstudio.com/docs/copilot/chat/review-code-edits" target="_blank" rel="noopener noreferrer">docs</a>). <strong>For AIRO:</strong> with 1,000+ line connectors named in the kickoff, a jump-between-highlights control with a visible count ("3 changes") seems closer to must-have than polish, and dimitri-vs's complaint argues the accept-all control should communicate how many off-screen changes it covers. The Marijn17s quote also exposes a gap in a pure highlight model: deleted lines have nothing to highlight. The kickoff model (highlight = diff vs last save) needs an explicit answer for how a deletion is represented inline, because "the AI removed something and the editor shows no trace" is exactly the silent-edit failure the prior research warned about.</p>
+<hr />
+<h2 id="part-3-airo-design-implications">Part 3 — AIRO design implications</h2>
+<table>
+<thead>
+<tr>
+<th>Competitor pain point</th>
+<th>What this could mean for AIRO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pending highlights detach from file reality after manual edits, renames, restarts (Theme 1)</td>
+<td>Worth deriving highlight state by comparing current code to the last saved version on every render, never tracking it as a log of AI edit events</td>
+</tr>
+<tr>
+<td>A two-state diff can't distinguish AI edits from manual edits to the same region (Theme 1)</td>
+<td>Worth deciding explicitly whether highlights mean "changed since save" or "AIRO did this," because the kickoff currently implies both</td>
+</tr>
+<tr>
+<td>One accept unit never fits: per-line is blind, per-everything is reckless (Theme 2A)</td>
+<td>Worth pairing batch accept with per-hunk navigation and a visible change count in V1, deferring per-hunk accept</td>
+</tr>
+<tr>
+<td>Users can't say what accept commits; Copilot and Cursor both auto-accept on commit (Theme 2B)</td>
+<td>Worth labeling the control "Keep" rather than "Accept," and keeping the one-way coupling: save clears highlights, but clearing highlights never saves</td>
+</tr>
+<tr>
+<td>Review gates silently removed or changed cause immediate escalation (Theme 2C)</td>
+<td>Worth treating the highlight-review surface as a stable contract once shipped</td>
+</tr>
+<tr>
+<td>Restore covers less than the button implies (Theme 3)</td>
+<td>Worth writing restore copy that states exactly what comes back (editor code, not test results or connection state)</td>
+</tr>
+<tr>
+<td>Checkpoints vanish with the session (Theme 3)</td>
+<td>Worth folding checkpoint lifetime into the Arrow chat-history scoping alignment with Iliana, since chat scope decides draft scope</td>
+</tr>
+<tr>
+<td>Model narration disagrees with the actual diff and users catch it (Theme 4)</td>
+<td>Worth deriving the one-line change summary from the computed diff, with the model only phrasing it</td>
+</tr>
+<tr>
+<td>Off-screen changes get accepted unseen in long files (Theme 5)</td>
+<td>Worth a jump-between-highlights control plus a count on the accept control ("Keep 3 changes")</td>
+</tr>
+<tr>
+<td>Deletions are invisible in highlight-only models (Theme 5)</td>
+<td>Worth specifying how a deleted line is represented inline before the highlight model is finalized</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-biggest-gap-surfaced-by-this-research">The biggest gap surfaced by this research</h3>
+<p>None of the six products ships a change summary that is guaranteed to match the code. Cursor's file list links to the review pane but says nothing about what changed; Claude Code and Windsurf have no structured summary at all; and where summaries exist, they are the model's narration, which users in three products caught reporting changes that never happened (Theme 4). The kickoff upgraded the one-line summary from good-to-have to should-have. The evidence here suggests going one step further in the PRD: specify the summary as a derived artifact of the computed diff (which SDK blocks changed, lines added and removed), phrased by the model but unable to contradict the editor. The NaturalEdit study below adds the second half: summaries help most when they're clickably linked to the code they describe, which in AIRO's case means the summary line in chat could double as the navigation entry point Theme 5 asks for. One feature, two validated needs, and no competitor has shipped it.</p>
+<hr />
+<h2 id="part-4-theoretical-framework-linked-summaries-and-the-review-burden">Part 4 — Theoretical framework: linked summaries and the review burden</h2>
+<p><strong>Source:</strong> <em>NaturalEdit: Code Modification through Direct Interaction with Adaptive Natural Language Representation</em>, Tang et al., arXiv <a href="https://arxiv.org/abs/2510.04494" target="_blank" rel="noopener noreferrer">2510.04494</a> (Oct 2025, revised Apr 2026).</p>
+<p>NaturalEdit is the closest experimental evidence on the kickoff's change-summary question. It treats natural-language summaries as interactive representations bidirectionally linked to the code, and its user study (N=20) found developers validated AI changes faster and reported more confidence and control than with a diff alone. The operative detail is the linking: the summary works because clicking it takes you to the code it describes, not because the prose exists.</p>
+<h3 id="supporting-evidence-on-the-review-side">Supporting evidence on the review side</h3>
+<ul>
+<li>A field study of 13 developers plus a 99-person survey found experienced developers deliberately keep AI edits small and reviewable rather than batch-accepting, so review affordances are load-bearing for exactly the users AIRO's SDK builders resemble (<a href="https://arxiv.org/abs/2512.14012" target="_blank" rel="noopener noreferrer">Huang et al., Dec 2025</a>)</li>
+<li>A mining study of AI-generated pull requests found most receive no human review downstream, which makes the in-editor review moment the last realistic checkpoint before code ships (<a href="https://arxiv.org/abs/2605.02273" target="_blank" rel="noopener noreferrer">Duma et al., May 2026</a>)</li>
+<li>An analysis of 1,154 developer discussions names review burden as the central cost of AI codegen: the producer's speed gain is paid by whoever reviews (<a href="https://arxiv.org/abs/2603.27249" target="_blank" rel="noopener noreferrer">Baltes et al., Mar 2026</a>)</li>
+<li>The <a href="https://www.shapeof.ai/patterns/footprints" target="_blank" rel="noopener noreferrer">Shape of AI Footprints pattern</a> (trace what the AI did from prompt to result) and <a href="https://www.shapeof.ai/patterns/verification" target="_blank" rel="noopener noreferrer">Verification pattern</a> are the industry names for the same two needs</li>
+</ul>
+<h3 id="how-the-framework-maps-to-airo">How the framework maps to AIRO</h3>
+<table>
+<thead>
+<tr>
+<th>Framework concept</th>
+<th>AIRO equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Summary bidirectionally linked to code</td>
+<td>Chat summary line that scrolls the editor to the corresponding highlight</td>
+</tr>
+<tr>
+<td>Adjustable abstraction (one line vs detail)</td>
+<td>One-line summary in chat, expandable to per-block detail</td>
+</tr>
+<tr>
+<td>Validation speed as the measured outcome</td>
+<td>Time from AIRO edit to user clicking Keep or restoring</td>
+</tr>
+</tbody>
+</table>
+<h3 id="constraints-worth-understanding">Constraints worth understanding</h3>
+<ul>
+<li>NaturalEdit studied general code editing with 20 participants, not connector SDK code or non-professional developers, so effect sizes won't transfer directly.</li>
+<li>No paper runs the precise A/B the kickoff implies (diff alone vs diff plus one-line summary); NaturalEdit is adjacent evidence, not proof.</li>
+<li>Academic work on how users mentally model AI-session checkpoints vs explicit versions appears not to exist yet (as of June 2026), so the local-draft-vs-numbered-version model will need validating with Workato's own users.</li>
+</ul>
+<hr />
+<h2 id="appendix-all-source-links">Appendix — All source links</h2>
+<h3 id="theoretical-framework">Theoretical framework</h3>
+<ul>
+<li>NaturalEdit: https://arxiv.org/abs/2510.04494</li>
+<li>Huang et al., developers control rather than vibe: https://arxiv.org/abs/2512.14012</li>
+<li>Chen et al., CHI 2026 copilot vs agent workflows: https://arxiv.org/abs/2507.08149</li>
+<li>Duma et al., how humans review AI PRs: https://arxiv.org/abs/2605.02273</li>
+<li>Baltes et al., review burden ("AI slop") study: https://arxiv.org/abs/2603.27249</li>
+<li>Shape of AI, Footprints: https://www.shapeof.ai/patterns/footprints</li>
+<li>Shape of AI, Verification: https://www.shapeof.ai/patterns/verification</li>
+</ul>
+<h3 id="official-documentation">Official documentation</h3>
+<p><strong>Cursor</strong>
+- Checkpoints: https://cursor.com/docs/agent/chat/checkpoints
+- Reviewing code: https://cursor.com/docs/agent/review
+- Changelog 2.0 (aggregated review pane): https://cursor.com/changelog/2-0
+- Changelog 2.1 (commit auto-accepts): https://cursor.com/changelog/2-1
+- Changelog 2.3 (change summary links to review pane): https://cursor.com/changelog/2-3</p>
+<p><strong>GitHub Copilot in VS Code</strong>
+- Review AI-generated edits (Keep/Undo, navigation): https://code.visualstudio.com/docs/copilot/chat/review-code-edits
+- Chat checkpoints: https://code.visualstudio.com/docs/copilot/chat/chat-checkpoints
+- Edits / agent mode behavior: https://code.visualstudio.com/docs/copilot/chat/copilot-edits</p>
+<p><strong>JetBrains AI Assistant + Junie</strong>
+- Refactoring with AI (Accept All, Next/Previous Change): https://www.jetbrains.com/help/ai-assistant/refactoring-with-ai.html
+- AI chat: https://www.jetbrains.com/help/ai-assistant/ai-chat.html
+- Junie IDE plugin (Rollback here, Done panel): https://junie.jetbrains.com/docs/junie-ide-plugin.html</p>
+<p><strong>Windsurf (Cascade, now Devin Desktop)</strong>
+- Cascade overview (per-step revert, irreversibility warning): https://docs.devin.ai/desktop/cascade
+- Advanced configuration (diff zones): https://docs.devin.ai/desktop/advanced</p>
+<p><strong>Claude Code</strong>
+- Checkpointing (/rewind, scope limitations): https://code.claude.com/docs/en/checkpointing
+- VS Code extension: https://code.claude.com/docs/en/vs-code</p>
+<p><strong>Replit Agent</strong>
+- Checkpoints and rollbacks: https://docs.replit.com/core-concepts/agent/checkpoints-and-rollbacks</p>
+<h3 id="complaint-sources">Complaint sources</h3>
+<p><strong>Cursor (official forum)</strong>
+- Stuck with changes I cannot accept: https://forum.cursor.com/t/stuck-with-changes-i-cannot-accept/140558
+- Review controls with no pending changes: https://forum.cursor.com/t/agent-review-controls-appearing-when-no-changes-pending/141530
+- Stale agent changes disregard user edits: https://forum.cursor.com/t/all-changes-show-stale-agent-changes-and-disregard-user-changes/144331
+- How to accept all changes at once: https://forum.cursor.com/t/how-to-accept-all-changes-at-once/131639
+- Commit per Accept All request: https://forum.cursor.com/t/composer-create-a-git-commit-for-every-accept-all/25923
+- Diff review UI missing after update: https://forum.cursor.com/t/how-to-enable-diff-review-ui-after-latest-update/154231
+- Restore checkpoint UX confusion: https://forum.cursor.com/t/ux-ui-confusion-on-restoring-checkpoints/67614
+- Restore checkpoint destroys history: https://forum.cursor.com/t/restore-checkpoint-permanently-destroys-change-history/129652
+- Falsely says code was modified: https://forum.cursor.com/t/cursor-pro-agent-mode-falsely-says-code-was-modified-but-no-file-changes-are-applied/155116
+- Only some diffs shown: https://forum.cursor.com/t/only-some-diffs-are-shown-whhen-agent-makes-changes/152099
+- Keyboard navigation for changes: https://forum.cursor.com/t/keyboard-and-ui-navigate-changes/17216</p>
+<p><strong>GitHub Copilot (VS Code GitHub issues)</strong>
+- Leftover Keep/Undo across sessions: https://github.com/microsoft/vscode/issues/295666
+- Overlay claims manual edits, can't clear: https://github.com/microsoft/vscode/issues/307439
+- Keep auto-jump yanks viewport: https://github.com/microsoft/vscode/issues/301120
+- Edit summary shows +0 -0: https://github.com/microsoft/vscode/issues/303827
+- Everything looks changed when little did: https://github.com/microsoft/vscode/issues/297699</p>
+<p><strong>Claude Code (GitHub issues)</strong>
+- Per-line approval is blind: https://github.com/anthropics/claude-code/issues/31888
+- Sequential review without full-diff context: https://github.com/anthropics/claude-code/issues/40409
+- No built-in review UI in VS Code panel: https://github.com/anthropics/claude-code/issues/33932
+- Granular accept/reject request: https://github.com/anthropics/claude-code/issues/44787
+- Rewind loses the restore-code option: https://github.com/anthropics/claude-code/issues/15403
+- Side effects persist after rollback: https://github.com/anthropics/claude-code/issues/29684
+- Can't collapse accumulated outputs: https://github.com/anthropics/claude-code/issues/17043
+- Edits open tabs uncontrollably: https://github.com/anthropics/claude-code/issues/25567</p>
+<p><strong>Windsurf (Codeium tracker, Hacker News)</strong>
+- Rename breaks pending diffs: https://github.com/Exafunction/codeium/issues/114
+- Per-change accept/reject removed: https://github.com/Exafunction/codeium/issues/131
+- Accept deletes code unnoticed: https://news.ycombinator.com/item?id=42685277
+- Accept-one errors the rest: https://news.ycombinator.com/item?id=45814733</p>
+<p><strong>Replit (Discourse, Hacker News)</strong>
+- New chat lost rollback options: https://replit.discourse.group/t/rollback-build-to-deployed-version/1412
+- Checkpoint created, nothing implemented, still charged: https://replit.discourse.group/t/agent-thinking-but-doing-nothing/7511
+- Agent confirms fix that never happened: https://replit.discourse.group/t/why-does-the-replit-agent-not-work-and-still-get-billed-even-when-the-agent-confirmed-it-had-completed-the-task-correctly/7453
+- A-Okay message, nothing changed: https://replit.discourse.group/t/has-replit-gotten-worse/6815
+- Database rollback throwing errors: https://news.ycombinator.com/item?id=45870882</p>
+<p><strong>JetBrains (Hacker News)</strong>
+- Local History as safety net: https://news.ycombinator.com/item?id=45505010</p>
+<hr />
+<p><em>Sourcing honesty note: Reddit and JetBrains YouTrack were not reachable during this run, so JetBrains complaint evidence is one positive Local History mention rather than mined pain, and the Windsurf "revert deleted my later work" anecdotes that circulate on r/windsurf could not be verified and are not included. Claude Code review-gate complaints partly reflect its terminal-first design rather than a broken diff UI; they're included where the underlying need (granularity, full-diff context) transfers to any gated review model.</em></p>
+</body>
+</html>

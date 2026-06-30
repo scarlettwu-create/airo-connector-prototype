@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loading Status / Progress Indicators in AI Coding Tools — Competitive Research</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  color: #1f2328;
+  line-height: 1.65;
+  font-size: 16px;
+  background: #fff;
+}
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; color: #424a53; }
+p { margin: 0.6em 0; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+pre code { background: transparent; padding: 0; }
+blockquote {
+  border-left: 4px solid #d1d9e0;
+  margin: 1em 0;
+  padding: 0.2em 1em;
+  color: #424a53;
+  background: #f8fafc;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f6f8fa; font-weight: 600; }
+hr {
+  border: none;
+  border-top: 1px solid #d1d9e0;
+  margin: 2em 0;
+}
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.25em 0; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+</style>
+</head>
+<body>
+<h1 id="loading-status-progress-indicators-in-ai-coding-tools-competitive-research">Loading Status / Progress Indicators in AI Coding Tools — Competitive Research</h1>
+<p><strong>Context.</strong> Research into how AI coding and app-building agents show the user what's happening during the wait between sending a prompt and getting a result. For the AIRO loading/progress experience while the agent plans and builds automations.</p>
+<p><strong>Products covered.</strong> Cursor, GitHub Copilot (VS Code agent mode), Claude Code, Replit Agent, Lovable, Devin.</p>
+<p><strong>Scope.</strong> What the UI shows while the agent is working (spinners, streaming reasoning, tool-call logs, plan/todo checklists, elapsed time, token and compute meters), and how a user can tell the agent is making real progress versus stuck.</p>
+<hr />
+<h2 id="part-1-loading-status-behavior-per-product">Part 1 — Loading-status behavior per product</h2>
+<h3 id="11-cursor">1.1 Cursor</h3>
+<p>While the agent runs, chat shows a self-updating to-do checklist plus streaming tool calls and diffs, with top-level status labels like "Planning Next Moves" and "Generating", and you can queue follow-up messages that fire "at the next ideal time, usually after a tool call" (<a href="https://cursor.com/changelog/1-2" target="_blank" rel="noopener noreferrer">Cursor 1.2</a>, <a href="https://cursor.com/changelog/1-4" target="_blank" rel="noopener noreferrer">Cursor 1.4</a>, <a href="https://cursor.com/docs/agent/plan-mode" target="_blank" rel="noopener noreferrer">Plan Mode</a>).</p>
+<h3 id="12-github-copilot-vs-code-agent-mode">1.2 GitHub Copilot (VS Code agent mode)</h3>
+<p>"Every tool invocation is transparently displayed in the UI", terminal commands surface inline for approval, the agent self-heals on build/lint/test output, and with Planning on it writes a user-facing Markdown plan that "updates visibly in the editor" (<a href="https://code.visualstudio.com/blogs/2025/02/24/introducing-copilot-agent-mode" target="_blank" rel="noopener noreferrer">agent mode intro</a>, <a href="https://learn.microsoft.com/en-us/visualstudio/ide/copilot-agent-mode" target="_blank" rel="noopener noreferrer">Visual Studio agent mode</a>, <a href="https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode" target="_blank" rel="noopener noreferrer">chat agent mode reference</a>).</p>
+<h3 id="13-claude-code">1.3 Claude Code</h3>
+<p>The CLI shows an animated spinner with rotating status verbs, a live elapsed-time counter, a running token count, and an "esc to interrupt" hint, with a "Thinking for Ns" counter that warms the spinner to amber after 10 seconds to signal it's still working (<a href="https://code.claude.com/docs/en/changelog" target="_blank" rel="noopener noreferrer">changelog</a>, entries 2.1.152 and 2.1.154).</p>
+<h3 id="14-replit-agent">1.4 Replit Agent</h3>
+<p>The durable progress surface is the checkpoint timeline (each checkpoint has an AI-generated description, timestamp, and change scope, viewable in the Agent tab, Git pane, and History view), and Agent 3 adds a computer-use testing replay plus mobile live monitoring with progress bars (<a href="https://docs.replit.com/core-concepts/agent/checkpoints-and-rollbacks" target="_blank" rel="noopener noreferrer">checkpoints and rollbacks</a>, <a href="https://docs.replit.com/updates" target="_blank" rel="noopener noreferrer">updates index</a>).</p>
+<h3 id="15-lovable">1.5 Lovable</h3>
+<p>Chat shows a condensed agent activity card that groups tool calls and actions with a details view of the full action timeline, contextual tips appear while processing, and the live preview now refreshes once per agent update instead of flickering on every change (<a href="https://docs.lovable.dev/changelog" target="_blank" rel="noopener noreferrer">changelog</a>: Feb 5, Apr 24, and May 21, 2026).</p>
+<h3 id="16-devin">1.6 Devin</h3>
+<p>The session UI centers on a Progress tab that unifies shell commands, code edits, and browser activity in one clickable step log, with a long-session warning that fires around 2.5 hours or 10 ACUs, and a post-run Session Insights view showing a color-coded timeline plus ACU compute consumed (<a href="https://docs.devin.ai/work-with-devin/devin-session-tools" target="_blank" rel="noopener noreferrer">session tools</a>, <a href="https://docs.devin.ai/product-guides/session-insights" target="_blank" rel="noopener noreferrer">session insights</a>).</p>
+<hr />
+<h2 id="part-2-user-pain-points-themed-insights">Part 2 — User pain points (themed insights)</h2>
+<p>Five themes emerged from mining the Cursor forum, the anthropics/claude-code and microsoft/vscode issue trackers, Replit Discourse, Vercel Community, and product-review writeups. The complaint lives on vendor forums and GitHub far more than on Reddit or HN. The throughline: a spinner that keeps animating is not the same as evidence the agent is doing something, and users have learned not to trust the difference.</p>
+<h3 id="theme-1-is-it-stuck-or-still-working">Theme 1: "Is it stuck, or still working?"</h3>
+<p>The single most repeated complaint, and it shows up in every product. A bare spinner or a top-level status label tells the user that something might be happening, but gives them no way to tell a long-but-healthy run apart from a hung one.</p>
+<ul>
+<li>Cursor: "a 'Planning Next Moves' or 'Generating…' entry cannot be expanded, and is a complete and total BLACK BOX." — jrista, <a href="https://forum.cursor.com/t/constantly-stuck-in-planning-next-moves-or-generating/149407" target="_blank" rel="noopener noreferrer">Cursor forum</a>, Jan 2026</li>
+<li>Claude Code: "The spinner is spinning but not any other action happens. When I stop it and say to it, continue, it continue without problem though." — aliovou, <a href="https://github.com/anthropics/claude-code/issues/41683" target="_blank" rel="noopener noreferrer">claude-code #41683</a>, Mar 2026</li>
+<li>Replit Agent: "they start working then don't do anything, it hangs and gives no feedback." — jefftj86, <a href="https://replit.discourse.group/t/agent-3-issues-continue/7312" target="_blank" rel="noopener noreferrer">Replit Discourse</a>, Sep 2025</li>
+<li>Devin: "Sometimes it can be appear to be idle for a few minutes." — The Ground Truth, <a href="https://thegroundtruth.media/p/devin-first-impressions" target="_blank" rel="noopener noreferrer">Devin first impressions</a>, 2024</li>
+</ul>
+<p><strong>For AIRO:</strong> the loading state needs to answer "is this normal or is it broken" without the user having to stop the run to find out. The act of stopping to check (which several users do) is itself the failure.</p>
+<h3 id="theme-2-the-indicator-lies-it-animates-while-nothing-happens-and-still-bills-you">Theme 2: The indicator lies, it animates while nothing happens, and still bills you</h3>
+<p>The sharpest version of the problem. The animation is the user's proof of life, so when it keeps moving while the actual work has stalled, the indicator manufactures false confidence. In credit-based products that false confidence costs real money, because the meter keeps charging for the dead time.</p>
+<ul>
+<li>Claude Code: "The spinner metadata shows a long elapsed time (1m56s) but minimal thinking time (1s), suggesting the process is stuck waiting on an API response that never arrives." — jlmalone, <a href="https://github.com/anthropics/claude-code/issues/24688" target="_blank" rel="noopener noreferrer">claude-code #24688</a>, Feb 2026</li>
+<li>Copilot: stuck in a "Thinking" state for 25+ minutes "showing that it's reading files, but never suggesting or applying code edits." — globalvideos272-lab, <a href="https://github.com/orgs/community/discussions/190804" target="_blank" rel="noopener noreferrer">community discussion #190804</a>, Mar 2026</li>
+<li>Replit Agent: "I continue to get x seconds of work performed - and charged approx 25 cents each time - but literally no work is happening." — jacobmortimer1, <a href="https://replit.discourse.group/t/agent-thinking-but-doing-nothing/7511" target="_blank" rel="noopener noreferrer">Replit Discourse</a>, Oct 2025</li>
+<li>Replit Agent: "the agent decided on action but did not implement anything. It created a checkpoint and charged my account." — joeschmoeno, <a href="https://replit.discourse.group/t/agent-thinking-but-doing-nothing/7511" target="_blank" rel="noopener noreferrer">same thread</a>, Oct 2025</li>
+</ul>
+<p><strong>For AIRO:</strong> if the progress indicator is driven by a timer or a looping animation, it will look alive during a stall by construction. Deriving it from real signals (an active tool call, tokens actually streaming, a step state changing) is what lets it show "stalled" honestly. This matters more in any usage-metered context, where a loader that lies is also a meter that overcharges.</p>
+<h3 id="theme-3-it-goes-silent-mid-task-and-you-have-to-poke-it-to-revive-it">Theme 3: It goes silent mid-task, and you have to poke it to revive it</h3>
+<p>Distinct from a stall at the start. Here the agent streams partway, then stops, with no signal that it paused or why. Users learn a workaround: type "continue" to wake it, which means the product has trained them not to trust completion.</p>
+<ul>
+<li>Cursor: "Agents often stops generating output halfway through a response" and "becomes completely unresponsive... happening roughly every one or two messages." — Z_W, <a href="https://forum.cursor.com/t/frequent-agent-freezing-during-tool-based-responses/149274" target="_blank" rel="noopener noreferrer">Cursor forum</a>, Jan 2026</li>
+<li>Cursor: "cursor will silently pause on any action." — andrew0517, <a href="https://forum.cursor.com/t/cursor-silently-pausing-on-every-agent-run/159145" target="_blank" rel="noopener noreferrer">Cursor forum</a>, Apr 2026</li>
+<li>Copilot: "the terminal hangs with the message: Running command in terminal… No further progress is made, and the process does not complete." — sly01, <a href="https://github.com/microsoft/vscode-copilot-release/issues/4814" target="_blank" rel="noopener noreferrer">vscode-copilot-release #4814</a>, Feb 2025</li>
+<li>v0: "v0 constantly freezes, stops generating code, and returns incomplete responses." — blitzmic, <a href="https://community.vercel.com/t/v0-constantly-freezes-stops-return-incomplete-response-stuck/11124" target="_blank" rel="noopener noreferrer">Vercel Community</a>, May 2025</li>
+</ul>
+<p><strong>For AIRO:</strong> a partial-then-silent state is worse than an outright error because nothing marks it as a problem. Worth deciding what the UI does when streaming stops but the run hasn't reported completion, rather than leaving the last frame frozen on screen.</p>
+<h3 id="theme-4-no-eta-no-ceiling-no-sense-of-how-far-along">Theme 4: No ETA, no ceiling, no sense of how far along</h3>
+<p>Users can sit for minutes to hours with no indication of how long the run will take or how much is left. The few products that surface a bound stand out for it.</p>
+<ul>
+<li>Copilot: "sometimes it just gets stuck at 'Working....' and it does not timeout, can sit there for 10 minutes." — bakman2, <a href="https://github.com/microsoft/vscode/issues/251475" target="_blank" rel="noopener noreferrer">vscode #251475</a>, Jun 2025</li>
+<li>Cursor: "get stuck for very long time (even after a few hours still no progress)." — chi_hay_Yip, <a href="https://forum.cursor.com/t/constantly-stuck-in-planning-next-moves-or-generating/149407" target="_blank" rel="noopener noreferrer">Cursor forum</a>, Jan 2026</li>
+<li>Replit Agent: "replit agent is searching for past 13 min and its set on low autonomy tho and i tried with max also." — TheCodingLord, <a href="https://replit.discourse.group/t/agent-3-issues-continue/7312" target="_blank" rel="noopener noreferrer">Replit Discourse</a>, Sep 2025</li>
+<li>Devin, as a counter-example, does surface a bound: "A warning appears when the session has been going on for a long time (at around 2.5 hours or 10 ACUs)." — The Ground Truth, <a href="https://thegroundtruth.media/p/devin-first-impressions" target="_blank" rel="noopener noreferrer">Devin first impressions</a>, 2024</li>
+</ul>
+<p>A true percent-done bar is hard for an agent because the work isn't known up front. Devin's move is the realistic version: surface a compute meter (ACUs) and a long-session warning so the user has some ceiling to reason against, even without a precise ETA.</p>
+<p><strong>For AIRO:</strong> worth deciding what bound the UI can honestly show. A step count against a known plan, a compute or cost meter, or a "this is taking longer than usual" threshold all beat an unbounded spinner.</p>
+<h3 id="theme-5-when-the-loader-freezes-it-can-take-your-work-with-it">Theme 5: When the loader freezes, it can take your work with it</h3>
+<p>The most damaging version. The wait state doesn't just go opaque, it locks up and loses the session, so the cost of an ambiguous loader is not just confusion but lost work.</p>
+<ul>
+<li>Lovable: "I've spent over 20 credits trying to fix a code that results in my app being frozen on a 'loading page'." — Vibe Coding With Fred, <a href="https://vibecodingwithfred.com/blog/lovable-from-hero-to-zero/" target="_blank" rel="noopener noreferrer">retrospective</a>, 2025</li>
+<li>v0: "It will be in the middle of writing a file, and just completely freeze, and it will infinitely say generating." — Salvinoto, <a href="https://community.vercel.com/t/v0-is-freezing-up-and-never-doing-anything/5826" target="_blank" rel="noopener noreferrer">Vercel Community</a>, Feb 2025</li>
+<li>v0: "seems when trying to load projects they infinitely load." — Mash, <a href="https://community.vercel.com/t/infinite-loading-project-v0/26379" target="_blank" rel="noopener noreferrer">Vercel Community</a>, Oct 2025</li>
+<li>v0: "V0 suddenly froze and I lost the entire chat and all my progress." — Baytech PH, <a href="https://community.vercel.com/t/when-v0-freezes-the-entire-conversation-is-gone/15984" target="_blank" rel="noopener noreferrer">Vercel Community</a>, Jul 2025</li>
+</ul>
+<p><strong>For AIRO:</strong> the loading state and session durability are linked. If a frozen loader can lose in-progress work, the progress UI needs a recovery path (resume, or at least preserve what was built so far), not just a better animation.</p>
+<hr />
+<h2 id="part-3-airo-design-implications">Part 3 — AIRO design implications</h2>
+<table>
+<thead>
+<tr>
+<th>Competitor pain point</th>
+<th>What this could mean for AIRO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bare spinner / "Generating" label is a "black box" users can't read (Theme 1)</td>
+<td>Worth showing the current action in plain language (what tool is running, what step in the plan), not just an animated state label</td>
+</tr>
+<tr>
+<td>Indicator animates while work has stalled, and still bills (Theme 2)</td>
+<td>Worth deriving the progress signal from real activity (active tool call, streaming tokens, step transitions) so it can show "stalled" honestly rather than always looking alive</td>
+</tr>
+<tr>
+<td>Agent goes silent mid-task with no marker (Theme 3)</td>
+<td>Worth defining what the UI does when streaming stops without a completion signal, so a partial-then-silent run is visibly flagged, not left frozen</td>
+</tr>
+<tr>
+<td>No ETA or ceiling on long runs (Theme 4)</td>
+<td>Worth surfacing some honest bound: step count against the plan, a compute or cost meter (Devin's ACU model), or a "longer than usual" threshold</td>
+</tr>
+<tr>
+<td>Frozen loader loses the whole session (Theme 5)</td>
+<td>Worth linking the loading state to session durability so a hang has a resume or preserve path, not just a spinner</td>
+</tr>
+<tr>
+<td>Tool calls shown transparently (Cursor, Copilot, Devin)</td>
+<td>Worth treating the activity log as the primary progress surface, with the spinner as secondary</td>
+</tr>
+<tr>
+<td>Plan/todo checklist that updates live (Cursor, Copilot, Lovable)</td>
+<td>Worth showing the plan up front and checking off steps as they complete, which doubles as a natural progress bar for work whose length isn't known</td>
+</tr>
+<tr>
+<td>Checkpoint timeline with descriptions and timestamps (Replit, Devin)</td>
+<td>Worth making each completed unit of work a legible, timestamped entry, so "what has it done so far" is answerable mid-run</td>
+</tr>
+<tr>
+<td>Long-session warning + compute meter (Devin)</td>
+<td>Worth a soft ceiling that warns before a run gets expensive or runaway, especially in a metered context</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-biggest-gap-surfaced-by-this-research">The biggest gap surfaced by this research</h3>
+<p>Across all six products, the loading indicator is built as decoration, a spinner or animation on a timer, rather than as a truthful readout of whether work is actually happening. That design choice is the root of the most-repeated and most-damaging complaints: the indicator keeps moving during a stall (Theme 2), so users can't tell stuck from working (Theme 1), and in metered products the meter keeps charging for dead time. The open question for AIRO is whether the progress indicator should be derived from real signals (an active tool call, tokens streaming, a step state changing) so it can honestly show "stalled," instead of a time-based animation that always looks alive. This is a higher-stakes decision for AIRO than for an IDE assistant, because AIRO builds automations that may have side effects in connected systems, so "is it still working" is also "should I intervene before it does something."</p>
+<hr />
+<h2 id="part-4-framework-showing-the-work-as-the-progress-signal">Part 4 — Framework: showing the work as the progress signal</h2>
+<p><strong>Sources.</strong> Shape of AI's <a href="https://www.shapeof.ai/patterns/stream-of-thought" target="_blank" rel="noopener noreferrer">Stream of Thought</a> pattern; Nielsen Norman Group on <a href="https://www.nngroup.com/articles/progress-indicators/" target="_blank" rel="noopener noreferrer">progress indicators</a> and <a href="https://www.nngroup.com/articles/response-times-3-important-limits/" target="_blank" rel="noopener noreferrer">response-time limits</a>; <em>Interactive Reasoning: Visualizing and Controlling Chain-of-Thought Reasoning in LLMs</em>, <a href="https://arxiv.org/abs/2506.23678" target="_blank" rel="noopener noreferrer">arXiv 2506.23678</a> (ACM IUI 2025).</p>
+<p>The classic UX rules apply to agents almost unchanged. NN/G's thresholds say anything past about 10 seconds needs determinate progress plus a way to interrupt, because an indeterminate spinner leaves users unable to tell whether the system is working or stopped, so they abandon the task. Agent runs almost always blow past 10 seconds, which puts them squarely in the "must show real progress and an interrupt" regime. Most of the products here ship the interrupt (esc, stop) but not the real progress.</p>
+<p>What's new for agents is what the "progress" content should be. Shape of AI's Stream of Thought pattern names it: the progress surface is the agent's plan and work log itself, with each step treated as an explicit state (queued, running, waiting for approval, error, completed). It also argues for showing an editable plan before execution so users can correct course early. That state model is directly usable design vocabulary, and it reframes the spinner as the fallback, not the main event.</p>
+<p>The IUI 2025 study adds the evidence that this is not just trust theater. In a 16-person user study, surfacing structured reasoning let participants catch and interrupt erroneous generations early and steer the model mid-run. The payoff of exposing intermediate work is concrete: earlier error-catching and mid-run intervention, not just reassurance.</p>
+<h3 id="constraints-worth-understanding">Constraints worth understanding</h3>
+<ul>
+<li>A true percent-done bar is usually not achievable for an agent, since the total work isn't known up front. A step-against-plan count or a compute meter is the realistic substitute.</li>
+<li>Showing the full reasoning stream can be verbose and overwhelming; the pattern calls for compact summaries and collapsible detail, not a raw token dump (Cursor's Compact mode and Lovable's grouped activity cards are attempts at this).</li>
+<li>A live work log only helps if it reflects reality. If the displayed steps are model narration rather than the actual tool calls, it reintroduces the Theme 2 problem (the display says one thing, the system did another).</li>
+<li>Plan-before-execution adds an upfront step that trades a little speed for steerability, which is a deliberate product call, not a free win.</li>
+</ul>
+<hr />
+<h2 id="appendix-all-source-links">Appendix — All source links</h2>
+<h3 id="theoretical-framework">Theoretical framework</h3>
+<ul>
+<li>Shape of AI, Stream of Thought: https://www.shapeof.ai/patterns/stream-of-thought</li>
+<li>NN/G, Progress Indicators: https://www.nngroup.com/articles/progress-indicators/</li>
+<li>NN/G, Response Time Limits: https://www.nngroup.com/articles/response-times-3-important-limits/</li>
+<li>NN/G, Visibility of System Status: https://www.nngroup.com/articles/visibility-system-status/</li>
+<li>Interactive Reasoning (ACM IUI 2025): https://arxiv.org/abs/2506.23678</li>
+<li>Microsoft Design, UX Design for Agents: https://microsoft.design/articles/ux-design-for-agents/</li>
+</ul>
+<h3 id="official-documentation">Official documentation</h3>
+<p><strong>Cursor</strong>
+- https://cursor.com/changelog/1-2
+- https://cursor.com/changelog/1-4
+- https://cursor.com/docs/agent/plan-mode</p>
+<p><strong>GitHub Copilot</strong>
+- https://code.visualstudio.com/blogs/2025/02/24/introducing-copilot-agent-mode
+- https://learn.microsoft.com/en-us/visualstudio/ide/copilot-agent-mode
+- https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode</p>
+<p><strong>Claude Code</strong>
+- https://code.claude.com/docs/en/changelog</p>
+<p><strong>Replit Agent</strong>
+- https://docs.replit.com/core-concepts/agent/checkpoints-and-rollbacks
+- https://docs.replit.com/updates</p>
+<p><strong>Lovable</strong>
+- https://docs.lovable.dev/changelog</p>
+<p><strong>Devin</strong>
+- https://docs.devin.ai/work-with-devin/devin-session-tools
+- https://docs.devin.ai/product-guides/session-insights</p>
+<h3 id="complaint-sources">Complaint sources</h3>
+<p><strong>Cursor (Cursor forum)</strong>
+- Stuck in Planning Next Moves / Generating ("black box"): https://forum.cursor.com/t/constantly-stuck-in-planning-next-moves-or-generating/149407
+- Freezing during tool-based responses: https://forum.cursor.com/t/frequent-agent-freezing-during-tool-based-responses/149274
+- Silently pausing on every agent run: https://forum.cursor.com/t/cursor-silently-pausing-on-every-agent-run/159145
+- Spinner "taking longer than expected" hangs forever: https://forum.cursor.com/t/cursor-spinner-taking-longer-than-expected-state-hangs-forever-during-file-write-edit-operation/152561</p>
+<p><strong>GitHub Copilot (GitHub issues / discussions)</strong>
+- Stuck at "Working...", no timeout: https://github.com/microsoft/vscode/issues/251475
+- Stuck in "Thinking", reads files but never edits: https://github.com/orgs/community/discussions/190804
+- Terminal hangs on "Running command in terminal": https://github.com/microsoft/vscode-copilot-release/issues/4814</p>
+<p><strong>Claude Code (GitHub issues)</strong>
+- Hanging spinner mid-work: https://github.com/anthropics/claude-code/issues/41683
+- Spinner ticks but no tokens stream / never returns: https://github.com/anthropics/claude-code/issues/54297
+- Elapsed time high but thinking time ~1s, unresponsive: https://github.com/anthropics/claude-code/issues/24688</p>
+<p><strong>Replit Agent (Replit Discourse)</strong>
+- Agent Thinking but doing nothing (charged, checkpoints, no changes): https://replit.discourse.group/t/agent-thinking-but-doing-nothing/7511
+- Agent 3 issues continue (hangs, no feedback, 13-min search): https://replit.discourse.group/t/agent-3-issues-continue/7312
+- Agent getting stuck in a loop: https://replit.discourse.group/t/replit-agent-getting-stuck-in-a-loop-any-advice/1279</p>
+<p><strong>v0 (Vercel Community)</strong>
+- Freezing, never doing anything, "infinitely say generating": https://community.vercel.com/t/v0-is-freezing-up-and-never-doing-anything/5826
+- Infinite loading project: https://community.vercel.com/t/infinite-loading-project-v0/26379
+- Constantly freezes, stops, incomplete response: https://community.vercel.com/t/v0-constantly-freezes-stops-return-incomplete-response-stuck/11124
+- Prompts failing silently after thinking animation: https://community.vercel.com/t/v0-prompts-failing-silently-after-thinking-animation-without-generating-code/37680
+- When v0 freezes, the conversation is gone: https://community.vercel.com/t/when-v0-freezes-the-entire-conversation-is-gone/15984
+- Stopping responses in each generation: https://community.vercel.com/t/v0-is-stopping-responses-in-each-generation-generating-code-in-chat/9081</p>
+<p><strong>Lovable</strong>
+- Lovable retrospective, frozen on a loading page: https://vibecodingwithfred.com/blog/lovable-from-hero-to-zero/</p>
+<p><strong>Devin</strong>
+- Devin first impressions (idle minutes, long-session warning, editing loops): https://thegroundtruth.media/p/devin-first-impressions
+- The Register, Devin poor reviews discussion: https://forums.theregister.com/forum/all/2025/01/23/ai_developer_devin_poor_reviews/</p>
+</body>
+</html>

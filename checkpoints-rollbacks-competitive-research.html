@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkpoints and Rollbacks — Competitive Research</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  color: #1f2328;
+  line-height: 1.65;
+  font-size: 16px;
+  background: #fff;
+}
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; color: #424a53; }
+p { margin: 0.6em 0; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+pre code { background: transparent; padding: 0; }
+blockquote {
+  border-left: 4px solid #d1d9e0;
+  margin: 1em 0;
+  padding: 0.2em 1em;
+  color: #424a53;
+  background: #f8fafc;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f6f8fa; font-weight: 600; }
+hr {
+  border: none;
+  border-top: 1px solid #d1d9e0;
+  margin: 2em 0;
+}
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.25em 0; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+</style>
+</head>
+<body>
+<h1 id="checkpoints-and-rollbacks-competitive-research">Checkpoints and Rollbacks — Competitive Research</h1>
+<p><strong>Context.</strong> Early-stage research for AIRO (Workato's agentic builder), to inform how an AIRO agent should let users roll back after it has made a series of edits in a session. No PRD yet; this is the research that comes before constraints are set.</p>
+<p><strong>Products covered.</strong> Cursor, Claude Code, GitHub Copilot, Replit Agent, Lovable, n8n. Workato's recipe versioning and Windsurf/Cascade come in as baseline and contrast.</p>
+<p><strong>Scope.</strong> Agent-session checkpoints and rollback: the agent makes a run of edits (files, recipes, connections, deployments), and the user wants to return to an earlier point. How each product creates checkpoints, what a "restore" actually reverts, what it misses, how long checkpoints live, and where users get burned.</p>
+<hr />
+<h2 id="part-1-checkpoint-and-rollback-behavior-per-product">Part 1 — Checkpoint and rollback behavior per product</h2>
+<h3 id="11-cursor">1.1 Cursor</h3>
+<p>Auto-creates a checkpoint before significant edits and lets you click "Restore Checkpoint" to revert all modified files, but checkpoints are stored locally, <a href="https://cursor.com/docs/agent/chat/checkpoints" target="_blank" rel="noopener noreferrer">explicitly separate from git</a>, and meant only for undoing agent file edits (not terminal or git operations).</p>
+<h3 id="12-claude-code">1.2 Claude Code</h3>
+<p>Every prompt creates a checkpoint and <a href="https://code.claude.com/docs/en/checkpointing" target="_blank" rel="noopener noreferrer"><code>/rewind</code></a> offers "restore code," "restore conversation," or both, persisting across sessions and auto-cleaned after 30 days, but files changed by bash commands (<code>rm</code>, <code>mv</code>, <code>cp</code>) are not tracked and cannot be undone.</p>
+<h3 id="13-github-copilot-vs-code">1.3 GitHub Copilot (VS Code)</h3>
+<p>Opt-in <a href="https://code.visualstudio.com/docs/copilot/chat/chat-checkpoints" target="_blank" rel="noopener noreferrer">chat checkpoints</a> snapshot affected files before each request; restoring reverts the workspace, removes that request from chat history, and a Redo recovers the undone changes, but checkpoints are scoped to a single chat session and described as temporary.</p>
+<h3 id="14-replit-agent">1.4 Replit Agent</h3>
+<p>Automatically checkpoints a full app snapshot (files, packages, config, conversation, agent memory, and database contents) at milestones and <a href="https://docs.replit.com/core-concepts/agent/checkpoints-and-rollbacks" target="_blank" rel="noopener noreferrer">rolls back instantly forward or backward</a>, though the database is excluded from a rollback unless you opt in under "Additional rollback options."</p>
+<h3 id="15-lovable">1.5 Lovable</h3>
+<p>Keeps a built-in version history of every AI edit where a restore <a href="https://docs.lovable.dev/features/agent-mode" target="_blank" rel="noopener noreferrer">creates a new edit card rather than destroying history</a> (git-revert style), and since <a href="https://docs.lovable.dev/changelog" target="_blank" rel="noopener noreferrer">Feb 23, 2026</a> stopping mid-task keeps all completed work.</p>
+<h3 id="16-n8n">1.6 n8n</h3>
+<p>Has <a href="https://docs.n8n.io/hosting/scaling/concurrency-control/" target="_blank" rel="noopener noreferrer">no native checkpoint or rollback</a>; the closest is a "Save execution progress" setting that resumes a workflow from where it errored, with true rollback left to user-built compensating sub-workflows.</p>
+<p><strong>Baseline and contrast.</strong> Workato today versions every recipe on save with a <a href="https://docs.workato.com/recipes/version-management.html" target="_blank" rel="noopener noreferrer">Recipe Diff and "Restore this version" action</a>. Windsurf/Cascade reverts a step's file changes but its own docs warn <a href="https://docs.devin.ai/desktop/cascade" target="_blank" rel="noopener noreferrer">"Reverts are currently irreversible, so be careful!"</a></p>
+<hr />
+<h2 id="part-2-user-pain-points-themed-insights">Part 2 — User pain points (themed insights)</h2>
+<p>I mined the Cursor forum, claude-code and microsoft/vscode GitHub issues, Replit Discourse, the n8n community, and the Vercel community, plus the existing complaint library. Five themes carry the most weight, ordered roughly by how often they show up and how much trust they cost.</p>
+<h3 id="theme-1-rollback-rolls-back-the-code-not-the-world">Theme 1: Rollback rolls back the code, not the world</h3>
+<p>Restoring a checkpoint reliably reverts the files the agent edited. Anything with a side effect outside those files (a database, a deployment, a created resource, a shell command) stays changed, and users find out after the fact.</p>
+<ul>
+<li>Replit: rollbacks <a href="https://docs.replit.com/core-concepts/agent/checkpoints-and-rollbacks" target="_blank" rel="noopener noreferrer">exclude the database by default</a>; you have to opt in to include it.</li>
+<li>Replit: "That rolls back the deployment not the code" — kody-replit, <a href="https://replit.discourse.group/t/ability-to-roll-back-to-a-deployed-version/2676" target="_blank" rel="noopener noreferrer">Replit Discourse</a>, April 2025.</li>
+<li>Replit: "I asked agent to add something to the database and it erased the existing database (said its unrecoverable) and it started an entirely new database. This was detrimental to weeks of work." — andysamland, <a href="https://replit.discourse.group/t/ability-to-roll-back-to-a-deployed-version/2676" target="_blank" rel="noopener noreferrer">Replit Discourse</a>, February 2025.</li>
+<li>Lovable/Supabase: "But I am wondering about what happens to my supabase migrations? Ideally those should be reverted complying to 'Restore' action." — Mohammed Zeeshan, <a href="https://community.vercel.com/t/restoring-to-a-previous-version-will-revert-supabase-migration/13189" target="_blank" rel="noopener noreferrer">Vercel Community</a>, June 2025.</li>
+<li>Claude Code: files modified by bash commands are <a href="https://code.claude.com/docs/en/checkpointing" target="_blank" rel="noopener noreferrer">not tracked</a>; "When the response rolls back, those side effects persist but the user has no record of what was done." — martinogdenlabs, <a href="https://github.com/anthropics/claude-code/issues/29684" target="_blank" rel="noopener noreferrer">claude-code #29684</a>, February 2026.</li>
+</ul>
+<p>An AIRO agent that creates a recipe, a connection, or a deployed job has produced exactly this kind of side effect. Rolling back the chat won't un-create the recipe sitting in the workspace.</p>
+<p><strong>For AIRO:</strong> This is the sharpest decision in the space. Worth settling early what a rollback covers when the agent has already made real workspace changes, and saying it plainly in the restore UI rather than letting users learn the boundary by getting burned. See Part 4 for the bufferable-vs-externalized framing.</p>
+<h3 id="theme-2-nobody-can-predict-what-a-restore-actually-reverts">Theme 2: Nobody can predict what a "restore" actually reverts</h3>
+<p>"Restore" means different things across products (conversation only, code only, both, deployment, agent memory, todo state), and the affordances diverge even inside one product. Users can't tell what state they'll land in.</p>
+<ul>
+<li>Cursor: "It's super confusing that rerunning prompt does different thing than clicking 'restore' checkpoint below that prompt, and that clicking on text below prompt does other changes." — Yuri, <a href="https://forum.cursor.com/t/ux-ui-confusion-on-restoring-checkpoints/67614" target="_blank" rel="noopener noreferrer">Cursor forum</a>, March 2025.</li>
+<li>Claude Code: "After using /rewind to restore the conversation to a previous checkpoint, the TODO list is not reverted... Claude may repeat tasks it had already completed before the rewind." — FelixRuiGao, <a href="https://github.com/anthropics/claude-code/issues/41542" target="_blank" rel="noopener noreferrer">claude-code #41542</a>, March 2026.</li>
+<li>GitHub Copilot: "the memory files (agent-generated context/logic files) created during the discarded portion of the conversation are not deleted or reverted." — bnn1, <a href="https://github.com/microsoft/vscode/issues/307617" target="_blank" rel="noopener noreferrer">vscode #307617</a>, April 2026.</li>
+<li>Cursor: restore "appears to restore the checkpoint as of when the question was completed, not when the question was started." — Charles, <a href="https://forum.cursor.com/t/ux-ui-confusion-on-restoring-checkpoints/67614" target="_blank" rel="noopener noreferrer">Cursor forum</a>, March 2025.</li>
+</ul>
+<p>The pattern is partial restore. The agent's state is made of several layers (chat, code, todo, memory, created assets) and a restore touches some but not all of them, which leaves the session in a state the user didn't ask for and can't reason about.</p>
+<p><strong>For AIRO:</strong> If an AIRO checkpoint spans chat plus recipe edits plus created assets, the restore dialog could name exactly which layers come back. The failure here isn't missing rollback, it's rollback whose scope the user has to discover the hard way.</p>
+<h3 id="theme-3-all-or-nothing-so-good-work-gets-thrown-out-with-the-bad">Theme 3: All-or-nothing, so good work gets thrown out with the bad</h3>
+<p>Checkpoints attach to whole prompts, so the only way to drop a bad change introduced late is to discard the good progress that came with it. Restore granularity rarely matches how work actually accumulates.</p>
+<ul>
+<li>Cursor: "You can no longer restore checkpoints at certain points during the process, only with each prompt. That is… bad." — SThompson, <a href="https://forum.cursor.com/t/ux-ui-confusion-on-restoring-checkpoints/67614" target="_blank" rel="noopener noreferrer">Cursor forum</a>, March 2025.</li>
+<li>Cursor: "there are situations where we might have partially successful code updates, but then extra unwanted elements get introduced in the later stages." — m-akinari, <a href="https://forum.cursor.com/t/allow-restoring-a-checkpoint-at-any-point-during-agent-based-code-updates/68887" target="_blank" rel="noopener noreferrer">Cursor forum</a>, March 2025.</li>
+<li>n8n: "There's no real checkpointing, so if it crashes at page 20, I have to restart from page 1." — Keira_Becky, <a href="https://community.n8n.io/t/n8n-workflow-fails-to-resume-safely-after-partial-execution-idempotency-checkpointing-issue/293072" target="_blank" rel="noopener noreferrer">n8n community</a>, April 2026.</li>
+<li>Make.com (adjacent, replay): "If 8 cases failed, I cannot play the 5th one only it seems. Is there any way to decide which one to execute?" — Gaurav_Srivastava, <a href="https://community.make.com/t/is-it-possible-to-have-data-history-of-execution-and-the-possibility-to-replay-it/83570" target="_blank" rel="noopener noreferrer">Make.com community</a>, May 2025.</li>
+</ul>
+<p><strong>For AIRO:</strong> Worth exploring whether a rollback can target a single recipe or a single step the agent touched, rather than only rewinding the whole session to a prompt boundary.</p>
+<h3 id="theme-4-the-safety-net-isnt-safe">Theme 4: The safety net isn't safe</h3>
+<p>The feature users lean on as insurance is itself unreliable: clicks that do nothing, checkpoints that vanish on session end or app update, and reverts with no way back.</p>
+<ul>
+<li>Cursor: "when I click Rollback (or try to restore a checkpoint), nothing happens and my code stays in the modified" — Bogdan_Moise, <a href="https://forum.cursor.com/t/rollback-fails-in-cursor-checkpoint-restore-doesn-t-work-either/122069" target="_blank" rel="noopener noreferrer">Cursor forum</a>, July 2025.</li>
+<li>Cursor: after a version update "we were unable to click 'Restore Checkpoint', and several files were deleted... it's now impossible to find the files that were deleted after the update." — Kiziev, <a href="https://forum.cursor.com/t/after-updating-the-software-the-restore-checkpoint-function-stopped-working-and-some-files-were-lost/121750" target="_blank" rel="noopener noreferrer">Cursor forum</a>, July 2025.</li>
+<li>Replit: "I started a new chat and lost all of the rollback options." — mkennventure, <a href="https://replit.discourse.group/t/rollback-build-to-deployed-version/1412" target="_blank" rel="noopener noreferrer">Replit Discourse</a>, January 2025.</li>
+<li>GitHub Copilot: restoring at a previous point works, but switching to another session and back makes the rolled-back discussion reappear instead of staying at the checkpoint. — garretwilson, <a href="https://github.com/microsoft/vscode/issues/319225" target="_blank" rel="noopener noreferrer">vscode #319225</a>, May 2026.</li>
+<li>Cursor: the "Restore checkpoint" prompt said "you can always undo this later," and "It seems you cannot undo this later." — Ursalbus, <a href="https://forum.cursor.com/t/restore-checkpoint-permanently-destroys-change-history/129652" target="_blank" rel="noopener noreferrer">Cursor forum</a>, August 2025.</li>
+</ul>
+<p>The cleanest counter-example is Copilot's <a href="https://code.visualstudio.com/docs/copilot/chat/chat-checkpoints" target="_blank" rel="noopener noreferrer">Redo</a>, which reapplies undone changes after a restore. Windsurf/Cascade sits at the other end with reverts its own docs call irreversible.</p>
+<p><strong>For AIRO:</strong> A rollback users can't trust is arguably worse than none, because they stop keeping their own backups and then lose work. Two things seem worth pinning down early: whether the rollback itself is reversible (a redo), and how long a checkpoint lives (does it survive closing the session).</p>
+<h3 id="theme-5-in-metered-products-the-checkpoint-is-itself-a-charge">Theme 5: In metered products, the checkpoint is itself a charge</h3>
+<p>In credit-based agents, creating a checkpoint can cost money, so an agent that checkpoints aggressively, or checkpoints work that changed nothing, runs up the bill on its own.</p>
+<ul>
+<li>Replit: "It's now doing multiple checkpoints without changing any code. Something is wonky." — realfunnyeric, <a href="https://replit.discourse.group/t/agent-needs-to-chill-with-the-checkpoints/4512" target="_blank" rel="noopener noreferrer">Replit Discourse</a>, May 2025.</li>
+<li>Replit: "The agents tendency to go 'wild' with multiple check points... quickly becomes a vicious cycle that increases cost" — slin175, <a href="https://replit.discourse.group/t/agent-needs-to-chill-with-the-checkpoints/4512" target="_blank" rel="noopener noreferrer">Replit Discourse</a>, May 2025.</li>
+<li>Replit: "the agent decided on action but did not implement anything. It created a checkpoint and charged my account." — joeschmoeno, <a href="https://replit.discourse.group/t/agent-thinking-but-doing-nothing/7511" target="_blank" rel="noopener noreferrer">Replit Discourse</a>, October 2025.</li>
+<li>Replit: "A lot of checkpoints are getting billed, but is all useless because of this" (once the session ended). — NihalAlgo, <a href="https://replit.discourse.group/t/how-can-i-rollback-to-a-checkpoint-from-a-chat-session-that-has-ended/2628" target="_blank" rel="noopener noreferrer">Replit Discourse</a>, February 2025.</li>
+</ul>
+<p>Honest caveat: all four quotes are Replit, because Replit ties checkpoints directly to billing units. It's a single-product pattern today, but it's structural to any metered agent.</p>
+<p><strong>For AIRO:</strong> If AIRO checkpoints ever get metered, worth deciding whether a checkpoint that produced no change is billable, and whether users can see what a checkpoint costs before it accrues.</p>
+<hr />
+<h2 id="part-3-airo-design-implications">Part 3 — AIRO design implications</h2>
+<table>
+<thead>
+<tr>
+<th>Competitor pain point</th>
+<th>What this could mean for AIRO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rollback reverts files but leaves databases, deployments, and created resources changed (Replit, Lovable, Claude Code; Theme 1)</td>
+<td>Worth defining what a rollback covers when the agent has already created a recipe, connection, or job, and surfacing that boundary in the restore UI</td>
+</tr>
+<tr>
+<td>"Restore" silently means different things (conversation vs code vs memory vs todo) (Cursor, Claude Code, Copilot; Theme 2)</td>
+<td>Could be worth naming the exact layers a restore reverts in the dialog itself, so scope isn't learned by surprise</td>
+</tr>
+<tr>
+<td>Checkpoints only attach to whole prompts, so dropping a late mistake discards good work (Cursor, n8n; Theme 3)</td>
+<td>Worth exploring per-recipe or per-step rollback rather than only session-level rewind</td>
+</tr>
+<tr>
+<td>Restore clicks do nothing, or break after an app update (Cursor; Theme 4)</td>
+<td>Reliability of the restore action seems worth treating as a core requirement, not a nice-to-have</td>
+</tr>
+<tr>
+<td>Checkpoints disappear when the session ends or a new chat starts (Replit, Copilot; Theme 4)</td>
+<td>Could be worth making checkpoint lifetime an explicit, stated decision rather than an implementation side effect</td>
+</tr>
+<tr>
+<td>Reverts with no redo permanently destroy forward history (Cursor, Windsurf; Theme 4)</td>
+<td>Worth considering whether a rollback is itself reversible, following Copilot's Redo pattern</td>
+</tr>
+<tr>
+<td>Restoring mid-run doesn't stop the agent, which keeps editing on top of the reverted state (Copilot)</td>
+<td>Worth deciding what a restore does to an in-flight run (halt first, then revert)</td>
+</tr>
+<tr>
+<td>Aggressive or no-op checkpoints run up the bill (Replit; Theme 5)</td>
+<td>If metered, worth defining whether no-change checkpoints are billable and showing checkpoint cost upfront</td>
+</tr>
+<tr>
+<td>n8n and Tier 1 peers have no real session checkpoint at all (Theme 3)</td>
+<td>A conversational builder that ships reliable, scoped rollback would lead the workflow-automation category rather than catch up to it</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-biggest-gap-surfaced-by-this-research">The biggest gap surfaced by this research</h3>
+<p>Every product here does a decent job rolling back files. None has a clean answer for rolling back the things an agent creates that live outside those files: a deployed app, a database migration, a remote resource. Replit excludes the database from rollback by default, Lovable users ask what happens to their Supabase migrations, Claude Code can't undo a <code>rm</code>, and the practitioner skepticism on the <a href="https://news.ycombinator.com/item?id=48037724" target="_blank" rel="noopener noreferrer">transactional-sandbox thread</a> lands on the same point every time.</p>
+<p>For AIRO this is the whole ballgame, because the agent's main output is exactly these externalized effects. A recipe created in the workspace, a connection authorized, a job deployed. Rolling back the conversation does not un-create them. The open question worth answering before the PRD hardens: when the user clicks "restore," what happens to the real resources the agent already created, and does the UI promise rollback or honestly offer compensation (a follow-up action that undoes the effect)? There is also no academic study yet of how users mentally model an agent-session checkpoint versus git or explicit versions, so the mental-model burden falls entirely on the product.</p>
+<hr />
+<h2 id="part-4-theoretical-framework-atomix">Part 4 — Theoretical framework: Atomix</h2>
+<p><strong>Source:</strong> <em>Atomix: Transactional Tool Calls for Reliable Agentic Workflows</em>, arXiv <a href="https://arxiv.org/abs/2602.14849" target="_blank" rel="noopener noreferrer">2602.14849</a> (February 2026). <a href="https://arxiv.org/html/2602.14849" target="_blank" rel="noopener noreferrer">HTML version</a>.</p>
+<p>Atomix borrows from database transactions and Saga-style compensation to ask when it is safe for an agent to commit an action. Its useful move for AIRO is splitting effects into two kinds: bufferable effects that can be held and discarded cheaply, and externalized effects that hit the outside world immediately and can only be undone by a compensating action.</p>
+<h3 id="how-the-framework-maps-to-airo">How the framework maps to AIRO</h3>
+<table>
+<thead>
+<tr>
+<th>AIRO output</th>
+<th>Atomix category</th>
+<th>Rollback reality</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Blueprint / draft plan</td>
+<td>Bufferable</td>
+<td>Safe to discard; true rollback works</td>
+</tr>
+<tr>
+<td>Unsaved recipe edit</td>
+<td>Bufferable</td>
+<td>Discard before save; true rollback works</td>
+</tr>
+<tr>
+<td>New recipe or connection created</td>
+<td>Externalized</td>
+<td>Already lives in the workspace; needs compensation, not rollback</td>
+</tr>
+<tr>
+<td>Deployed job / "build all"</td>
+<td>Externalized</td>
+<td>Maximum side effects; compensation is the only honest undo</td>
+</tr>
+</tbody>
+</table>
+<p>The line between rows three/four and rows one/two is the line between "we can roll this back" and "we can only offer to undo it with a new action." Showing users which side of that line each output sits on, before they commit, is the design payoff.</p>
+<h3 id="constraints-worth-understanding">Constraints worth understanding</h3>
+<ul>
+<li>Compensation is not free or always possible. Some externalized effects (a sent notification, a consumed credential) have no clean inverse.</li>
+<li>Resume-after-rollback carries its own risk. <a href="https://arxiv.org/pdf/2603.20625" target="_blank" rel="noopener noreferrer">ACRFence</a> (March 2026) shows agents regenerate slightly different requests after a restore, which can create duplicate resources. Replaying exact prior parameters is safer than re-generating.</li>
+<li>Durable resume needs external state. <a href="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns" target="_blank" rel="noopener noreferrer">Microsoft's orchestration guidance</a> notes that pause-and-resume requires checkpointing execution state to durable storage, not in-memory context.</li>
+<li>The framework says nothing about the user-facing mental model, which is the part most likely to bite. See the biggest-gap note above.</li>
+</ul>
+<hr />
+<h2 id="appendix-all-source-links">Appendix — All source links</h2>
+<h3 id="theoretical-framework">Theoretical framework</h3>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.14849" target="_blank" rel="noopener noreferrer">Atomix: Transactional Tool Calls for Reliable Agentic Workflows (arXiv 2602.14849)</a></li>
+<li><a href="https://arxiv.org/pdf/2603.20625" target="_blank" rel="noopener noreferrer">ACRFence: Preventing Semantic Rollback Attacks in Agent Checkpoint-Restore (arXiv 2603.20625)</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns" target="_blank" rel="noopener noreferrer">Microsoft Azure — AI Agent Orchestration Patterns</a></li>
+<li><a href="https://news.ycombinator.com/item?id=48037724" target="_blank" rel="noopener noreferrer">Transactional agent sandbox discussion (Hacker News)</a></li>
+</ul>
+<h3 id="official-documentation">Official documentation</h3>
+<p><strong>Cursor</strong>
+- <a href="https://cursor.com/docs/agent/chat/checkpoints" target="_blank" rel="noopener noreferrer">Checkpoints — auto before significant edits, explicitly not git</a></p>
+<p><strong>Claude Code</strong>
+- <a href="https://code.claude.com/docs/en/checkpointing" target="_blank" rel="noopener noreferrer">Checkpointing — every prompt, /rewind, bash side effects not tracked, 30-day cleanup</a></p>
+<p><strong>GitHub Copilot</strong>
+- <a href="https://code.visualstudio.com/docs/copilot/chat/chat-checkpoints" target="_blank" rel="noopener noreferrer">Chat checkpoints — opt-in, restore removes the request, Redo reapplies</a></p>
+<p><strong>Replit</strong>
+- <a href="https://docs.replit.com/core-concepts/agent/checkpoints-and-rollbacks" target="_blank" rel="noopener noreferrer">Checkpoints and rollbacks — full app snapshot, database excluded by default</a></p>
+<p><strong>Lovable</strong>
+- <a href="https://docs.lovable.dev/features/agent-mode" target="_blank" rel="noopener noreferrer">Agent mode — restore creates a new edit card, stop keeps completed work</a>
+- <a href="https://docs.lovable.dev/changelog" target="_blank" rel="noopener noreferrer">Changelog — Feb 23, 2026 file edits persist on stop</a></p>
+<p><strong>n8n</strong>
+- <a href="https://docs.n8n.io/hosting/scaling/concurrency-control/" target="_blank" rel="noopener noreferrer">Concurrency control / execution behavior (no native checkpoint or rollback)</a></p>
+<p><strong>Windsurf / Cascade</strong>
+- <a href="https://docs.devin.ai/desktop/cascade" target="_blank" rel="noopener noreferrer">Cascade — per-step revert, "Reverts are currently irreversible"</a></p>
+<p><strong>Workato (baseline)</strong>
+- <a href="https://docs.workato.com/recipes/version-management.html" target="_blank" rel="noopener noreferrer">Recipe version management — version-on-save, Recipe Diff, restore</a></p>
+<h3 id="complaint-sources">Complaint sources</h3>
+<p><strong>Cursor (Cursor forum)</strong>
+- <a href="https://forum.cursor.com/t/ux-ui-confusion-on-restoring-checkpoints/67614" target="_blank" rel="noopener noreferrer">UX/UI confusion on restoring checkpoints</a>
+- <a href="https://forum.cursor.com/t/allow-restoring-a-checkpoint-at-any-point-during-agent-based-code-updates/68887" target="_blank" rel="noopener noreferrer">Allow restoring a checkpoint at any point during agent updates</a>
+- <a href="https://forum.cursor.com/t/rollback-fails-in-cursor-checkpoint-restore-doesn-t-work-either/122069" target="_blank" rel="noopener noreferrer">Rollback fails / restore doesn't work</a>
+- <a href="https://forum.cursor.com/t/after-updating-the-software-the-restore-checkpoint-function-stopped-working-and-some-files-were-lost/121750" target="_blank" rel="noopener noreferrer">After update, restore stopped working and files were lost</a>
+- <a href="https://forum.cursor.com/t/restore-checkpoint-permanently-destroys-change-history/129652" target="_blank" rel="noopener noreferrer">Restore checkpoint permanently destroys change history</a></p>
+<p><strong>Claude Code (GitHub)</strong>
+- <a href="https://github.com/anthropics/claude-code/issues/41542" target="_blank" rel="noopener noreferrer">#41542 — /rewind doesn't revert the TODO list</a>
+- <a href="https://github.com/anthropics/claude-code/issues/29684" target="_blank" rel="noopener noreferrer">#29684 — rolled-back side effects persist with no record</a></p>
+<p><strong>GitHub Copilot (microsoft/vscode)</strong>
+- <a href="https://github.com/microsoft/vscode/issues/307617" target="_blank" rel="noopener noreferrer">#307617 — restore doesn't revert agent memory files</a>
+- <a href="https://github.com/microsoft/vscode/issues/319225" target="_blank" rel="noopener noreferrer">#319225 — restore doesn't survive switching sessions</a></p>
+<p><strong>Replit (Replit Discourse)</strong>
+- <a href="https://replit.discourse.group/t/ability-to-roll-back-to-a-deployed-version/2676" target="_blank" rel="noopener noreferrer">Ability to roll back to a deployed version</a>
+- <a href="https://replit.discourse.group/t/rollback-build-to-deployed-version/1412" target="_blank" rel="noopener noreferrer">Rollback build to deployed version</a>
+- <a href="https://replit.discourse.group/t/agent-needs-to-chill-with-the-checkpoints/4512" target="_blank" rel="noopener noreferrer">Agent needs to chill with the checkpoints</a>
+- <a href="https://replit.discourse.group/t/agent-thinking-but-doing-nothing/7511" target="_blank" rel="noopener noreferrer">Agent thinking but doing nothing (checkpoint billed)</a>
+- <a href="https://replit.discourse.group/t/how-can-i-rollback-to-a-checkpoint-from-a-chat-session-that-has-ended/2628" target="_blank" rel="noopener noreferrer">Rollback to a checkpoint from an ended chat session</a></p>
+<p><strong>Lovable / Supabase (Vercel Community)</strong>
+- <a href="https://community.vercel.com/t/restoring-to-a-previous-version-will-revert-supabase-migration/13189" target="_blank" rel="noopener noreferrer">Restoring a previous version doesn't revert Supabase migrations</a></p>
+<p><strong>n8n (n8n community)</strong>
+- <a href="https://community.n8n.io/t/n8n-workflow-fails-to-resume-safely-after-partial-execution-idempotency-checkpointing-issue/293072" target="_blank" rel="noopener noreferrer">Workflow fails to resume safely after partial execution</a></p>
+<p><strong>Make.com (Make community, adjacent evidence)</strong>
+- <a href="https://community.make.com/t/is-it-possible-to-have-data-history-of-execution-and-the-possibility-to-replay-it/83570" target="_blank" rel="noopener noreferrer">Data history of execution and the possibility to replay it</a></p>
+</body>
+</html>

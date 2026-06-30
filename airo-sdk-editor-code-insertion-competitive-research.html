@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIRO SDK editor: in-editor AI code insertion and diff — Competitive Research</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  color: #1f2328;
+  line-height: 1.65;
+  font-size: 16px;
+  background: #fff;
+}
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h2 { font-size: 1.5em; border-bottom: 1px solid #d1d9e0; padding-bottom: 0.3em; }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; color: #424a53; }
+p { margin: 0.6em 0; }
+a { color: #0969da; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+pre code { background: transparent; padding: 0; }
+blockquote {
+  border-left: 4px solid #d1d9e0;
+  margin: 1em 0;
+  padding: 0.2em 1em;
+  color: #424a53;
+  background: #f8fafc;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.95em;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #f6f8fa; font-weight: 600; }
+hr {
+  border: none;
+  border-top: 1px solid #d1d9e0;
+  margin: 2em 0;
+}
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.25em 0; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+</style>
+</head>
+<body>
+<h1 id="airo-sdk-editor-in-editor-ai-code-insertion-and-diff-competitive-research">AIRO SDK editor: in-editor AI code insertion and diff — Competitive Research</h1>
+<p><strong>Context.</strong> Research for the AIRO SDK editor migration (PMO-2980), where AIRO inserts generated code directly into the SDK editor at the correct lines within the relevant SDK blocks and shows the user a before-and-after comparison to accept or reject. This is the research-stage artifact, before constraints are locked.</p>
+<p><strong>Products covered.</strong> Cursor, GitHub Copilot Edits, Fivetran Connector SDK (with Claude in VS Code), Tray.ai (Claude CDK), Celigo (Copilot / Ora), Boomi (Agentstudio + Suggest).</p>
+<p><strong>Scope.</strong> How each product turns an AI suggestion into code that lands in a working file: whether it inserts at the right lines, how the before/after diff is shown, how accept/reject works, and what breaks when it goes wrong.</p>
+<hr />
+<h2 id="part-1-in-editor-code-insertion-behavior-per-product">Part 1 — In-editor code insertion behavior per product</h2>
+<p>The six products split into two groups. Cursor, Copilot, and Fivetran do real in-editor insertion with a diff. Tray, Celigo, and Boomi do not, which is itself a finding worth holding onto for Part 3.</p>
+<h3 id="11-cursor">1.1 Cursor</h3>
+<p>Cursor inserts code at the target lines as an inline color-coded diff (red deletions, green additions); Cmd+K edits a selection with Cmd+Enter to accept and Cmd+Backspace to reject, while Composer/Agent mode applies edits across files with per-file and per-hunk Keep/Undo controls, though a recent build started applying agent edits straight to disk with no red/green diff and no accept/reject gate (<a href="https://cursor.com/docs/inline-edit/overview" target="_blank" rel="noopener noreferrer">inline edit docs</a>, <a href="https://cursor.com/changelog" target="_blank" rel="noopener noreferrer">changelog</a>, <a href="https://forum.cursor.com/t/after-updating-cursor-agent-mode-applies-file-changes-directly-to-disk-with-no-red-green-inline-diff-and-no-keep-undo-or-accept-reject-controls-settings-that-used-to-control-this-either-dont-exist-in-my-ui-or-have-no-effect-this-removed/162532" target="_blank" rel="noopener noreferrer">regression report</a>).</p>
+<h3 id="12-github-copilot-edits">1.2 GitHub Copilot Edits</h3>
+<p>Copilot Edits applies proposed changes directly into each file as an inline diff reviewed per chunk (Tab to accept, Alt+Delete to reject, F8 to jump to the next, a per-file checkbox, or Accept all) backed by a checkpoint/rollback system, though selecting Keep can re-apply stale or composite diffs and overwrite newer work (<a href="https://learn.microsoft.com/en-us/visualstudio/ide/copilot-edits?view=visualstudio" target="_blank" rel="noopener noreferrer">Copilot Edits in Visual Studio</a>, <a href="https://code.visualstudio.com/docs/copilot/chat/review-code-edits" target="_blank" rel="noopener noreferrer">review AI edits in VS Code</a>, <a href="https://github.blog/changelog/2024-10-29-multi-file-editing-code-review-custom-instructions-and-more-for-github-copilot-in-vs-code-october-release-v0-22/" target="_blank" rel="noopener noreferrer">multi-file editing changelog</a>).</p>
+<h3 id="13-fivetran-connector-sdk">1.3 Fivetran Connector SDK</h3>
+<p>Used with Claude in VS Code, the Connector SDK has the AI write <code>connector.py</code>, <code>configuration.json</code>, and <code>requirements.txt</code> directly into the project through the editor's agent edit-and-accept flow (it proposes a plan, then creates files in sequence that you accept in place), with a parallel terminal path using <code>fivetran debug</code> and CLI agents for local testing and iteration (<a href="https://fivetran.com/docs/connector-sdk/tutorials/claude-ai-vscode-video" target="_blank" rel="noopener noreferrer">Claude in VS Code tutorial</a>, <a href="https://www.fivetran.com/blog/building-a-fivetran-connector-developer-workflow-with-claude-code" target="_blank" rel="noopener noreferrer">Claude Code developer workflow blog</a>, <a href="https://github.com/fivetran/fivetran_csdk_tools" target="_blank" rel="noopener noreferrer">csdk agent tools</a>).</p>
+<h3 id="14-trayai-claude-cdk">1.4 Tray.ai (Claude CDK)</h3>
+<p>Tray has no native in-app editor or diff panel: the Claude CDK runs Claude Code inside your own terminal or IDE pointed at an OpenAPI spec (<code>tray-cdk connector import [OPENAPI_SPEC]</code>) and scaffolds the connector project locally, so the before/after review is whatever Claude Code itself provides rather than a Tray surface (<a href="https://tray.ai/platform/ai-development/tray-headless/" target="_blank" rel="noopener noreferrer">Tray Headless</a>, <a href="https://tray.ai/resources/blog/build-ipaas-connectors-claude-code-tray-cdk" target="_blank" rel="noopener noreferrer">Claude Code blog post</a>, <a href="https://developer.tray.ai/developer-portal/cdk/building-connectors/import-openapi/" target="_blank" rel="noopener noreferrer">generate from OpenAPI docs</a>).</p>
+<h3 id="15-celigo-copilot-ora">1.5 Celigo (Copilot / Ora)</h3>
+<p>Celigo's assistant (Copilot, now extended by the Ora agent launched around April 2026) is an in-product conversational panel that scaffolds JavaScript hooks, SQL, and Handlebars, and stages every change as a reviewable draft you must explicitly approve (you can ask it to show exactly what will change first), which is closer to a change-summary preview than a line-level inline code diff (<a href="https://docs.celigo.com/hc/en-us/articles/25951095481755-Celigo-Copilot-AI-driven-resolution" target="_blank" rel="noopener noreferrer">Copilot AI-driven resolution</a>, <a href="https://www.celigo.com/platform/celigo-ora/" target="_blank" rel="noopener noreferrer">Ora product page</a>).</p>
+<h3 id="16-boomi-agentstudio-suggest">1.6 Boomi (Agentstudio + Suggest)</h3>
+<p>Boomi GPT and Agent Designer turn natural-language prompts into integrations and agents inside a visual no-code canvas with a Test Agent panel and a reasoning trace, and the older Boomi Suggest proposes field mappings in confidence buckets, so the user reviews and accepts suggested mappings or agent behavior in the visual builder rather than getting code inserted into an editor with a diff (<a href="https://developer.boomi.com/docs/BoomiAI/Agent_designer_overview" target="_blank" rel="noopener noreferrer">Agent Designer overview</a>, <a href="https://developer.boomi.com/blog/optimizing-ai-agent-development-boomi-agentstudio" target="_blank" rel="noopener noreferrer">Agentstudio testing blog</a>, <a href="https://boomi.com/blog/ai-boomi-suggest-assure-resolve/" target="_blank" rel="noopener noreferrer">Boomi Suggest</a>).</p>
+<hr />
+<h2 id="part-2-user-pain-points-themed-insights">Part 2 — User pain points (themed insights)</h2>
+<p>Six themes emerged. The richest evidence for the in-editor insertion mechanics comes from Cursor's forum, Hacker News, and GitHub Issues/Discussions. The iPaaS players (Tray, Celigo, Boomi, Fivetran) have less public complaint volume aimed squarely at AI code-gen because the features are recent, so their evidence clusters around the adjacent pain: debugging wrong output and the manual work the AI was supposed to remove.</p>
+<h3 id="theme-1-the-ai-edits-the-wrong-lines-and-clips-the-code-around-them">Theme 1: The AI edits the wrong lines and clips the code around them</h3>
+<p>The single most common in-editor complaint is not that the generated code is bad, it's that it lands in the wrong place and damages working code next to it.</p>
+<ul>
+<li>GitHub Copilot Edits: "it removes the closing bracket of the method. Some times it removes the first few lines in the next method." (<em>2dcon</em>, <a href="https://github.com/orgs/community/discussions/58416" target="_blank" rel="noopener noreferrer">discussion #58416</a>, Aug 31 2025)</li>
+<li>GitHub Copilot Edits: "Copilot auto deletes unrelated code blocks during editing without any specific explanation." (<em>itech0307</em>, <a href="https://github.com/orgs/community/discussions/58416" target="_blank" rel="noopener noreferrer">discussion #58416</a>, Jul 9 2025)</li>
+<li>Cursor: "it liberally deleted a chunk of code it must have thought was extraneous but at the same time introduced a huge privacy vulnerability." (<em>neuralkoi</em>, <a href="https://news.ycombinator.com/item?id=43298275" target="_blank" rel="noopener noreferrer">Ask HN thread</a>, Mar 2025)</li>
+<li>Cursor: "It has happened to me on very large files and when you've had a long composer session. I usually check every file that is being modified for large removals." (<em>haffi112</em>, <a href="https://news.ycombinator.com/item?id=43298275" target="_blank" rel="noopener noreferrer">same HN thread</a>, Mar 2025)</li>
+</ul>
+<p>This is the localization problem, and it is exactly what AIRO is taking on by promising to update code "at the correct lines within relevant SDK blocks." The benchmark evidence in Part 4 shows getting the insertion point right is genuinely hard, so it's worth treating insertion accuracy as a first-class requirement, not a side effect of good generation. <strong>For AIRO:</strong> scoping each edit to a known SDK block (rather than a free-floating line range) could narrow the surface where this failure happens.</p>
+<h3 id="theme-2-the-acceptreject-control-itself-destroys-good-work">Theme 2: The accept/reject control itself destroys good work</h3>
+<p>Across the two most mature diff products, the Keep/Undo controls are a top source of data loss. Accepting can re-apply stale edits over newer ones, and rejecting can wipe valid code.</p>
+<ul>
+<li>GitHub Copilot Edits: "Selecting Keep re-applies stale Copilot diffs and overwrites newer changes. Selecting Undo reverts all Copilot-associated changes, deleting valid work already present on disk." (<em>pramodsurya</em>, <a href="https://github.com/orgs/community/discussions/183864" target="_blank" rel="noopener noreferrer">discussion #183864</a>, Jan 9 2026)</li>
+<li>GitHub Copilot Edits: "older, superseded revisions of the code being reapplied, overwriting subsequent manual fixes or AI-driven revisions." (<em>brylie-upcloud</em>, <a href="https://github.com/microsoft/vscode/issues/265794" target="_blank" rel="noopener noreferrer">vscode issue #265794</a>, Sep 9 2025)</li>
+<li>Cursor: outdated diffs appear for files that were not recently edited, with Cursor asking users to accept or undo changes on files they weren't working on (<a href="https://forum.cursor.com/t/outdated-diffs-appearing-when-not-editing-file-changes-were-previously-committed/152132" target="_blank" rel="noopener noreferrer">forum thread</a>, late 2025)</li>
+<li>GitHub Copilot Edits: "I keep having the same issue to the point where I would strongly prefer to completely disable 'pending changes from chat' and auto-approve any and all changes." (<em>h0m3us3r</em>, <a href="https://github.com/orgs/community/discussions/183864" target="_blank" rel="noopener noreferrer">discussion #183864</a>, Apr 19 2026)</li>
+</ul>
+<p>The root cause in both products is that accept/reject replays edit history instead of comparing two fixed states. <strong>For AIRO:</strong> a two-state model (the original SDK code vs the proposed final code) per accept action, with a non-destructive reject, would sidestep the whole class of "the undo deleted my work" complaints. This is worth pinning down before the diff UI gets built, since it's an architecture decision more than a UI one.</p>
+<h3 id="theme-3-silent-collateral-edits-and-the-ai-denies-making-them">Theme 3: Silent collateral edits, and the AI denies making them</h3>
+<p>When the edit touches code outside its intended scope, the trust damage is worse if nothing flags it.</p>
+<ul>
+<li>GitHub Copilot Edits: "copilot even claims it didn't touch the unrelated code it has deleted. Incredibly dangerous." (<em>astrobc1</em>, <a href="https://github.com/orgs/community/discussions/58416" target="_blank" rel="noopener noreferrer">discussion #58416</a>, Aug 14 2025)</li>
+<li>Cursor: "If you don't supervise, you will get snagged, and if you miss it and continue, it'll continue writing code under the assumption the deletion was fine." (<em>tony</em>, <a href="https://news.ycombinator.com/item?id=43298275" target="_blank" rel="noopener noreferrer">HN thread</a>, Mar 2025)</li>
+</ul>
+<p>The pattern users hate is a quiet change they didn't ask for, discovered later. The before/after comparison in the PMO-2980 description is the main defense here: if every line AIRO changed is visible and attributable, collateral edits stop being silent. <strong>For AIRO:</strong> worth making the diff show the full blast radius of a change, including lines AIRO touched outside the block the user asked about, rather than only the lines it meant to change.</p>
+<h3 id="theme-4-reviewing-large-or-multi-file-diffs-strips-the-context-needed-to-judge">Theme 4: Reviewing large or multi-file diffs strips the context needed to judge</h3>
+<p>Even when the edit is correct, a consolidated diff view that hides the surrounding code makes it hard to decide whether to accept.</p>
+<ul>
+<li>Cursor: "The whole point of seeing where the changes are is to be able to accept a change, see how it fits." (<em>Akhil_Gupta</em>, <a href="https://forum.cursor.com/t/i-dont-like-the-new-cursor-diff-view/145154" target="_blank" rel="noopener noreferrer">diff view thread</a>, Dec 3 2025)</li>
+<li>Cursor: "I need to see more context when I'm evaluating a change." (<em>Gabriel_Richards</em>, <a href="https://forum.cursor.com/t/i-dont-like-the-new-cursor-diff-view/145154" target="_blank" rel="noopener noreferrer">same thread</a>, Dec 3 2025)</li>
+<li>Cursor: "It's KILLING my productivity... the agents keep getting stuck asking me to review things in panes." (<em>F1LT3R</em>, <a href="https://forum.cursor.com/t/i-dont-like-the-new-cursor-diff-view/145154" target="_blank" rel="noopener noreferrer">same thread</a>, Dec 12 2025)</li>
+</ul>
+<p>There's a real tension here: users want enough context to trust the change, but forced review panes interrupt flow. <strong>For AIRO:</strong> showing the diff inline within the SDK block (with the unchanged code around it still visible) tends to beat a separate summary pane for this kind of judgment. The volume of generated SDK code per request will decide how sharp this trade-off gets.</p>
+<h3 id="theme-5-after-generation-users-cant-tell-why-the-output-is-wrong">Theme 5: After generation, users can't tell why the output is wrong</h3>
+<p>This is the dominant theme on the iPaaS side. The generation step is fine; the problem is debugging what it produced when it doesn't work.</p>
+<ul>
+<li>Fivetran: "Sometimes we get obscure or silent failures that require reaching out to Fivetran support. It's hard to tell which side the error is coming from." (Lucy W., <a href="https://www.g2.com/products/fivetran/reviews" target="_blank" rel="noopener noreferrer">G2</a>, Apr 9 2026)</li>
+<li>Fivetran: "Clearer root cause rather than generic error messages would help us debug or triage." (Luke M., <a href="https://www.g2.com/products/fivetran/reviews" target="_blank" rel="noopener noreferrer">G2</a>, Apr 9 2026)</li>
+<li>Celigo: "Some of the error messages doesn't have the proper details, which causing our users to spend more time investigating." (Bindu J., <a href="https://www.g2.com/products/celigo/reviews?qs=pros-and-cons" target="_blank" rel="noopener noreferrer">G2</a>, Mar 9 2024)</li>
+<li>Boomi: "It can be difficult to debug and handle errors, especially when dealing with complex operations." (tarun p., <a href="https://www.g2.com/products/boomi/reviews?qs=pros-and-cons" target="_blank" rel="noopener noreferrer">G2</a>, Apr 7 2026)</li>
+</ul>
+<p>PMO-2980's acceptance criteria already say the connector has to stay functional after AIRO edits it. That's the right instinct given this theme. <strong>For AIRO:</strong> the moment after an edit is accepted is where this pain lives, so it's worth deciding early how AIRO surfaces a broken-connector state and points at the line it came from, not just whether the edit applied.</p>
+<h3 id="theme-6-the-ai-doesnt-remove-the-manual-code-work-it-implied-it-would">Theme 6: The AI doesn't remove the manual code work it implied it would</h3>
+<p>Users across the iPaaS products report that the AI gets them partway, then hands back something that still needs real technical work.</p>
+<ul>
+<li>Tray: "Custom API configurations and data manipulation require significant technical knowledge. The gap between 'simple automation' and 'production-grade enterprise workflow' demands more technical depth than the marketing implies." (<a href="https://www.integrate.io/blog/trayio-review/" target="_blank" rel="noopener noreferrer">Integrate.io review</a>, 2026)</li>
+<li>Celigo: "Some advanced use cases require a deeper technical understanding... working with complex APIs." (Nuri Vladimir E., <a href="https://www.g2.com/products/celigo/reviews?qs=pros-and-cons" target="_blank" rel="noopener noreferrer">G2</a>, Feb 13 2026)</li>
+<li>Boomi: Boomi Suggest produces maps "with 80 percent of the required mappings," and the docs tell users to "verify the accuracy of the AI-generated suggestions," so roughly a fifth of the mapping is still manual plus false positives on similarly named fields (<a href="https://boomi.com/blog/ai-boomi-suggest-assure-resolve/" target="_blank" rel="noopener noreferrer">Boomi Suggest</a>)</li>
+<li>Celigo: "I still 'dislike' the inaccuracy of some of the AI features." (Nathan C., <a href="https://www.g2.com/products/celigo/reviews?qs=pros-and-cons" target="_blank" rel="noopener noreferrer">G2</a>, Mar 26 2026)</li>
+</ul>
+<p>The honest read is that none of these tools fully closes the loop, and users feel the gap between the pitch and the leftover work. <strong>For AIRO:</strong> the copy-paste-reposition step PMO-2980 removes is real and worth removing, and being precise about what AIRO does not yet do (which SDK blocks it can edit reliably, which it can't) would set expectations better than these competitors have.</p>
+<hr />
+<h2 id="part-3-airo-design-implications">Part 3 — AIRO design implications</h2>
+<table>
+<thead>
+<tr>
+<th>Competitor pain point</th>
+<th>What this could mean for AIRO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Copilot and Cursor edits clip closing brackets and delete lines of the next method (Theme 1)</td>
+<td>Worth scoping each AIRO edit to a known SDK block boundary so insertions can't run past the structure they belong to</td>
+</tr>
+<tr>
+<td>Keep re-applies stale diffs and Undo deletes valid work (Theme 2)</td>
+<td>Worth modeling accept/reject as a comparison of two fixed states (original vs proposed) rather than a replay of edit history</td>
+</tr>
+<tr>
+<td>AI denies touching code it silently changed (Theme 3)</td>
+<td>Worth making the before/after comparison show every line AIRO changed, including collateral edits outside the requested block</td>
+</tr>
+<tr>
+<td>Consolidated diff panes hide surrounding context and stall review (Theme 4)</td>
+<td>Worth showing the diff inline within the SDK block with unchanged code still visible, rather than a separate summary pane</td>
+</tr>
+<tr>
+<td>Silent failures and generic errors after generation (Theme 5)</td>
+<td>Worth deciding how AIRO surfaces a broken-connector state post-edit and links it back to the specific line</td>
+</tr>
+<tr>
+<td>AI leaves ~20% of the work manual without saying so (Theme 6)</td>
+<td>Worth being explicit about which SDK blocks AIRO can edit reliably today and which still need hand-finishing</td>
+</tr>
+<tr>
+<td>Cursor regression auto-applied edits to disk with no accept/reject gate (Part 1.1)</td>
+<td>Worth treating the accept/reject gate as a non-negotiable, since users notice immediately when it disappears</td>
+</tr>
+<tr>
+<td>Tray pushes the diff experience out to Claude Code in the user's own IDE (Part 1.4)</td>
+<td>Worth keeping the review surface inside the SDK editor so users don't context-switch to a separate tool to see what changed</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-biggest-gap-surfaced-by-this-research">The biggest gap surfaced by this research</h3>
+<p>No iPaaS competitor offers the exact thing PMO-2980 describes: AI inserting connector code at the correct lines inside the platform's own editor, with a line-level before/after diff to accept or reject. Tray pushes that interaction out to Claude Code in your own IDE. Celigo keeps it in-app but as a staged-draft change summary, not an inline code diff. Boomi doesn't touch a code editor at all, it's a visual canvas. Fivetran with Claude in VS Code is the only one doing real in-editor insertion, and that lives in VS Code, not in Fivetran's own product. So the in-editor diff pattern is currently owned by the general coding tools (Cursor, Copilot), and they carry well-documented failure modes around destructive accept/reject (Theme 2) and wrong-line insertion (Theme 1). The opening for AIRO is to bring that interaction into a connector builder for the first time while designing around the failures the coding tools already shipped.</p>
+<hr />
+<h2 id="part-4-theoretical-framework-edit-bench-and-the-shape-of-ai-patterns">Part 4 — Theoretical framework: EDIT-Bench and the Shape of AI patterns</h2>
+<p><strong>Source:</strong> <em>EDIT-Bench: Evaluating LLM Abilities to Perform Real-World Instructed Code Edits</em>, Chi, Chen, et al. (CMU, UC Berkeley), arXiv <a href="https://arxiv.org/abs/2511.04486" target="_blank" rel="noopener noreferrer">2511.04486</a> (Nov 2025).</p>
+<p>EDIT-Bench is the closest academic work to AIRO's feature. It's a 540-problem benchmark where the model has to use cursor position, highlighted code, and surrounding context (not just the instruction) to make the right edit. That is the edit-localization problem AIRO is taking on when it promises to update code at the correct lines. Its headline finding is that performance swings by up to 11% depending on how much contextual signal the model gets, and only one model clears 60%. In plain terms, getting the insertion point right is hard, and how much context you feed the model materially changes whether it lands.</p>
+<h3 id="how-the-framework-maps-to-airo">How the framework maps to AIRO</h3>
+<table>
+<thead>
+<tr>
+<th>EDIT-Bench concept</th>
+<th>AIRO equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cursor position and highlighted code as edit signal</td>
+<td>The SDK block and line range AIRO is asked to edit</td>
+</tr>
+<tr>
+<td>Surrounding-context dependence (up to 11% swing)</td>
+<td>How much of the connector AIRO passes to the model when generating an edit</td>
+</tr>
+<tr>
+<td>Edit-localization accuracy as the measured skill</td>
+<td>AIRO's "update at the correct lines" acceptance criterion</td>
+</tr>
+</tbody>
+</table>
+<p>The practical takeaway is that the SDK block boundary AIRO already has is a strong localization signal, and using it deliberately as context could be worth more to insertion accuracy than a bigger model.</p>
+<h3 id="shape-of-ai-patterns-worth-borrowing">Shape of AI patterns worth borrowing</h3>
+<p>Two named patterns from <a href="https://www.shapeof.ai/patterns/inline-action" target="_blank" rel="noopener noreferrer">the Shape of AI</a> map onto this flow. <a href="https://www.shapeof.ai/patterns/inline-action" target="_blank" rel="noopener noreferrer">Inline Action</a> is targeting a specific span and showing the AI's change as a suggestion layer rather than an overwrite. <a href="https://www.shapeof.ai/patterns/verification" target="_blank" rel="noopener noreferrer">Verification</a> is requiring human approval before a change commits, and it explicitly names "loss of work from overwritten records" as the risk to design against, which is Theme 2 in this doc.</p>
+<h3 id="constraints-worth-understanding">Constraints worth understanding</h3>
+<ul>
+<li>EDIT-Bench measures whether the model localizes and applies the edit correctly. It does not say anything about the review UI, so it informs the generation side, not the diff side.</li>
+<li>The benchmark is on general code edits, not connector SDK code specifically, so the absolute accuracy numbers won't transfer directly.</li>
+<li>The CSAP acceptance-prediction work (arXiv <a href="https://arxiv.org/abs/2601.21379" target="_blank" rel="noopener noreferrer">2601.21379</a>, Jan 2026) is adjacent but more about suppressing low-confidence suggestions than designing the diff, so it's a secondary reference at most.</li>
+<li>None of these tell you how much SDK context is the right amount to pass. That's an empirical question worth testing on real connectors.</li>
+</ul>
+<hr />
+<h2 id="appendix-all-source-links">Appendix — All source links</h2>
+<h3 id="theoretical-framework">Theoretical framework</h3>
+<ul>
+<li>EDIT-Bench paper: https://arxiv.org/abs/2511.04486</li>
+<li>CSAP acceptance-prediction paper: https://arxiv.org/abs/2601.21379</li>
+<li>Shape of AI, Inline Action: https://www.shapeof.ai/patterns/inline-action</li>
+<li>Shape of AI, Verification: https://www.shapeof.ai/patterns/verification</li>
+</ul>
+<h3 id="official-documentation">Official documentation</h3>
+<p><strong>Cursor</strong>
+- Inline edit overview: https://cursor.com/docs/inline-edit/overview
+- Changelog: https://cursor.com/changelog</p>
+<p><strong>GitHub Copilot Edits</strong>
+- Copilot Edits in Visual Studio: https://learn.microsoft.com/en-us/visualstudio/ide/copilot-edits?view=visualstudio
+- Review AI-generated code edits (VS Code): https://code.visualstudio.com/docs/copilot/chat/review-code-edits
+- Multi-file editing changelog: https://github.blog/changelog/2024-10-29-multi-file-editing-code-review-custom-instructions-and-more-for-github-copilot-in-vs-code-october-release-v0-22/</p>
+<p><strong>Fivetran Connector SDK</strong>
+- Claude in VS Code tutorial: https://fivetran.com/docs/connector-sdk/tutorials/claude-ai-vscode-video
+- Claude Code developer workflow blog: https://www.fivetran.com/blog/building-a-fivetran-connector-developer-workflow-with-claude-code
+- csdk agent tools: https://github.com/fivetran/fivetran_csdk_tools</p>
+<p><strong>Tray.ai</strong>
+- Tray Headless: https://tray.ai/platform/ai-development/tray-headless/
+- Claude Code blog post: https://tray.ai/resources/blog/build-ipaas-connectors-claude-code-tray-cdk
+- Generate connector from OpenAPI: https://developer.tray.ai/developer-portal/cdk/building-connectors/import-openapi/</p>
+<p><strong>Celigo</strong>
+- Copilot AI-driven resolution: https://docs.celigo.com/hc/en-us/articles/25951095481755-Celigo-Copilot-AI-driven-resolution
+- Ora product page: https://www.celigo.com/platform/celigo-ora/</p>
+<p><strong>Boomi</strong>
+- Agent Designer overview: https://developer.boomi.com/docs/BoomiAI/Agent_designer_overview
+- Agentstudio testing blog: https://developer.boomi.com/blog/optimizing-ai-agent-development-boomi-agentstudio
+- Boomi Suggest: https://boomi.com/blog/ai-boomi-suggest-assure-resolve/</p>
+<h3 id="complaint-sources">Complaint sources</h3>
+<p><strong>Cursor (Hacker News, official forum)</strong>
+- Ask HN, deleting working code: https://news.ycombinator.com/item?id=43298275
+- New diff view thread: https://forum.cursor.com/t/i-dont-like-the-new-cursor-diff-view/145154
+- Outdated diffs thread: https://forum.cursor.com/t/outdated-diffs-appearing-when-not-editing-file-changes-were-previously-committed/152132
+- Agent applies to disk with no diff/gate: https://forum.cursor.com/t/after-updating-cursor-agent-mode-applies-file-changes-directly-to-disk-with-no-red-green-inline-diff-and-no-keep-undo-or-accept-reject-controls-settings-that-used-to-control-this-either-dont-exist-in-my-ui-or-have-no-effect-this-removed/162532</p>
+<p><strong>GitHub Copilot Edits (GitHub Discussions and Issues)</strong>
+- Keep/Undo causes irreversible loss: https://github.com/orgs/community/discussions/183864
+- Auto-deletes unrelated code: https://github.com/orgs/community/discussions/58416
+- Superseded edits corrupt file state: https://github.com/microsoft/vscode/issues/265794
+- Partial delete undoes whole suggestion: https://github.com/microsoft/vscode-copilot-release/issues/3749</p>
+<p><strong>Fivetran (G2, PeerSpot)</strong>
+- G2 reviews: https://www.g2.com/products/fivetran/reviews
+- PeerSpot improvement thread: https://www.peerspot.com/questions/what-needs-improvement-with-fivetran</p>
+<p><strong>Celigo (G2, community)</strong>
+- G2 reviews: https://www.g2.com/products/celigo/reviews?qs=pros-and-cons
+- Connective community, Copilot UI: https://connective.celigo.com/t/utilize-the-built-in-ai-copilot-in-integrator-io/5870</p>
+<p><strong>Boomi (G2)</strong>
+- G2 reviews: https://www.g2.com/products/boomi/reviews?qs=pros-and-cons</p>
+<p><strong>Tray.ai (G2, Gartner Peer Insights, Integrate.io)</strong>
+- G2 reviews: https://www.g2.com/products/tray-ai/reviews?qs=pros-and-cons
+- Gartner Peer Insights: https://www.gartner.com/reviews/market/integration-platform-as-a-service/vendor/tray-ai/product/tray-universal-automation-cloud
+- Integrate.io review: https://www.integrate.io/blog/trayio-review/</p>
+<hr />
+<p><em>Sourcing honesty note: Tray's Claude CDK, Celigo's Ora, Boomi's Agentstudio, and Fivetran's Claude flow are all recent, so there are few public complaints aimed squarely at their AI code-generation step. The iPaaS quotes above are real and adjacent (custom-connector manual fixing, weak debugging, incomplete AI mappings), which is the strongest honest signal available. The deepest in-editor diff evidence comes from Cursor and Copilot, where the pattern is mature enough to have a documented failure history.</em></p>
+</body>
+</html>

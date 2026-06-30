@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIRO · Agent Operations</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&display=swap');
+  /* Variables remapped to Workato fluid-ai design tokens (proto-kit/src/styles/_tokens.css) */
+  :root{
+    --bg:#f6f9fb; --bg2:#f1f5f9; --panel:#ffffff; --panel2:#ffffff;
+    --line:#e5eaf1; --line2:#d5dbe4;
+    --tx:#373d47; --tx2:#586373; --tx3:#6d7788;
+    --teal:#108291; --accent:#1a57e5; --accent2:#123c9f;
+    --ok:#5aa028; --warn:#e67009; --err:#da3b1c; --risk:#7b4fd0;
+    --r:12px; --rs:8px;
+    --font:"Source Sans 3","Source Sans Pro",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:var(--font);background:var(--bg);color:var(--tx);font-size:14px;overflow:hidden}
+  /* fluid-ai app chrome: env bar + app header + horizontal tab navigation */
+  .envbar{height:4px;background:var(--teal)}
+  .apphdr{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#fff;border-bottom:1px solid var(--border-subtle,var(--line))}
+  .apphdr-l{display:flex;align-items:center;gap:11px}
+  .wsw{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--tx);cursor:pointer}
+  .wsq{width:22px;height:22px;border-radius:var(--rs);background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .hslash{color:var(--tx3);font-size:18px;font-weight:300}
+  .envsw{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--tx2);cursor:pointer}
+  .envdot{width:7px;height:7px;border-radius:50%;background:var(--teal)}
+  .apphdr-r{display:flex;align-items:center;gap:12px}
+  .aibtn{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line2);color:var(--tx);border-radius:999px;padding:6px 13px;cursor:pointer;font-size:13px;font-weight:600;box-shadow:var(--shadow-button,0 1px 2px rgba(4,20,26,.06))}
+  .aibtn .star{color:var(--accent)}
+  .uava{width:24px;height:24px;border-radius:50%;background:var(--accent-subtle,#e5eaf1);color:var(--tx);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .htabs{display:flex;gap:12px;padding:0 16px;background:#fff;border-bottom:1px solid var(--border-default,var(--line2));position:relative}
+  .htab{color:var(--tx);font-size:16px;font-weight:600;line-height:1.43;padding:7px 8px;cursor:pointer;text-decoration:none;position:relative;white-space:nowrap}
+  .htab::before{content:'';position:absolute;inset:0 0 3px 0;border-radius:var(--rs) var(--rs) 0 0;transition:background .25s}
+  .htab:hover::before{background:rgba(55,61,71,.05)}
+  .htab.active::after{content:'';position:absolute;left:8px;right:8px;bottom:-1px;height:3px;background:var(--tx);border-radius:2px 2px 0 0}
+  .main{display:flex;height:calc(100% - 88px);position:relative}
+  .stage{flex:1;min-width:0;overflow:auto;position:relative}
+  .exhd{display:flex;align-items:center;gap:12px;padding:18px 24px 6px}
+  .exhd .crumb{color:var(--tx3);font-size:12px}
+  .exhd h1{margin:0;font-size:22px}
+  .extop{display:flex;align-items:center;gap:10px;padding:0 24px 10px;color:var(--tx2);font-size:13px}
+  .exwrap{display:flex;gap:0;height:calc(100% - 86px);min-width:0;overflow:hidden}
+  .graph{flex:1;min-width:0;position:relative;overflow:auto;background:#fbfcfe;background-image:radial-gradient(circle at 1px 1px,#e1e8f2 1px,transparent 0);background-size:22px 22px}
+  #wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .cols{position:relative;display:grid;grid-template-columns:0.8fr 1fr 1fr 138px 1fr 1fr 1fr;gap:14px;padding:18px;z-index:1;min-width:1140px}
+  .col h5{font-size:10px;color:var(--tx2);margin:0 0 10px;font-weight:700;background:#fff;border:1px solid var(--line2);display:inline-block;padding:3px 9px;border-radius:999px}
+  .gatecol h5{visibility:hidden}
+  .ncard.orch{border-color:#cdbcef;background:#f7f4fd}
+  .gate{background:#fff;border:1.5px solid #cdbcef;border-radius:15px;overflow:hidden;box-shadow:0 10px 30px rgba(107,63,201,.18),0 0 0 5px rgba(107,63,201,.05);transition:.2s}
+  .gate .gstrip{height:4px;background:linear-gradient(90deg,#6b3fc9,#1a57e5);transition:.25s}
+  .gate .ghd{background:linear-gradient(135deg,#241a3a,#3c2c66);color:#fff;font-size:11px;letter-spacing:.1em;font-weight:700;padding:14px 15px;display:flex;align-items:center;gap:9px}
+  .gate .glive{width:7px;height:7px;border-radius:50%;background:#36d39a;box-shadow:0 0 0 3px rgba(54,211,154,.28)}
+  .gate.active-run .glive{background:#36d39a;box-shadow:0 0 0 3px rgba(54,211,154,.28)}
+  .gate .grow:first-of-type{border-top:none}
+  .gate .grow{display:flex;align-items:center;gap:9px;padding:8px 14px;font-size:12.5px;border-top:1px solid var(--line);color:var(--tx2)}
+  .gate .grow .gdot{width:8px;height:8px;border-radius:50%;flex:none}
+  .gate .grow .gn{margin-left:auto;font-weight:700;font-size:14px;color:var(--tx)}
+  .gate.shut{border-color:var(--err)}
+  .gate.shut .gstrip{background:var(--err)}
+  .cols.gateshut .col:nth-child(n+4){opacity:.45;transition:.3s}
+  .ncard{background:#fff;border:1px solid var(--line2);border-radius:11px;padding:10px 11px;margin-bottom:11px;position:relative;transition:.2s;box-shadow:0 1px 2px rgba(20,30,50,.04)}
+  .ncard .nm{font-weight:600;color:var(--tx);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ncard.act{cursor:pointer}.ncard.act .nm{white-space:normal;line-height:1.3}
+  .ncard .sub{font-size:10.5px;color:var(--tx3);margin-top:3px;display:flex;gap:10px}
+  .ncard.dim{opacity:.45}
+  .ncard.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 16px rgba(59,111,224,.25)}
+  .ncard.active.green{border-color:var(--ok);box-shadow:0 0 0 1px var(--ok),0 0 16px rgba(31,157,107,.22)}
+  .ncard.active.red{border-color:var(--err);box-shadow:0 0 0 1px var(--err),0 0 16px rgba(213,64,58,.22)}
+  .ncard.active.amber{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn),0 0 16px rgba(184,130,15,.22)}
+  .rk{position:absolute;top:-8px;right:7px;font-size:9px;font-weight:700;background:var(--risk);color:#fff;border-radius:999px;padding:1px 6px;display:none}
+  .ncard.show-risk .rk{display:inline-block}
+  .ncard.flag{border-color:#e6cf8f;background:#fdf7e6}
+  .capr{display:inline-block;font-size:9px;color:var(--err);border:1px solid #f0c0bc;border-radius:999px;padding:0 5px;margin-top:4px}
+  .vtag{font-size:9.5px;font-weight:700;border-radius:999px;padding:1px 7px;margin-left:6px}
+  .vtag.r{background:#fcebe9;color:#da3b1c}.vtag.g{background:#e8f6ef;color:#5aa028}.vtag.o{background:#fbf2dd;color:#9a7212}.vtag.m{background:#dff3ee;color:#065f69}
+  .rail{width:300px;flex:none;border-left:1px solid var(--line);padding:18px 18px 24px;overflow:auto;background:#fafcff}
+  .rail h3{font-size:15px;margin:0 0 14px}
+  .rail .reason{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--tx);margin-bottom:9px}
+  .rail .kv{border-top:1px solid var(--line);padding:12px 0 0;margin-top:12px}
+  .rail .kv .k{font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.03em}
+  .rail .kv .v{font-size:15px;font-weight:700;margin-top:3px}
+  .page{padding:22px 30px;max-width:none}
+  .page h1{font-size:22px;margin:0 0 16px}
+  .fstats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+  .fstat{background:#fff;border:1px solid var(--line2);border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(20,30,50,.04)}
+  .fstat .n{font-size:26px;font-weight:700}
+  .fstat .l{font-size:11px;color:var(--tx2);margin-top:5px;text-transform:uppercase;letter-spacing:.03em}
+  .fstat.alert .n{color:var(--err)}
+  .ftable{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border:1px solid var(--line2);border-radius:12px;overflow:hidden}
+  .ftable th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--tx2);padding:11px 14px;border-bottom:1px solid var(--line);font-weight:600}
+  .ftable td{padding:12px 14px;border-bottom:1px solid var(--line)}
+  .ftable tr:last-child td{border-bottom:none}
+  .ftable tbody tr{cursor:pointer}
+  .ftable tbody tr:hover{background:#f6f9fd}
+  .ftable tr.flagged td:first-child{box-shadow:inset 3px 0 0 var(--err)}
+  .fb{display:inline-flex;align-items:center;font-size:12px;font-weight:600;line-height:1.3;border-radius:12px;padding:1px 8px;margin-right:4px;border:1px solid transparent}
+  .fb.r{background:#fff1f0;color:#b6270a;border-color:#f4a293}.fb.o{background:#faf0e3;color:#bd5200;border-color:#ffbb75}.fb.t{background:#e3f6f6;color:#065f69;border-color:#6dc8ce}.fb.g{background:#f0fae7;color:#44791e;border-color:#9ad86a}.fb.b{background:#e7f2fa;color:#0d4e9e;border-color:#8fc1f1}
+  .defrow{padding:11px 0;border-bottom:1px solid var(--line)}
+  .defrow:last-child{border-bottom:none}
+  .defhd{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+  .defhd b{font-size:13px}
+  .defhd .bldlink{margin-left:auto;font-size:11px;color:var(--accent);font-weight:600;cursor:pointer}
+  .defhd .bldlink:hover{text-decoration:underline}
+  .defl{display:flex;gap:10px;align-items:baseline;margin:5px 0;font-size:12px}
+  .defl .dk{flex:none;width:96px;font-size:10.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--tx3);font-weight:700}
+  .defl .dv{flex:1;line-height:1.9}
+  .ovgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .ovcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:0 3px 3px rgb(4 20 26 / 3%),0 8px 12px -14px rgb(4 20 26 / 8%)}
+  .ovcard.ovwide{grid-column:1 / -1}
+  .ovcard h4{margin:0 0 6px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--tx2)}
+  .ovbig{font-size:34px;font-weight:700;line-height:1;color:var(--tx)}
+  .ovsub{font-size:12px;color:var(--tx2)}
+  .ovbar{height:16px;border-radius:8px;background:#eef2f8;overflow:hidden;display:flex;margin-top:12px}
+  .ovbar span{height:100%}
+  .legrow{font-size:11.5px;color:var(--tx2);margin-top:10px}
+  .utilrow{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:12px}
+  .utilrow .ul{width:88px;color:var(--tx);flex:none}
+  .utiltrack{flex:1;height:9px;border-radius:5px;background:#eef2f8;overflow:hidden}
+  .utiltrack i{display:block;height:100%;background:var(--accent2);border-radius:5px}
+  .utilrow.zero .ul{color:var(--warn)}
+  .ovgrid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+  .attn{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .attncard{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line2);border-left:4px solid var(--err);border-radius:10px;padding:10px 16px;cursor:pointer;box-shadow:0 1px 2px rgba(20,30,50,.04)}
+  .attncard:hover{border-color:var(--accent)}
+  .attncard.ok{border-left-color:var(--ok);cursor:default}
+  .attncard .an{font-size:22px;font-weight:700;line-height:1}
+  .attncard .al{font-size:12px;color:var(--tx2);line-height:1.3}
+  .statline{display:flex;gap:24px;margin-top:14px;flex-wrap:wrap}
+  .statline .si{font-size:13px;color:var(--tx2)}
+  .statline .si b{font-size:18px;color:var(--tx);margin-right:6px}
+  .dotb{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .hr-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12.5px;cursor:pointer;padding:3px 0}
+  .hr-row:hover .hn{color:var(--accent)}
+  .hr-row .hn{flex:1;font-weight:600}
+  .spark{display:flex;align-items:flex-end;gap:4px;height:42px;margin:10px 0 6px}
+  .spark i{flex:1;background:#108291;border-radius:2px 2px 0 0;opacity:.65;min-height:3px}
+  .sysbar{flex:1;height:10px;border-radius:5px;background:#eef2f8;overflow:hidden;display:flex}
+  .sysbar span{height:100%}
+  .trendhd{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:14px}
+  .trendwrap{padding:2px 0}
+  .trendx{display:flex;justify-content:space-between;font-size:11px;color:var(--tx3);margin-top:6px}
+  .tlegrow{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  .tleg{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2)}
+  .tguide{position:absolute;top:0;bottom:18px;width:1px;background:#c7d2e0;display:none;pointer-events:none;z-index:2}
+  .ttip{position:absolute;top:4px;display:none;background:#fff;border:1px solid var(--line2);border-radius:10px;box-shadow:0 6px 20px rgba(20,30,50,.16);padding:9px 11px;font-size:12px;pointer-events:none;z-index:3;min-width:150px}
+  .ttip .ttd{font-weight:700;margin-bottom:6px;color:var(--tx)}
+  .ttip .ttr{display:flex;align-items:center;gap:7px;color:var(--tx2);margin:3px 0}
+  .ttip .ttr b{margin-left:auto;color:var(--tx)}
+  .filterbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:2px 0;margin-bottom:18px}
+  .flab{display:inline-flex;font-size:0}
+  .flab select{font-family:inherit;font-size:13px;font-weight:600;color:var(--tx);background:#fff;border:1px solid #bcc3ce;border-radius:4px;min-height:32px;padding:6px 10px;cursor:pointer;min-width:132px;transition:border-color .1s ease}
+  .flab select:hover{border-color:var(--tx)}
+  .fclear{margin-left:auto;background:#fff;border:1px solid #bcc3ce;border-radius:4px;min-height:32px;padding:0 14px;font-family:inherit;font-size:13px;font-weight:600;color:var(--tx2);cursor:pointer}
+  .fclear:hover{border-color:var(--tx);color:var(--tx)}
+  .fclear:hover{background:#f5f8fc;color:var(--accent)}
+  .winseg{display:inline-flex;border:1px solid var(--line2);border-radius:9px;overflow:hidden;flex:none}
+  .winseg button{border:none;background:#fff;color:var(--tx2);font:inherit;font-size:12.5px;font-weight:600;padding:6px 14px;cursor:pointer;border-left:1px solid var(--line2)}
+  .winseg button:first-child{border-left:none}
+  .winseg button:hover{background:#f5f8fc}
+  .winseg button.on{background:var(--accent);color:#fff}
+  .flowhd{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .fgraph{position:relative;overflow:auto;max-height:620px;background:#fbfcfe;background-image:radial-gradient(circle at 1px 1px,#e1e8f2 1px,transparent 0);background-size:22px 22px}
+  .fgraph .cols{align-items:start}
+  .band{position:relative}
+  .crewn{width:100%}
+  .ain{margin-bottom:0;min-height:46px;display:flex;flex-direction:column;justify-content:center}
+  .morelink{font-size:12px;color:var(--accent);cursor:pointer;padding:10px 4px;font-weight:600}
+  .crewgrid{display:grid;grid-template-columns:1.7fr 1fr;gap:18px;align-items:start}
+  .sech{font-size:16px;margin:0 0 12px}
+  @media(max-width:880px){.crewgrid{grid-template-columns:1fr}}
+  .selc{border-color:#6b3fc9!important;box-shadow:0 2px 11px rgba(107,63,201,.2)!important}
+  .crewn.selc{background:#f7f4fd}
+  .dimc{opacity:.4}
+  .faint{opacity:.42}
+  .fgraph .cols{gap:13px 38px;min-width:1320px}
+  .fgraph .ncard{padding:7px 11px;margin-bottom:8px;border-radius:9px}
+  .fgraph .ncard .nm{font-size:12.5px}
+  .fgraph .ncard .sub{font-size:10.5px;margin-top:1px}
+  #fwires,#cwires{position:absolute;top:0;left:0;pointer-events:none;z-index:0}
+  .fgraph .cols{z-index:1}
+  .fnode{cursor:pointer}
+  .fnode:hover{border-color:var(--accent);box-shadow:0 2px 9px rgba(20,30,50,.11)}
+  .gate .grow[data-gate]{cursor:pointer}
+  .gate .grow[data-gate]:hover{background:#f5f8fc}
+  .ovchip{display:inline-flex;align-items:center;gap:6px;background:#eef3fb;border:1px solid #d6e1f0;border-radius:20px;padding:2px 10px;font-size:12px;color:var(--accent);cursor:pointer;margin-left:4px}
+  .kpihd{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--tx3);font-weight:700;margin:2px 2px 14px}
+  .kpirow{display:flex}
+  .kpi{flex:1;padding:2px 22px;border-left:1px solid var(--line)}
+  .kpi:first-child{padding-left:2px;border-left:none}
+  .kpi.link{cursor:pointer;border-radius:9px}
+  .kpi.link:hover{background:#f5f8fc}
+  .kpi.sel{background:#eef3fb;box-shadow:inset 0 0 0 1.5px #1a57e5}
+  .tleg{cursor:pointer}
+  .tleg.off{opacity:.32}
+  .kpin{font-size:32px;font-weight:700;line-height:1}
+  .kpil{font-size:12.5px;color:var(--tx2);margin-top:8px}
+  .trust{display:flex;align-items:stretch;margin-top:6px}
+  .trust-t{flex:1;padding:2px 22px;display:flex;flex-direction:column;gap:3px}
+  .trust-t + .trust-t{border-left:1px solid var(--line)}
+  .trust-t .tv{font-size:30px;font-weight:700;line-height:1.1}
+  .trust-t .tl{font-size:13px;font-weight:600;color:var(--tx)}
+  .trust-t .ts2{font-size:11.5px;color:var(--tx2)}
+  .polrow{background:#fff;border:1px solid var(--line2);border-radius:11px;padding:13px 15px;margin-bottom:11px;box-shadow:0 1px 2px rgba(20,30,50,.04)}
+  .polrow .pn{font-weight:600;display:flex;align-items:center;gap:8px}
+  .polrow .pm{font-size:12px;color:var(--tx2);margin-top:6px;display:flex;gap:16px;flex-wrap:wrap}
+  .polrow .pm b{color:var(--tx)}
+  .polrow .prow{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);font-size:12px}
+  .pimp{display:inline-flex;align-items:center;gap:7px;color:var(--tx2)}
+  .pimp b{font-size:14px}
+  .plink{color:var(--accent);font-weight:600;margin-left:4px}
+  .pimp:hover .plink{text-decoration:underline}
+  .sw{margin-left:auto;width:36px;height:20px;border-radius:999px;background:#cfd8e4;position:relative;cursor:pointer;flex:none}
+  .sw.on{background:var(--ok)}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}.sw.on::after{left:18px}
+  .auditv .ar{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .auditv .ar .t{color:var(--tx2);width:50px;flex:none}
+  .dpill{font-size:10px;font-weight:700;border-radius:999px;padding:1px 8px}
+  .dpill.g{background:#e8f6ef;color:#5aa028}.dpill.r{background:#fcebe9;color:#da3b1c}.dpill.o{background:#fbf2dd;color:#9a7212}
+  .dock{position:fixed;top:58px;left:calc(100vw - 412px);width:392px;height:calc(100vh - 80px);min-width:300px;min-height:300px;max-width:96vw;max-height:94vh;resize:both;overflow:hidden;border:1px solid var(--line2);border-radius:15px;background:#fff;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(20,30,50,.2);z-index:60}
+  .dock.collapsed{display:none}
+  .dock .dhd{height:46px;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid var(--line);font-weight:700;cursor:move;user-select:none;background:#fbfcfe}
+  .dock .dhd .star{color:var(--teal)}
+  .dock .dhd .x{margin-left:auto;cursor:pointer;color:var(--tx2);background:none;border:none;font-size:16px}
+  .thread{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;background:var(--bg)}
+  .msg{font-size:13px;line-height:1.5}
+  .msg.user{align-self:flex-end;background:var(--accent2);color:#fff;border-radius:12px 12px 3px 12px;padding:8px 11px;max-width:88%}
+  .msg.airo{background:#fff;border:1px solid var(--line2);border-radius:3px 12px 12px 12px;padding:9px 12px;max-width:94%}
+  .msg.sys{background:transparent;color:var(--tx2);padding:0;font-size:12.5px}
+  .env-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+  .pill{font-size:11px;font-weight:600;border-radius:999px;padding:2px 8px}
+  .pill.b{background:#eaf1fe;color:#1a57e5}.pill.n{background:#eef2f8;color:var(--tx2)}.pill.r{background:#fcebe9;color:#da3b1c}.pill.o{background:#fbf2dd;color:#9a7212}.pill.g{background:#e8f6ef;color:#5aa028}
+  .routine{border:1px dashed var(--line2);border-radius:10px;background:#f6f8fc}
+  .routine summary{cursor:pointer;list-style:none;padding:8px 11px;font-size:12.5px;color:var(--tx2)}
+  .routine summary::-webkit-details-marker{display:none}
+  .routine .ln{padding:4px 11px 4px 26px;font-size:12px;color:var(--tx2);border-top:1px solid var(--line)}
+  .note{border-radius:8px;padding:9px 11px;font-size:12.5px}
+  .note.block{background:#fbf2dd;color:#7c5a06}.note.halt{background:#fcebe9;color:#8a2a25}
+  .approve{border:1.5px solid var(--warn);border-radius:10px;background:#fbf6e6;overflow:hidden}
+  .approve .hd{padding:9px 12px;font-weight:700;color:#7c5a06}
+  .approve .bd{padding:0 12px 11px;font-size:12.5px;color:#6b5a2e}
+  .approve .grant{background:#fff;border:1px solid #e8d7a8;border-radius:7px;padding:6px 9px;margin:7px 0;display:flex;justify-content:space-between}
+  .ack{display:flex;gap:6px;font-size:12px;margin:6px 0 9px}
+  .pcard{border:1px solid var(--accent2);border-radius:10px;background:#eef4ff;padding:10px 12px;margin-top:7px}
+  .pcard .pn{font-weight:700;color:#23406e}.pcard .pm{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:11.5px;color:var(--tx2)}
+  .row{display:flex;gap:8px;align-items:center}
+  .btn{height:32px;padding:0 16px;border-radius:4px;font-size:13px;font-weight:600;letter-spacing:.1px;border:1px solid transparent;cursor:pointer;font-family:inherit}
+  .btn.brand{background:var(--accent2);color:#fff}.btn.neutral{background:#fff;border-color:var(--line2);color:var(--tx)}.btn.danger{background:var(--err);color:#fff}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .composer{border-top:1px solid var(--line);padding:11px 13px 14px;background:#fff}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .chip{font-size:11.5px;padding:4px 9px;border-radius:999px;border:1px solid var(--line2);background:#fff;color:var(--tx2);cursor:pointer;white-space:nowrap}
+  .chip.rule{border-style:dashed}.chip:hover{border-color:var(--accent);color:var(--tx)}
+  .chip.cmd{background:#f3f0fb;border-color:#d8ccf2;color:#6b3fc9}
+  .apprq{display:flex;flex-direction:column;gap:7px;margin-top:9px}
+  .approw{display:flex;align-items:center;gap:10px;border:1px solid var(--line2);border-radius:10px;padding:8px 10px;background:#fff}
+  .approw .ainfo{flex:1;min-width:0}
+  .approw .an2{font-size:12.5px;font-weight:700;color:var(--tx)}
+  .approw .asub{font-size:10.5px;color:var(--tx2);margin-top:1px}
+  .approw .abtns{display:flex;gap:6px;flex:none}
+  .abtn{font-size:11px;font-weight:600;border-radius:7px;padding:5px 10px;cursor:pointer;border:1px solid}
+  .abtn.ok{background:#5aa028;border-color:#5aa028;color:#fff}
+  .abtn.no{background:#fff;border-color:var(--line2);color:var(--tx2)}
+  .abtn.ok:hover{background:#18895c}.abtn.no:hover{border-color:#da3b1c;color:#da3b1c}
+  .approw.done{font-size:12px;font-weight:600;justify-content:flex-start;background:#f7faf8}
+  .approw.done.approved{color:#5aa028}.approw.done.denied{color:#da3b1c}
+  .inrow{display:flex;gap:8px}
+  .inrow textarea{flex:1;resize:none;background:#fff;border:1px solid var(--line2);border-radius:10px;color:var(--tx);padding:9px 11px;font-family:inherit;font-size:13px;height:42px}
+  .inrow textarea:focus{outline:none;border-color:var(--accent)}
+  .drawer{position:absolute;top:0;right:0;height:100%;width:640px;max-width:92%;background:#fff;border-left:1px solid var(--line);box-shadow:-18px 0 44px rgba(20,30,50,.12);transform:translateX(100%);transition:transform .25s;z-index:20;display:flex;flex-direction:column}
+  .drawer.open{transform:none}
+  .spanel{position:absolute;top:0;right:0;height:100%;width:50vw;min-width:520px;max-width:96%;background:#fff;border-left:1px solid var(--line2);box-shadow:-18px 0 44px rgba(20,30,50,.13);transform:translateX(100%);transition:transform .25s;z-index:30;display:flex;flex-direction:column}
+  .spanel.open{transform:none}
+  .spanel .sphd{height:52px;display:flex;align-items:center;padding:0 18px;border-bottom:1px solid var(--line);font-weight:700;font-size:15px}
+  .spanel .sphd .x{margin-left:auto;cursor:pointer;color:var(--tx2);background:none;border:none;font-size:15px}
+  .spbody{flex:1;overflow-y:auto;padding:18px}
+  .spstat{display:flex;gap:0;border:1px solid var(--line);border-radius:11px;overflow:hidden;margin:14px 0}
+  .spstat>div{flex:1;padding:11px 12px;border-left:1px solid var(--line)}
+  .spstat>div:first-child{border-left:none}
+  .spstat .n{font-size:21px;font-weight:700;line-height:1}
+  .spstat .l{font-size:11px;color:var(--tx2);margin-top:5px}
+  .spsec{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--tx3);font-weight:700;margin:18px 0 9px}
+  .crewgo{font-size:13px;color:var(--tx3);cursor:pointer;line-height:1;flex:none}
+  .fgraph .nmrow{display:flex;align-items:center;gap:7px}
+  .fgraph .nmrow .nm{flex:1;min-width:0;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rkpill{font-size:9px;font-weight:700;letter-spacing:.02em;padding:2px 7px;border-radius:20px;border:1px solid;flex:none;white-space:nowrap}
+  .rkpill.r{color:#c0392b;border-color:#f0c4bf;background:#fdf0ee}
+  .rkpill.o{color:#9a6b12;border-color:#ecd9ad;background:#fbf5e7}
+  .rkpill.g{color:#5aa028;border-color:#bfe6d6;background:#eef9f4}
+  .fgraph .metric{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--tx2);margin-top:6px}
+  .fgraph .metric.warn{color:#c4691f;font-weight:600}
+  .fgraph .metric.ok{color:#5aa028}
+  .crewgo:hover{color:var(--accent)}
+  .drhd{padding:16px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)}
+  .drhd h2{margin:0;font-size:17px;flex:1}
+  .menu{position:relative}
+  .menu .pop{position:absolute;right:0;top:36px;background:#fff;border:1px solid var(--line2);border-radius:10px;min-width:190px;display:none;overflow:hidden;z-index:5;box-shadow:0 8px 24px rgba(20,30,50,.12)}
+  .menu.open .pop{display:block}
+  .menu .pop div{padding:10px 13px;font-size:13px;cursor:pointer}.menu .pop div:hover{background:#f0f3f8}
+  .drtabs{display:flex;gap:18px;padding:0 20px;border-bottom:1px solid var(--line)}
+  .drtab{padding:11px 0;font-size:12.5px;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.03em;font-weight:600}
+  .drtab.active{color:var(--tx);border-color:var(--teal)}
+  .drbody{flex:1;overflow:auto;padding:20px}
+  .drbody h4{font-size:13px;margin:0 0 9px;display:flex;align-items:center;gap:7px}
+  .drbody p{font-size:13.5px;line-height:1.55;color:var(--tx);margin:0 0 18px}
+  .fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px 20px;margin-bottom:20px}
+  .fields .k{font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.03em}
+  .fields .v{font-size:14px;margin-top:4px}
+  .tl{position:relative;padding-left:18px}
+  .tl .ev{border-left:2px solid var(--line2);padding:0 0 18px 16px;position:relative}
+  .tl .ev::before{content:"";position:absolute;left:-5px;top:2px;width:8px;height:8px;border-radius:50%;background:var(--teal)}
+  .tl .ev .ts{font-size:11px;color:var(--tx2)}
+  .tl .ev .tt{font-weight:600;margin:3px 0}
+  .tl .ev .td{font-size:12.5px;color:var(--tx2)}
+  .tl pre{background:#f4f7fb;border:1px solid var(--line2);border-radius:8px;padding:9px 11px;font-size:11.5px;color:#23406e;overflow:auto;margin-top:7px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d2733;border:1px solid #2c3a4e;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:50;display:none;box-shadow:0 8px 24px rgba(20,30,50,.2)}
+</style>
+</head>
+<body>
+  <div class="envbar"></div>
+  <div class="apphdr">
+    <div class="apphdr-l">
+      <div class="wsw"><span class="wsq">A</span> AIRO</div>
+      <span class="hslash">/</span>
+      <div class="envsw"><span class="envdot"></span> Agent Operations</div>
+    </div>
+    <div class="apphdr-r">
+      <button class="aibtn" id="aibtn"><span class="star">✦</span> Ask AIRO</button>
+      <span class="uava">SW</span>
+    </div>
+  </div>
+  <div class="htabs">
+    <a data-view="overview" class="htab active">Dashboard</a>
+    <a data-view="crews" class="htab">Fleet map</a>
+    <a data-view="pol" class="htab">Policies</a>
+  </div>
+  <div class="main">
+    <div class="stage">
+      <!-- OVERVIEW (home: outcomes + runs) -->
+      <div id="view-overview"><div class="page"><h1>Overview</h1>
+        <div class="filterbar" id="ovFilters"></div>
+        <div class="ovcard" id="ovTop" style="margin-bottom:16px"></div>
+        <div class="ovcard" id="ovTrend" style="margin-bottom:16px"></div>
+        <h2 id="runsAnchor" style="font-size:16px;margin:26px 0 12px">Recent runs</h2>
+        <table class="ftable"><thead><tr><th>Run</th><th>Owner</th><th>Status</th><th>Grants</th><th>Flags</th><th>When</th></tr></thead><tbody id="fleetList"></tbody></table>
+        <p style="color:var(--tx2);font-size:13px;margin-top:14px"><span id="fleetMore"></span> <span id="fleetClear"></span></p>
+      </div></div>
+      <!-- EXPLORER -->
+      <div id="view-explorer">
+        <div class="exhd"><div style="flex:1"><div class="crumb"><a id="backFleet" style="cursor:pointer;color:var(--accent)">‹ Overview</a> › <span id="runCrumb">Onboarding</span></div><h1 id="runTitle">Onboarding run</h1></div><button class="btn neutral" id="replayBtn">▶ Replay</button></div>
+        <div class="extop">Explorer · <b style="color:var(--tx)">this run</b> &nbsp;|&nbsp; <span id="runStatus">idle</span></div>
+        <div class="exwrap">
+          <div class="graph"><svg id="wires"></svg><div class="cols" id="cols"></div></div>
+          <div class="rail">
+            <h3>Run summary</h3>
+            <div id="reasons"><div class="reason" style="color:var(--tx2)">Run something from the AIRO panel to see the lineage and a plain-language summary.</div></div>
+            <div class="kv"><div class="k">Grants used</div><div class="v" id="kvGrants">0 / 8</div></div>
+            <div class="kv"><div class="k">Blocked</div><div class="v" id="kvViol">0</div></div>
+            <div class="kv"><div class="k">Sponsor</div><div class="v" style="font-size:13px">it-ops-manager</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- POLICIES -->
+      <div id="view-pol" style="display:none"><div class="page"><h1>Policies</h1><div id="pollist"></div>
+        <p style="color:var(--tx2);font-size:13px">Create new policies by telling AIRO a rule in plain English, e.g. “max 5 grants per run”.</p></div></div>
+      <!-- ACTIVITY -->
+      <div id="view-activity" style="display:none"><div class="page"><h1>Activity Log</h1><div class="auditv" id="auditv"></div></div></div>
+      <!-- CREWS -->
+      <div id="view-crews" style="display:none"><div class="page"><h1>Crews · fleet flow</h1>
+        <div class="filterbar" id="crewFilters"></div>
+        <div class="ovcard" id="ovFlowCard" style="padding:0;overflow:hidden">
+          <div class="flowhd"><h4 style="margin:0">Every crew funnels through one gate</h4><div class="ovsub">click a crew to trace it · ↗ opens a crew · click an agent for details</div></div>
+          <div class="fgraph" style="max-height:calc(100vh - 250px)"><svg id="fwires"></svg><div class="cols" id="fcols"></div></div>
+        </div>
+      </div></div>
+      <!-- CREW DETAIL -->
+      <div id="view-crewdetail" style="display:none"><div class="page" id="crewDetail"></div></div>
+      <!-- AGENT DETAIL -->
+      <div id="view-agentdetail" style="display:none"><div class="page" id="agentDetail"></div></div>
+
+      <!-- action drawer -->
+      <div class="drawer" id="drawer">
+        <div class="drhd"><h2 id="drTitle">Action</h2>
+          <span class="pill o" id="drStatus">Open</span>
+          <div class="menu" id="remediate"><button class="btn brand" id="remBtn">Remediate ▾</button>
+            <div class="pop"><div data-act="jira">Create Jira ticket</div><div data-act="snow">Create ServiceNow ticket</div></div></div>
+          <button class="btn neutral" id="drClose">✕</button>
+        </div>
+        <div class="drtabs"><span class="drtab active" data-dt="ov">Overview</span><span class="drtab" data-dt="logs">Agent Logs</span></div>
+        <div class="drbody" id="drBody"></div>
+      </div>
+
+      <!-- agent side panel -->
+      <div class="spanel" id="agentPanel">
+        <div class="sphd"><span id="agentPanelTitle">Agent</span><button class="x" id="agentPanelX">✕</button></div>
+        <div class="spbody" id="agentPanelBody"></div>
+      </div>
+    </div>
+
+    <!-- AIRO dock -->
+    <div class="dock" id="dock">
+      <div class="dhd"><span class="star">✦</span> AIRO <button class="x" id="dockX">›</button></div>
+      <div class="thread" id="thread"></div>
+      <div class="composer">
+        <div class="chips" id="chips"></div>
+        <div class="inrow"><textarea id="input" placeholder="Run something, or set a rule…"></textarea><button class="btn brand" id="send" style="height:42px">↑</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+<script>
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const crew=[
+  {name:'Coordinator',id:'coord',role:'orchestrate only',allowed:['delegate'],canGrant:[],denied:[]},
+  {name:'AccountGenie',id:'acct',role:'standard accounts',allowed:['createAccount'],canGrant:[],denied:[]},
+  {name:'AccessGenie',id:'access',role:'standard roles',allowed:['grantAccess'],canGrant:['crm:read','calendar','wiki','drive','vpn','code','tickets','erp','finance:read'],denied:['admin','pii:export']},
+  {name:'NotifyGenie',id:'notify',role:'notify · drafts',allowed:['notify','modelCall'],canGrant:[],denied:[]},
+];
+const IDENT=[{id:'spons',nm:'it-ops-manager',sub:'sponsor'},{id:'broker',nm:'AIRO',sub:'broker'}];
+const APPS=[{id:'okta',nm:'Okta'},{id:'slack',nm:'Slack'},{id:'gsuite',nm:'Google Workspace'},{id:'salesforce',nm:'Salesforce'},{id:'confluence',nm:'Confluence'},{id:'github',nm:'GitHub'},{id:'jira',nm:'Jira'},{id:'drive',nm:'Drive'},{id:'netsuite',nm:'NetSuite'},{id:'finance',nm:'Finance'},{id:'extllm',nm:'External LLM'},
+  {id:'zoom',nm:'Zoom'},{id:'box',nm:'Box'},{id:'dropbox',nm:'Dropbox'},{id:'notion',nm:'Notion'},{id:'asana',nm:'Asana'},{id:'linear',nm:'Linear'},{id:'pagerduty',nm:'PagerDuty'},{id:'datadog',nm:'Datadog'},{id:'snowflake',nm:'Snowflake'},{id:'tableau',nm:'Tableau'},{id:'workday',nm:'Workday'},{id:'zendesk',nm:'Zendesk'},{id:'servicenow',nm:'ServiceNow'},{id:'sap',nm:'SAP'},{id:'stripe',nm:'Stripe'},{id:'aws',nm:'AWS'},{id:'gcp',nm:'GCP'},{id:'azure',nm:'Azure'},{id:'figma',nm:'Figma'},{id:'looker',nm:'Looker'},{id:'hubspot',nm:'HubSpot'},{id:'docusign',nm:'DocuSign'}];
+const SYS={'crm:read':'salesforce',calendar:'gsuite',wiki:'confluence',drive:'drive',vpn:'okta',code:'github',tickets:'jira',erp:'netsuite','finance:read':'finance',admin:'okta','pii:export':'okta'};
+const TOOLS=[{id:'createAccount',nm:'create_account'},{id:'grantAccess',nm:'grant_access'},{id:'notify',nm:'notify'},{id:'modelCall',nm:'model_call'},
+  {id:'revokeAccess',nm:'revoke_access'},{id:'updatePermissions',nm:'update_permissions'},{id:'resetPassword',nm:'reset_password'},{id:'createTicket',nm:'create_ticket'},{id:'closeTicket',nm:'close_ticket'},{id:'runQuery',nm:'run_query'},{id:'exportData',nm:'export_data'},{id:'sendEmail',nm:'send_email'},{id:'deploy',nm:'deploy'},{id:'rollback',nm:'rollback'},{id:'createChannel',nm:'create_channel'},{id:'archive',nm:'archive'}];
+const IDPOOL=['it-ops-manager','hr-ops','people-ops','it-admin','sec-ops','eng-ops','data-eng','ml-platform','security-ops','finance-ops','sales-ops','marketing-ops','legal-ops','procurement','support-lead','devops','sre','qa-lead','product-ops','design-ops','it-helpdesk','identity-admin','compliance','audit-svc','vendor-mgmt','contractor-svc','backup-svc','ci-bot','deploy-bot','reporting-svc'];
+
+let policies=defaultPolicies();
+function defaultPolicies(){return [
+  {id:'p1',name:'No admin grants',type:'Rule-based',enf:'Block',on:true,kind:'block',role:'admin'},
+  {id:'p2',name:'No PII export',type:'Rule-based',enf:'Block',on:true,kind:'block',role:'pii:export'},
+  {id:'p3',name:'Max 8 grants per run',type:'Rule-based',enf:'Block',on:true,kind:'ceiling',n:8},
+  {id:'p4',name:'Finance access needs approval',type:'Rule-based',enf:'Approve',on:true,kind:'approve',role:'finance:read'},
+  {id:'p5',name:'No PII to external models',type:'Content / PII',enf:'Mask',on:true,kind:'pii'},
+  {id:'p6',name:'Block unsafe content',type:'LLM-as-judge',enf:'Block',on:true,kind:'content'},
+];}
+function POL(){const blocked=new Set(),approve=new Set();let max=999,pii=false,content=false;
+  policies.filter(p=>p.on).forEach(p=>{if(p.kind==='block')blocked.add(p.role);if(p.kind==='approve')approve.add(p.role);if(p.kind==='ceiling')max=Math.min(max,p.n);if(p.kind==='pii')pii=true;if(p.kind==='content')content=true;});return{blocked,approve,max,pii,content};}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+function parseRule(t){t=t.toLowerCase();let m=t.match(/(\d+)\s*grants?/);
+  if(m&&/(max|ceiling|limit|no more than|only|at most)/.test(t))return{kind:'ceiling',n:+m[1],name:`Max ${m[1]} grants per run`,type:'Rule-based',enf:'Block'};
+  if(/(pii|personal data|personal info|sensitive data)/.test(t)&&/(share|leak|send|external|expose|reveal|can't|cannot|no )/.test(t))return{kind:'pii',name:'No PII to external models',type:'Content / PII',enf:'Mask'};
+  if(/(unsafe|toxic|harmful|inappropriate|content moderation|content policy)/.test(t))return{kind:'content',name:'Block unsafe content',type:'LLM-as-judge',enf:'Block'};
+  const roles=['vpn','finance','calendar','wiki','drive','crm','admin'];const role=roles.find(r=>t.includes(r));const full={finance:'finance:read',crm:'crm:read'}[role]||role;
+  if(role&&/(approv|review|sign[- ]?off|confirm|needs|require)/.test(t))return{kind:'approve',role:full,name:`${cap(role)} access needs approval`,type:'Rule-based',enf:'Approve'};
+  if(role&&/(block|deny|no |cannot|can't|forbid|disallow|don't allow|never)/.test(t))return{kind:'block',role:full,name:`Block ${full}`,type:'Rule-based',enf:'Block'};return null;}
+function isPolicyIntent(t){return /\b(rule|policy|block|deny|forbid|disallow|cannot|can't|must|require)\b|ceiling|limit|\d+\s*grants?|approval|pii|sensitive|personal data|content/i.test(t);}
+
+let run=fresh();
+function fresh(){return {grants:0,ledger:[],audit:[],status:'idle',hr:0,viol:0,masked:0};}
+function gate(a){const g=crew.find(c=>c.id===a.actor);const pol=POL();
+  if(!g.allowed.includes(a.type))return{d:'block',reason:'action not in role'};
+  if(a.type==='grantAccess'&&a.role&&!g.canGrant.includes(a.role))return{d:'block',reason:`role cap — cannot grant ${a.role}`};
+  if(a.type==='grantAccess'&&a.role&&pol.blocked.has(a.role))return{d:'block',reason:`read-only / blocked tools policy — ${a.role}`};
+  if(a.type==='grantAccess'&&run.grants+1>pol.max)return{d:'halt',reason:`ceiling (${pol.max} grants) reached`};
+  if(a.type==='grantAccess'&&a.role&&pol.approve.has(a.role))return{d:'approve'};
+  if(a.external&&a.unsafe&&pol.content)return{d:'block',reason:'content policy — unsafe output blocked'};
+  if(a.external&&a.pii&&a.pii.length&&pol.pii)return{d:'mask',masked:a.pii};
+  if(a.highRisk)return{d:'approve'};return{d:'allow'};}
+function bundle(){return [
+  {actor:'acct',type:'createAccount',label:'Create email account',sys:'okta'},
+  {actor:'acct',type:'createAccount',label:'Create Slack account',sys:'slack'},
+  {actor:'access',type:'grantAccess',role:'crm:read',label:'Grant CRM (read)',sys:SYS['crm:read']},
+  {actor:'access',type:'grantAccess',role:'calendar',label:'Grant Calendar',sys:SYS.calendar},
+  {actor:'access',type:'grantAccess',role:'wiki',label:'Grant Wiki',sys:SYS.wiki},
+  {actor:'access',type:'grantAccess',role:'drive',label:'Grant Drive',sys:SYS.drive},
+  {actor:'notify',type:'notify',label:'Send welcome message',sys:'slack'}];}
+function actionsFor(s){
+  if(s==='overgrant')return [...bundle().slice(0,6),{actor:'access',type:'grantAccess',role:'admin',label:'Grant admin console',sys:'okta'},{actor:'access',type:'grantAccess',role:'pii:export',label:'Grant PII export',sys:'okta'},bundle()[6]];
+  if(s==='approval')return [...bundle().slice(0,6),{actor:'access',type:'grantAccess',role:'finance:read',label:'Grant Finance (read)',sys:'finance',risk:0.7,highRisk:true},bundle()[6]];
+  if(s==='loop'){const a=[bundle()[0],bundle()[1]];const r=['crm:read','calendar','wiki','drive','vpn','code','tickets','erp','crm:read','calendar','wiki','code'];r.forEach((x,i)=>a.push({actor:'access',type:'grantAccess',role:x,label:`Grant ${x} · person ${i+1}`,sys:SYS[x]||'drive'}));return a;}
+  if(s==='enrich')return [bundle()[0],{actor:'notify',type:'modelCall',label:'Draft personalized welcome (external AI)',sys:'extllm',external:true,pii:['email','phone','home address']},bundle()[6]];
+  return bundle();}
+function routePrompt(t){t=t.toLowerCase();if(/draft|external ai|enrich|summari[sz]e|with ai|personali/.test(t))return 'enrich';if(/class|everyone|whole|all new|30|batch/.test(t))return 'loop';if(/admin|administrator/.test(t))return 'overgrant';if(/finance|elevated|extra|more access/.test(t))return 'approval';return 'normal';}
+function actLabel(a){return a.role||(a.type==='createAccount'?(a.sys+' account'):a.type==='notify'?'welcome msg':a.label);}
+
+const thread=document.getElementById('thread');
+function scrollT(){thread.scrollTop=thread.scrollHeight;}
+function airo(html){const m=el(`<div class="msg airo">${html}</div>`);thread.appendChild(m);scrollT();return m;}
+function user(t){thread.appendChild(el(`<div class="msg user">${esc(t)}</div>`));scrollT();}
+function sysB(){const m=el(`<div class="msg sys"></div>`);thread.appendChild(m);scrollT();return m;}
+function el(h){const d=document.createElement('div');d.innerHTML=h.trim();return d.firstChild;}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+let routineBox=null;
+function routineLine(label){if(!routineBox){routineBox=el(`<details class="routine" open><summary>▾ <span class="rc">Routine actions</span></summary></details>`);const m=sysB();m.appendChild(routineBox);}
+  routineBox.appendChild(el(`<div class="ln">✓ ${esc(label)}</div>`));const n=routineBox.querySelectorAll('.ln').length;routineBox.querySelector('.rc').textContent=`${n} routine action${n>1?'s':''} auto-cleared`;scrollT();}
+
+let actN=0; const actData={};
+let flowApps=[],flowTools=[],flowLinks=[];
+function buildFlow(){const cols=document.getElementById('cols');
+  const _sc=(curRunMeta&&curRunMeta.scenario)||'normal';const _acts=actionsFor(_sc);
+  flowApps=APPS.filter(a=>_acts.some(x=>x.sys===a.id));flowTools=TOOLS.filter(t=>_acts.some(x=>x.type===t.id));flowLinks=[...new Set(_acts.map(x=>x.sys+'>'+x.type))];
+  cols.innerHTML=
+    `<div class="col"><h5>ORCHESTRATOR</h5><div class="ncard orch" id="ag-coord"><div class="nm">Coordinator</div><div class="sub">orchestrates · takes no actions</div></div></div>`
+   +`<div class="col"><h5>AGENTS (3)</h5>`+crew.filter(c=>c.id!=='coord').map(c=>`<div class="ncard" id="ag-${c.id}"><span class="rk">High risk</span><div class="nm">${c.name}</div><div class="sub">${c.role}</div>${c.denied.map(d=>`<span class="capr">${d} ✕</span>`).join('')}</div>`).join('')+`</div>`
+   +`<div class="col"><h5>IDENTITIES (2)</h5>`+IDENT.map(i=>`<div class="ncard" id="id-${i.id}"><div class="nm">${i.nm}</div><div class="sub">${i.sub}</div></div>`).join('')+`</div>`
+   +`<div class="col gatecol"><h5>GATE</h5><div class="gate" id="gate"><div class="gstrip" id="gstrip"></div><div class="ghd"><span class="glive"></span>Gateway</div><div class="grow"><span class="gdot" style="background:#5aa028"></span>Passed<span class="gn" id="gPass">0</span></div><div class="grow"><span class="gdot" style="background:#da3b1c"></span>Blocked<span class="gn" id="gBlk">0</span></div><div class="grow"><span class="gdot" style="background:#108291"></span>Masked<span class="gn" id="gMsk">0</span></div><div class="grow"><span class="gdot" style="background:#bd5200"></span>Held<span class="gn" id="gApr">0</span></div></div></div>`
+   +`<div class="col"><h5>APPLICATIONS (${flowApps.length})</h5>`+flowApps.map(a=>`<div class="ncard" id="app-${a.id}"><div class="nm">${a.nm}</div></div>`).join('')+`</div>`
+   +`<div class="col"><h5>TOOLS (${flowTools.length})</h5>`+flowTools.map(t=>`<div class="ncard" id="tool-${t.id}"><div class="nm">${t.nm}</div></div>`).join('')+`</div>`
+   +`<div class="col"><h5>ACTIONS (<span id="actcount">0</span>)</h5><div id="col-actions"></div></div>`;
+  actN=0;Object.keys(actData).forEach(k=>delete actData[k]);drawBase();}
+function box(id){const f=document.getElementById('cols').getBoundingClientRect();const e=document.getElementById(id);if(!e||!e.getBoundingClientRect)return{x:0,y:0,w:0,h:0};const b=e.getBoundingClientRect();return{x:b.left-f.left,y:b.top-f.top,w:b.width,h:b.height};}
+const Rp=id=>{const b=box(id);return[b.x+b.w,b.y+b.h/2];};const Lp=id=>{const b=box(id);return[b.x,b.y+b.h/2];};
+function curve(p1,p2){const dx=Math.max(30,(p2[0]-p1[0])*0.55);return `M${p1[0]} ${p1[1]} C ${p1[0]+dx} ${p1[1]}, ${p2[0]-dx} ${p2[1]}, ${p2[0]} ${p2[1]}`;}
+function svgEl(t,a){const e=document.createElementNS('http://www.w3.org/2000/svg',t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function drawBase(){const w=document.getElementById('wires');w.innerHTML='';const add=(a,b)=>w.appendChild(svgEl('path',{d:curve(a,b),fill:'none',stroke:'#cdd8e6','stroke-width':1.2}));
+  const wk=crew.filter(c=>c.id!=='coord');wk.forEach(w=>add(Rp('ag-coord'),Lp('ag-'+w.id)));wk.forEach(w=>add(Rp('ag-'+w.id),Lp('id-spons')));add(Rp('id-spons'),Lp('gate'));add(Rp('id-broker'),Lp('gate'));flowApps.forEach(a=>add(Rp('gate'),Lp('app-'+a.id)));flowLinks.forEach(k=>{const i=k.indexOf('>');add(Rp('app-'+k.slice(0,i)),Lp('tool-'+k.slice(i+1)));});}
+function clearActive(){document.querySelectorAll('.ncard').forEach(n=>{n.classList.remove('active','green','red','amber','show-risk');n.classList.add('dim');});const a=document.getElementById('active');if(a)a.remove();}
+function addActionCard(a,res,ts){const id='act-'+(actN++);const v=res.d==='allow'?'<span class="vtag g">ok</span>':res.d==='mask'?'<span class="vtag m">🛡 PII masked</span>':res.d==='approve'?'':'<span class="vtag r">Violation</span>';
+  const c=el(`<div class="ncard act" id="${id}"><div class="nm">${esc(actLabel(a))} ${v}</div><div class="sub">${a.type}</div></div>`);
+  document.getElementById('col-actions').appendChild(c);document.getElementById('actcount').textContent=actN;
+  actData[id]={a,res,ts,id};c.onclick=()=>openDrawer(id);return id;}
+function tagAction(id,res){const c=document.getElementById(id);if(!c)return;const nm=c.querySelector('.nm');
+  const t=res.d==='allow'?'<span class="vtag g">ok</span>':res.d==='approve'?'<span class="vtag o">approved</span>':res.d==='reversed'?'<span class="vtag o">↩ reversed</span>':'<span class="vtag r">Violation</span>';
+  nm.innerHTML=esc(actLabel(actData[id].a))+' '+t;}
+async function activate(act,res,actId){clearActive();
+  const tone=(res.d==='allow'||res.d==='mask')?'green':res.d==='approve'?'amber':'red';
+  const ids=['ag-coord','ag-'+act.actor,'id-spons','gate','app-'+act.sys,'tool-'+act.type,actId];
+  ids.forEach(id=>{const n=document.getElementById(id);if(n){n.classList.remove('dim');n.classList.add('active',tone);}});
+  const br=document.getElementById('id-broker');br.classList.remove('dim');br.classList.add('active',tone);
+  if(res.d!=='allow')document.getElementById('ag-'+act.actor).classList.add('show-risk');
+  if(res.d==='block'||res.d==='halt')document.getElementById('tool-'+act.type).classList.add('flag');
+  const g=svgEl('g',{id:'active'});document.getElementById('wires').appendChild(g);
+  const col=tone==='green'?'#5aa028':tone==='amber'?'#bd5200':'#da3b1c';
+  const segs=[[Rp(ids[0]),Lp(ids[1])],[Rp(ids[1]),Lp(ids[2])],[Rp(ids[2]),Lp(ids[3])],[Rp(ids[3]),Lp(ids[4])],[Rp(ids[4]),Lp(ids[5])],[Rp(ids[5]),Lp(ids[6])]];
+  const path=svgEl('path',{d:segs.map(s=>curve(s[0],s[1])).join(' '),fill:'none',stroke:col,'stroke-width':2.4,opacity:.95});g.appendChild(path);
+  const dot=svgEl('circle',{r:4.5,fill:col});g.appendChild(dot);await pulse(path,dot,res.d==='block'||res.d==='halt');}
+function pulse(path,dot,bounce){return new Promise(res=>{let len;try{len=path.getTotalLength?path.getTotalLength():0;}catch(e){len=0;}if(!len){res();return;}
+  const dur=560,t0=performance.now();function fr(t){let k=Math.min(1,(t-t0)/dur);const e=bounce?(k<.6?k:1.2-k):k;const pt=path.getPointAtLength(Math.max(0,Math.min(1,e))*len);dot.setAttribute('cx',pt.x);dot.setAttribute('cy',pt.y);if(k<1)requestAnimationFrame(fr);else{dot.setAttribute('opacity','0');res();}}requestAnimationFrame(fr);});}
+
+function gateStamp(res){
+  const colMap={allow:'#5aa028',mask:'#108291',approve:'#bd5200',block:'#da3b1c',halt:'#da3b1c'};
+  const g=document.getElementById('gate');if(!g)return;g.classList.add('active-run');
+  const strip=document.getElementById('gstrip');if(strip)strip.style.background=colMap[res.d]||'var(--line2)';
+  const v=Object.values(actData).map(x=>x.res.d);
+  document.getElementById('gPass').textContent=v.filter(d=>d==='allow').length;
+  document.getElementById('gBlk').textContent=v.filter(d=>d==='block'||d==='halt').length;
+  document.getElementById('gMsk').textContent=v.filter(d=>d==='mask').length;
+  document.getElementById('gApr').textContent=v.filter(d=>d==='approve').length;
+  if(res.d==='halt'){g.classList.add('shut');document.getElementById('cols').classList.add('gateshut');}
+}
+function railUpdate(scenario){
+  document.getElementById('kvGrants').textContent=`${run.grants} / ${POL().max}`;
+  document.getElementById('kvViol').textContent=run.viol;
+  document.getElementById('runStatus').textContent=run.status;
+  const reasons=[];
+  if(run.status==='halted')reasons.push(['var(--err)',`Halted at the ${POL().max}-grant ceiling — looked like onboarding many people at once`]);
+  if(run.viol)reasons.push(['var(--warn)',`${run.viol} action(s) blocked by policy / role cap`]);
+  if(run.hr)reasons.push(['var(--warn)',`${run.hr} high-risk action routed to you for approval`]);
+  if(run.masked)reasons.push(['#065f69',`${run.masked} external call(s) had PII auto-redacted`]);
+  reasons.push(['var(--ok)',`${run.grants} grants applied, all attributable to it-ops-manager`]);
+  if(run.ledger.length)reasons.push(['var(--ok)',`Fully reversible — every grant has a recorded inverse`]);
+  document.getElementById('reasons').innerHTML=reasons.map(r=>`<div class="reason"><span class="i" style="color:${r[0]}">●</span><span>${r[1]}</span></div>`).join('');
+}
+function renderAudit(){document.getElementById('auditv').innerHTML=run.audit.length?run.audit.map(a=>`<div class="ar"><span class="t">${a.t}</span><span>${a.txt}</span><span style="margin-left:auto"><span class="dpill ${a.c}">${a.r}</span></span></div>`).join(''):'<div style="color:var(--tx2)">No actions yet.</div>';}
+function audit(t,txt,c,r){run.audit.push({t,txt,c,r});renderAudit();}
+
+let curDraw=null;
+function openDrawer(id){curDraw=id;const {a,res,ts}=actData[id];
+  document.getElementById('drTitle').textContent=actLabel(a)+(res.reason?' — '+res.reason:'');
+  const st=document.getElementById('drStatus');st.textContent=res.d==='allow'?'Resolved':res.d==='mask'?'Masked':res.d==='approve'?'Approved':'Open';st.className='pill '+(res.d==='allow'||res.d==='mask'?'g':'o');
+  document.querySelectorAll('.drtab').forEach(t=>t.classList.toggle('active',t.dataset.dt==='ov'));
+  drawTab('ov');document.getElementById('drawer').classList.add('open');}
+function drawTab(which){const {a,res,ts}=actData[curDraw];const b=document.getElementById('drBody');
+  const genie=crew.find(c=>c.id===a.actor).name;const viol=(res.d==='block'||res.d==='halt');const masked=(res.d==='mask');
+  if(which==='ov'){
+    const summary=viol?`At ${ts}, ${genie} attempted to ${actLabel(a).toLowerCase()} on ${cap(a.sys)} while running this onboarding. AIRO blocked it before it committed — ${res.reason}.`
+      :masked?`At ${ts}, ${genie} sent a draft request to External LLM. AIRO detected ${res.masked.length} PII fields (${res.masked.join(', ')}) and redacted them before the request left Workato. The draft proceeded without exposing any personal data.`
+      :res.d==='approve'?`At ${ts}, ${genie} requested ${actLabel(a)} on ${cap(a.sys)}. Because it exceeds the standard bundle, AIRO paused it for your approval.`
+      :`At ${ts}, ${genie} performed ${actLabel(a)} on ${cap(a.sys)}, on behalf of it-ops-manager. Within policy and recorded with an inverse for rollback.`;
+    const stTxt=viol?('⚠ '+res.reason):masked?('🛡 PII redacted — '+res.masked.length+' fields'):res.d==='approve'?'Approved by sponsor':'Allowed';
+    const stCol=viol?'var(--err)':masked?'#065f69':'var(--ok)';
+    b.innerHTML=`<h4>💬 Action summary</h4><p>${esc(summary)}</p>
+      <div class="fields">
+        <div><div class="k">Application</div><div class="v">${cap(a.sys)}</div></div>
+        <div><div class="k">Agent</div><div class="v">${genie}</div></div>
+        <div><div class="k">Time</div><div class="v">${ts}</div></div>
+        <div><div class="k">Tool</div><div class="v">${a.type}</div></div>
+        <div><div class="k">Identity</div><div class="v">it-ops-manager</div></div>
+        <div><div class="k">${viol?'Policy violation':'Status'}</div><div class="v" style="color:${stCol}">${stTxt}</div></div>
+      </div>
+      ${viol?`<h4>⚠ Violation summary</h4><p>This action violates the active policy. ${genie} attempted a ${a.type} operation that is not permitted under the current access policy, so AIRO denied it. Nothing was committed.</p>`:''}
+      ${masked?`<h4>🛡 Guardrail summary</h4><p>This call would have sent personal data (${res.masked.join(', ')}) to an external model. The “No PII to external models” policy masked those fields automatically; the rest of the request went through, so the task still completed.</p>`:''}`;
+  } else {
+    const args=JSON.stringify(a.type==='grantAccess'?{role:a.role,target:cap(a.sys)}:a.type==='modelCall'?{prompt:'Draft personalized welcome',target:cap(a.sys),piiRedacted:(res.masked||[])}:{system:cap(a.sys)},null,2);
+    b.innerHTML=`<div class="fields" style="grid-template-columns:1fr 1fr"><div><div class="k">User</div><div class="v">it-ops-manager</div></div><div><div class="k">Time</div><div class="v">${ts}</div></div></div>
+      <h4>🕐 Action timeline</h4>
+      <div class="tl">
+        <div class="ev"><div class="ts">${ts}</div><div class="tt">Plan · ${genie}</div><div class="td">Genie selected the “${a.type}” tool for this task.</div></div>
+        <div class="ev"><div class="ts">${ts}</div><div class="tt">${a.type} ${viol?'<span class="vtag r">Violation</span>':''}</div><div class="td">${esc(actLabel(a))}</div><pre>${esc(args)}</pre></div>
+      </div>`;
+  }
+}
+function showToast(t){const el2=document.getElementById('toast');el2.textContent=t;el2.style.display='block';setTimeout(()=>el2.style.display='none',2200);}
+function remediate(act){const id=curDraw;const {a,res}=actData[id];
+  document.getElementById('remediate').classList.remove('open');
+  if(act==='rewind'){
+    if(res.d!=='allow'){showToast('Nothing to rewind — this action was blocked, never committed.');return;}
+    const li=run.ledger.findIndex(l=>l.aid===id);if(li>=0){run.ledger.splice(li,1);run.grants=Math.max(0,run.grants-1);}
+    actData[id].res={d:'reversed'};tagAction(id,{d:'reversed'});railUpdate();audit('rwnd','Rewound '+a.label,'o','Reversed');
+    document.getElementById('drStatus').textContent='Reversed';showToast('↺ Action rewound — the grant was reversed.');airo(`↺ Rewound <b>${esc(a.label)}</b> on your request. The grant is reversed and logged.`);
+  } else showToast((act==='jira'?'Jira':'ServiceNow')+' ticket created for this violation.');
+}
+
+function policyImpact(){const c={};policies.forEach(p=>c[p.id]=0);const saved=run;
+  WIN().forEach(m=>{run=fresh();
+    for(const a of actionsFor(m.scenario)){const r=gate(a);
+      policies.forEach(p=>{if(!p.on)return;
+        if(p.kind==='block'&&a.type==='grantAccess'&&a.role===p.role&&r.d==='block')c[p.id]++;
+        else if(p.kind==='ceiling'&&r.d==='halt')c[p.id]++;
+        else if(p.kind==='approve'&&a.role===p.role&&effD(m,r)==='approve')c[p.id]++;
+        else if(p.kind==='pii'&&r.d==='mask')c[p.id]++;
+        else if(p.kind==='content'&&r.d==='block'&&/content/.test(r.reason||''))c[p.id]++;});
+      if(r.d==='allow'&&a.type==='grantAccess')run.grants++;else if(r.d==='approve')run.grants++;
+      if(r.d==='halt')break;}});
+  run=saved;return c;}
+const POLVERB={block:['blocked','#da3b1c','blocked'],ceiling:['halted','#e67009','halted'],approve:['held for approval','#bd5200','held'],pii:['PII-masked','#108291','masked'],content:['content-blocked','#da3b1c','blocked']};
+function renderPolicies(){const imp=policyImpact();
+  document.getElementById('pollist').innerHTML=policies.map(p=>{const n=imp[p.id]||0;const v=POLVERB[p.kind]||['enforced','#5d6b7c',null];
+    const impHtml=!p.on?`<span class="ovsub">disabled</span>`:n?`<span class="pimp" data-f="${v[2]||''}"><span class="dotb" style="background:${v[0]?v[1]:'#5d6b7c'}"></span><b style="color:${v[1]}">${n}</b> action${n>1?'s':''} ${v[0]} · last ${ovWin}d <span class="plink">view runs →</span></span>`:`<span class="ovsub">no matches in last ${ovWin}d</span>`;
+    return `<div class="polrow"><div class="pn">${esc(p.name)}<span class="sw ${p.on?'on':''}" data-id="${p.id}"></span></div>
+     <div class="pm"><span>Type: <b>${p.type}</b></span><span>Scope: <b>All Genies</b></span><span>Enforcement: <b>${p.enf}</b></span></div>
+     <div class="prow">${impHtml}</div></div>`;}).join('');
+  document.querySelectorAll('#pollist .sw').forEach(s=>s.onclick=()=>{const p=policies.find(x=>x.id===s.dataset.id);p.on=!p.on;renderPolicies();});
+  document.querySelectorAll('#pollist .pimp[data-f]').forEach(el=>{if(!el.dataset.f)return;el.style.cursor='pointer';el.onclick=()=>{ovFilter={kind:'gate',val:el.dataset.f};showView('overview');renderOverview();renderFleet();const an=document.getElementById('runsAnchor');if(an)an.scrollIntoView({behavior:'smooth',block:'start'});};});}
+function policyCard(p){return el(`<div class="pcard"><div class="pn">⊕ ${esc(p.name)}</div><div class="pm"><span>Type: ${p.type}</span><span>Enforce: ${p.enf}</span><span>Enabled</span></div></div>`);}
+
+const CREWS=(function(){
+ // a handful of reusable agent roles, instantiated into many crews across every department
+ const fns=[{sfx:'onboarding',nm:'Onboarding',w:['acct','access','notify']},{sfx:'offboarding',nm:'Offboarding',w:['access','notify']},{sfx:'access-review',nm:'Access review',w:['access']},{sfx:'provisioning',nm:'Provisioning',w:['acct','access']}];
+ const depts=['Sales','Engineering','Finance','Support','Marketing','People','Legal','IT','Security','Data','Product','Design','Success','Procurement'];
+ const out=[{id:'onboard',name:'Standard onboarding',members:['coord','acct','access','notify']},{id:'review',name:'Quarterly access review',members:['coord','access']},{id:'offboard',name:'Standard offboarding',members:['coord','access','notify']}];
+ depts.forEach(d=>fns.forEach(f=>out.push({id:(d+'-'+f.sfx).toLowerCase(),name:d+' '+f.nm,members:['coord',...f.w]})));
+ return out;
+})();
+const TOTAL_AGENTS=CREWS.reduce((s,c)=>s+c.members.length,0);
+const FLEET=(function(){
+ const named=[
+  {id:'r1',name:'Onboard Marco — sales contractor',scenario:'normal',owner:'it-ops-manager',when:'2m ago',crew:'onboard',day:0},
+  {id:'r2',name:'Bulk onboarding — Q3 class',scenario:'loop',owner:'hr-ops',when:'9m ago',crew:'onboard',day:0},
+  {id:'r3',name:'Grant finance access — Dana',scenario:'approval',owner:'it-ops-manager',when:'14m ago',crew:'onboard',day:0},
+  {id:'r4',name:'Admin request — vendor portal',scenario:'overgrant',owner:'it-admin',when:'23m ago',crew:'review',day:0},
+  {id:'r5',name:'Draft welcome — Priya (ext AI)',scenario:'enrich',owner:'people-ops',when:'35m ago',crew:'onboard',day:0},
+  {id:'r6',name:'Onboard Sam — contractor',scenario:'normal',owner:'it-ops-manager',when:'48m ago',crew:'onboard',day:0},
+  {id:'r7',name:'Offboard Lee — contractor',scenario:'normal',owner:'it-ops-manager',when:'1h ago',crew:'offboard',day:0},
+  {id:'r8',name:'Quarterly access review — finance',scenario:'approval',owner:'it-admin',when:'2h ago',crew:'review',day:0},
+ ];
+ // fleet-scale synthetic history so aggregates and trends are meaningful (you can't eyeball hundreds of runs)
+ const SCEN=['normal','normal','normal','normal','normal','loop','approval','approval','overgrant','enrich'];
+ const OWN=['it-ops-manager','hr-ops','people-ops','it-admin','sec-ops','eng-ops'];
+ const NMS=['Onboard new hire','Offboard contractor','Access review','Provision vendor','Grant tool access','Bulk onboarding','Reinstate account','Update permissions','Draft welcome'];
+ const PPL=['Marco','Sam','Dana','Priya','Lee','Aria','Tom','Nina','Wei','Sofia','Raj','Mia','Omar','Eve'];
+ const CRW=CREWS.map(c=>c.id);
+ const pick=a=>a[Math.floor(Math.random()*a.length)];
+ const arr=named.slice();
+ for(let i=0;i<470;i++){const d=Math.floor(Math.random()*30);
+  arr.push({id:'g'+i,name:pick(NMS)+' — '+pick(PPL),scenario:pick(SCEN),owner:pick(OWN),crew:pick(CRW),when:d===0?'today':d+'d ago',day:d});}
+ return arr;
+})();
+function crewRisk(c){return c.members.some(id=>(AGENTS_META[id]||{}).risk==='High')?'High':c.members.some(id=>(AGENTS_META[id]||{}).risk==='Med')?'Med':'Low';}
+function renderCrews(){renderFleetGraph();setTimeout(()=>{try{drawFleetWires();}catch(e){}},50);}
+function crewOrgChart(c){const workers=c.members.filter(m=>m!=='coord');const W=Math.max(440,workers.length*170);const cx=Math.round(W/2);const gap=W/workers.length;
+  const rc=r=>r==='High'?'#da3b1c':r==='Med'?'#bd5200':'#5aa028';
+  let svg=`<svg width="100%" viewBox="0 0 ${W} 230" style="max-width:${W}px">`;
+  workers.forEach((mid,i)=>{const x=Math.round(gap*(i+0.5));svg+=`<path d="M${cx} 90 C ${cx} 124, ${x} 124, ${x} 152" fill="none" stroke="#cdd8e6" stroke-width="1.5"/>`;});
+  svg+=`<g onclick="openAgent('coord')" style="cursor:pointer"><rect x="${cx-92}" y="36" width="184" height="54" rx="10" fill="#f7f4fd" stroke="#cdbcef"/><text x="${cx}" y="62" text-anchor="middle" font-size="13" font-weight="700" fill="#1d2733">Coordinator</text><text x="${cx}" y="79" text-anchor="middle" font-size="11" fill="#6b3fc9">orchestrator</text></g>`;
+  workers.forEach((mid,i)=>{const ag=crew.find(a=>a.id===mid);const m=AGENTS_META[mid]||{risk:'Low'};const x=Math.round(gap*(i+0.5));
+    svg+=`<g onclick="openAgent('${mid}')" style="cursor:pointer"><rect x="${x-84}" y="152" width="168" height="58" rx="10" fill="#fff" stroke="#d6dfea"/><circle cx="${x-66}" cy="176" r="4" fill="${rc(m.risk)}"/><text x="${x-56}" y="180" font-size="13" font-weight="700" fill="#1d2733">${ag.name}</text><text x="${x}" y="200" text-anchor="middle" font-size="10.5" fill="#5d6b7c">${esc(ag.role)}</text></g>`;});
+  return svg+`</svg>`;}
+const SKILL={createAccount:'Provision account',grantAccess:'Grant role',notify:'Send notification',modelCall:'Draft welcome (AI)',delegate:'Delegate to crew'};
+function crewDef(c){return c.members.map(mid=>{const ag=crew.find(x=>x.id===mid)||{};const m=AGENTS_META[mid]||{risk:'Low'};
+  const rp=m.risk==='High'?'<span class="rkpill r">High</span>':m.risk==='Med'?'<span class="rkpill o">Med</span>':'<span class="rkpill g">Low</span>';
+  const skills=(ag.allowed||[]).map(s=>`<span class="fb b">${SKILL[s]||s}</span>`).join('')||'<span class="ovsub">—</span>';
+  const scopes=(ag.canGrant&&ag.canGrant.length)?ag.canGrant.slice(0,7).map(s=>`<span class="fb g">${s}</span>`).join('')+(ag.canGrant.length>7?` <span class="ovsub">+${ag.canGrant.length-7}</span>`:''):'<span class="ovsub">orchestration only</span>';
+  const caps=(ag.denied&&ag.denied.length)?ag.denied.map(d=>`<span class="fb r">${d} ✕</span>`).join(''):'<span class="ovsub">none</span>';
+  return `<div class="defrow"><div class="defhd"><b>${ag.name||mid}</b>${rp}<span class="bldlink" onclick="showToast('Opens ${esc(ag.name||mid)} in the AIRO builder')">Edit in builder ↗</span></div>
+    <div class="defl"><span class="dk">Skills (recipes)</span><span class="dv">${skills}</span></div>
+    <div class="defl"><span class="dk">Can grant</span><span class="dv">${scopes}</span></div>
+    <div class="defl"><span class="dk">Hard caps</span><span class="dv">${caps}</span></div></div>`;}).join('');}
+function openCrew(id){const c=CREWS.find(x=>x.id===id);if(!c)return;const runs=FLEET.filter(r=>r.crew===id);
+  const runsTable=`<table class="ftable"><thead><tr><th>Run</th><th>Owner</th><th>When</th></tr></thead><tbody id="crewRuns">${runs.map(r=>`<tr data-id="${r.id}"><td><b>${esc(r.name)}</b></td><td>${esc(r.owner)}</td><td style="color:var(--tx2)">${r.when}</td></tr>`).join('')}</tbody></table>`;
+  document.getElementById('crewDetail').innerHTML=
+    `<div class="exhd" style="padding:0 0 14px"><div><div class="crumb"><a onclick="showView('crews')" style="cursor:pointer;color:var(--accent)">‹ Crews</a> › ${esc(c.name)}</div><h1>${esc(c.name)}</h1></div></div>`
+   +`<div class="ovcard" style="padding:0;overflow:hidden;margin-bottom:18px"><div class="flowhd"><h4 style="margin:0">Crew flow · how ${esc(c.name)} reaches your systems</h4><div class="ovsub">${runs.length} runs · ${c.members.length} agents</div></div><div class="fgraph" style="max-height:520px"><svg id="cwires"></svg><div class="cols" id="ccols"></div></div></div>`
+   +`<div class="crewgrid">`
+     +`<div><h2 class="sech">Runs (${runs.length})</h2>${runsTable}<p style="color:var(--tx2);font-size:13px;margin-top:12px">Click any run to open its full lineage.</p></div>`
+     +`<div><h2 class="sech">Definition <span class="ovsub" style="font-weight:400;text-transform:none;letter-spacing:0">· what the builder wired</span></h2><div class="ovcard">${crewDef(c)}<div class="legrow">Click an agent name to inspect it · skills come from the builder, scopes &amp; caps are what the gate enforces at run time.</div></div></div>`
+   +`</div>`;
+  document.querySelectorAll('#crewRuns tr').forEach(tr=>tr.onclick=()=>drillRun(FLEET.find(x=>x.id===tr.dataset.id)));
+  curCrew=id;showView('crewdetail');renderCrewFlow(id);}
+let CFLOW=null,curCrew=null;
+function renderCrewFlow(id){const cols=document.getElementById('ccols');if(!cols)return;const c=CREWS.find(x=>x.id===id);if(!c)return;
+  const F=flowOf(FLEET.filter(r=>r.crew===id));CFLOW=F;
+  const ws=c.members.filter(r=>r!=='coord');const agName=r=>(crew.find(x=>x.id===r)||{}).name||r;
+  const usedApps=APPS.filter(a=>{const s=F.ap[a.id];return s&&(s.ok||s.blk);});
+  const usedTools=TOOLS.filter(t=>F.tl[t.id]);
+  const riskPill=r=>`<span class="rkpill ${r==='High'?'r':r==='Med'?'o':'g'}">${r}</span>`;
+  const met=(bad,txt)=>`<div class="metric ${bad?'warn':'ok'}">${bad?'⚠':'✓'} <span>${txt}</span></div>`;
+  const agCard=r=>{const a=F.ag[r]||{pass:0,stop:0};const rk=(AGENTS_META[r]||{}).risk||'Low';return `<div class="ncard fnode" data-role="${r}" id="cf-ag-${r}"><div class="nmrow"><span class="nm">${agName(r)}</span>${riskPill(rk)}</div>${a.stop?met(1,`${a.stop} stopped · ${a.pass} passed`):met(0,`${a.pass} passed`)}</div>`;};
+  const appCard=a=>{const s=F.ap[a.id]||{ok:0,blk:0};return `<div class="ncard" id="cf-app-${a.id}"><div class="nmrow"><span class="nm">${a.nm}</span></div>${met(s.blk,s.blk?`${s.blk} blocked · ${s.ok} ok`:`${s.ok} ok`)}</div>`;};
+  const toolCard=t=>`<div class="ncard" id="cf-tool-${t.id}"><div class="nmrow"><span class="nm">${t.nm}</span></div><div class="metric">${F.tl[t.id]||0} calls</div></div>`;
+  const outCard=t=>{const sp=F.tlStop[t.id]||0,ok=(F.tl[t.id]||0)-sp;return `<div class="ncard" id="cf-act-${t.id}"><div class="nmrow"><span class="nm">${t.nm.replace('_',' ')}</span></div>${met(sp,sp?`${sp} stopped · ${ok} done`:`${ok} executed`)}</div>`;};
+  const grow=(col,lbl,n)=>`<div class="grow"><span class="gdot" style="background:${col}"></span>${lbl}<span class="gn">${n}</span></div>`;
+  cols.innerHTML=
+    `<div class="col"><h5>ORCHESTRATOR</h5><div class="ncard orch" id="cf-coord"><div class="nmrow"><span class="nm">Coordinator</span></div><div class="metric">orchestrates</div></div></div>`
+   +`<div class="col"><h5>AGENTS (${ws.length})</h5>${ws.map(agCard).join('')}</div>`
+   +`<div class="col"><h5>IDENTITY</h5>`+IDENT.filter(i=>i.id!=='broker').map(i=>`<div class="ncard" id="cf-id-${i.id}"><div class="nmrow"><span class="nm">${i.nm}</span></div><div class="metric">${i.sub}</div></div>`).join('')+`</div>`
+   +`<div class="col gatecol"><h5>GATE</h5><div class="gate" id="cf-gate"><div class="gstrip"></div><div class="ghd"><span class="glive"></span>Gateway</div>`
+     +grow('#1a57e5','Passed',F.pass)+grow('#da3b1c','Blocked',F.blocked)+grow('#108291','Masked',F.masked)+grow('#bd5200','Held',F.held)+grow('#e67009','Halted',F.halted)
+   +`</div></div>`
+   +`<div class="col"><h5>APPLICATIONS (${usedApps.length})</h5>${usedApps.map(appCard).join('')}</div>`
+   +`<div class="col"><h5>TOOLS (${usedTools.length})</h5>${usedTools.map(toolCard).join('')}</div>`
+   +`<div class="col"><h5>OUTCOMES</h5>${usedTools.map(outCard).join('')}</div>`;
+  cols.querySelectorAll('[data-role]').forEach(n=>n.onclick=()=>openAgent(n.dataset.role));
+  requestAnimationFrame(()=>drawCrewWires(id));}
+function drawCrewWires(id){const cols=document.getElementById('ccols'),w=document.getElementById('cwires');if(!cols||!w)return;const c=CREWS.find(x=>x.id===id);if(!c)return;
+  const bx=i=>{const f=cols.getBoundingClientRect();const e=document.getElementById(i);if(!e)return{x:0,y:0,w:0,h:0};const b=e.getBoundingClientRect();return{x:b.left-f.left,y:b.top-f.top,w:b.width,h:b.height};};
+  const Rp=i=>{const b=bx(i);return[b.x+b.w,b.y+b.h/2];},Lp=i=>{const b=bx(i);return[b.x,b.y+b.h/2];};
+  w.setAttribute('width',cols.scrollWidth);w.setAttribute('height',cols.scrollHeight);w.innerHTML='';
+  const add=(a,b,sw)=>w.appendChild(svgEl('path',{d:curve(a,b),fill:'none',stroke:'#dbe3ee','stroke-width':sw||1.2,'stroke-linecap':'round'}));
+  const has=i=>!!document.getElementById(i);
+  const ws=c.members.filter(r=>r!=='coord');
+  ws.forEach(r=>add(Rp('cf-coord'),Lp('cf-ag-'+r)));
+  ws.forEach(r=>add(Rp('cf-ag-'+r),Lp('cf-id-spons')));
+  add(Rp('cf-id-spons'),Lp('cf-gate'));
+  APPS.forEach(a=>{if(has('cf-app-'+a.id))add(Rp('cf-gate'),Lp('cf-app-'+a.id));});
+  const links=(CFLOW&&CFLOW.link)||{};const mxl=Math.max(1,...Object.values(links));
+  Object.keys(links).forEach(k=>{const i=k.indexOf('>'),sys=k.slice(0,i),type=k.slice(i+1);if(has('cf-app-'+sys)&&has('cf-tool-'+type))add(Rp('cf-app-'+sys),Lp('cf-tool-'+type),1+Math.min(3,links[k]/mxl*3));});
+  TOOLS.forEach(t=>{if(has('cf-tool-'+t.id))add(Rp('cf-tool-'+t.id),Lp('cf-act-'+t.id));});}
+function summaryOf(s){const saved=run;run=fresh();let blocked=0,halt=0,held=0,masked=0,status='completed';
+  for(const a of actionsFor(s)){const r=gate(a);
+    if(r.d==='allow'){if(a.type==='grantAccess')run.grants++;}
+    else if(r.d==='mask')masked++;
+    else if(r.d==='block')blocked++;
+    else if(r.d==='approve'){held++;run.grants++;}
+    else if(r.d==='halt'){halt=1;status='halted';break;}}
+  const grants=run.grants;run=saved;return{grants,blocked,halt,held,masked,status};}
+const FIL={win:14,risk:'',agent:'',app:'',type:''};
+let ovWin=14;
+function inWin(m){return (m.day||0)<ovWin;}
+function WIN(){return FLEET.filter(inWin);}
+function actionPass(a){
+  if(FIL.agent&&a.actor!==FIL.agent)return false;
+  if(FIL.app&&a.sys!==FIL.app)return false;
+  if(FIL.type&&a.type!==FIL.type)return false;
+  if(FIL.risk){const r=(AGENTS_META[a.actor]||{}).risk||'Low';if(r!==FIL.risk)return false;}
+  return true;}
+function runHasMatch(m){return actionsFor(m.scenario).some(actionPass);}
+function applyFil(){ovWin=FIL.win;renderOverview();renderFleet();const crewsVisible=document.getElementById('view-crews').style.display!=='none';if(crewsVisible)renderFleetGraph();setTimeout(()=>{try{drawFleetWires();}catch(e){}},40);}
+function setFil(k,v){FIL[k]=v;applyFil();}
+function clearFil(){FIL.win=14;FIL.risk='';FIL.agent='';FIL.app='';FIL.type='';ovFilter=null;applyFil();}
+function fopt(val,cur,label){return `<option value="${val}"${String(val)===String(cur)?' selected':''}>${label}</option>`;}
+function renderFilters(){const bars=document.querySelectorAll('.filterbar');if(!bars.length)return;
+  const tr=[[1,'Past 24 hrs'],[7,'Past 7 days'],[14,'Past 14 days'],[30,'Past 30 days']];
+  const ags=crew.filter(c=>c.id!=='coord');
+  const html=
+   `<label class="flab">Time range<select onchange="setFil('win',+this.value)">${tr.map(([v,l])=>fopt(v,FIL.win,l)).join('')}</select></label>`
+  +`<label class="flab">Agent risk<select onchange="setFil('risk',this.value)">${fopt('',FIL.risk,'All risk')}${['High','Med','Low'].map(r=>fopt(r,FIL.risk,r)).join('')}</select></label>`
+  +`<label class="flab">Agent<select onchange="setFil('agent',this.value)">${fopt('',FIL.agent,'All agents')}${ags.map(c=>fopt(c.id,FIL.agent,c.name)).join('')}</select></label>`
+  +`<label class="flab">Application<select onchange="setFil('app',this.value)">${fopt('',FIL.app,'All apps')}${APPS.map(a=>fopt(a.id,FIL.app,a.nm)).join('')}</select></label>`
+  +`<label class="flab">Action type<select onchange="setFil('type',this.value)">${fopt('',FIL.type,'All actions')}${TOOLS.map(t=>fopt(t.id,FIL.type,t.nm)).join('')}</select></label>`
+  +`<button class="fclear" onclick="clearFil()">Clear filters</button>`;
+  bars.forEach(el=>el.innerHTML=html);}
+let ovFilter=null;
+function ovFilterLabel(){if(!ovFilter)return'';if(ovFilter.kind==='gate')return ({pass:'passed',blocked:'blocked',masked:'PII-masked',held:'awaiting-approval',halted:'halted',prev:'harm-prevented'}[ovFilter.val]||ovFilter.val);if(ovFilter.kind==='sys'){const a=APPS.find(x=>x.id===ovFilter.val);return (a?a.nm:ovFilter.val)+'-touching';}return'';}
+function runMatch(m){if(!ovFilter)return true;const s=summaryOf(m.scenario);if(ovFilter.kind==='gate'){const k=ovFilter.val;if(k==='blocked')return s.blocked>0;if(k==='masked')return s.masked>0;if(k==='held')return s.held>0&&!APPR[m.id];if(k==='halted')return s.halt>0;if(k==='prev')return s.blocked>0||s.masked>0||s.halt>0;return true;}if(ovFilter.kind==='sys')return actionsFor(m.scenario).some(a=>a.sys===ovFilter.val);return true;}
+function setOvFilter(kind,val){ovFilter={kind,val};renderFleet();const t=document.getElementById('runsAnchor');if(t)t.scrollIntoView({behavior:'smooth',block:'start'});}
+function clearOvFilter(){ovFilter=null;renderFleet();}
+function renderFleet(){const all=FLEET.filter(m=>inWin(m)&&runHasMatch(m)&&runMatch(m));const SHOW=ovFilter?30:14;const shown=all.slice(0,SHOW);
+  const rows=shown.map(m=>{const s=summaryOf(m.scenario);const isFlag=(s.halt||s.blocked);const ap=APPR[m.id];
+    const st=s.status==='halted'?'<span class="fb r">halted</span>':'<span class="fb g">completed</span>';
+    const heldTag=s.held?(ap==='approved'?'<span class="fb g">approved</span>':ap==='denied'?'<span class="fb r">denied</span>':`<span class="fb o">${s.held} held</span>`):'';
+    const flags=(`${s.blocked?`<span class="fb r">${s.blocked} blocked</span>`:''}${heldTag}${s.masked?`<span class="fb t">${s.masked} masked</span>`:''}`)||'<span style="color:var(--tx3)">—</span>';
+    return `<tr class="${isFlag?'flagged':''}" data-id="${m.id}"><td><b>${esc(m.name)}</b></td><td>${esc(m.owner)}</td><td>${st}</td><td>${s.grants}</td><td>${flags}</td><td style="color:var(--tx2)">${m.when}</td></tr>`;}).join('')||`<tr><td colspan="6" style="color:var(--tx3);padding:18px">No runs match this filter.</td></tr>`;
+  document.getElementById('fleetList').innerHTML=rows;
+  const more=document.getElementById('fleetMore');if(more)more.textContent=ovFilter?`Showing ${Math.min(SHOW,all.length)} of ${all.length} ${ovFilterLabel()} runs`:`Showing ${Math.min(SHOW,all.length)} most recent of ${all.length} runs in the last ${ovWin} days`;
+  const clr=document.getElementById('fleetClear');if(clr)clr.innerHTML=ovFilter?`<span class="ovchip" onclick="clearOvFilter()">✕ clear filter</span>`:'· click any run to drill into its lineage and gate. Flagged rows hit a policy.';
+  document.querySelectorAll('#fleetList tr[data-id]').forEach(tr=>tr.onclick=()=>drillRun(FLEET.find(m=>m.id===tr.dataset.id)));}
+const AGENTS_META={coord:{owner:'platform-team',risk:'Low'},acct:{owner:'it-ops',risk:'Low'},access:{owner:'it-ops',risk:'High'},notify:{owner:'people-ops',risk:'Med'}};
+function agentAgg(id){let allowed=0,blocked=0,masked=0,halted=0;const runs=[];const roleUse={};const saved=run;
+  WIN().forEach(m=>{run=fresh();let used=false;
+    for(const a of actionsFor(m.scenario)){const r=gate(a);const me=(a.actor===id);
+      if(me){used=true;if(r.d==='allow'||r.d==='approve'){allowed++;if(a.type==='grantAccess')roleUse[a.role]=(roleUse[a.role]||0)+1;}else if(r.d==='block')blocked++;else if(r.d==='mask')masked++;else if(r.d==='halt')halted++;}
+      if(r.d==='allow'&&a.type==='grantAccess')run.grants++;else if(r.d==='approve')run.grants++;
+      if(r.d==='halt')break;}
+    if(used)runs.push(m);});
+  run=saved;return{allowed,blocked,masked,halted,runs,roleUse};}
+function closeAgentPanel(){document.getElementById('agentPanel').classList.remove('open');}
+function openAgent(id){const c=crew.find(x=>x.id===id);if(!c)return;const m=AGENTS_META[id]||{owner:'—',risk:'Low'};const g=agentAgg(id);const mx=Math.max(1,...Object.values(g.roleUse));
+  const rp=m.risk==='High'?'<span class="fb r">High risk</span>':m.risk==='Med'?'<span class="fb o">Med risk</span>':'<span class="fb g">Low risk</span>';
+  const scopeBlock=c.canGrant.length?`<div class="spsec">Granted vs used</div>`+c.canGrant.map(s=>{const u=g.roleUse[s]||0;const z=u===0;return `<div class="utilrow ${z?'zero':''}"><span class="ul">${s}</span><div class="utiltrack"><i style="width:${Math.max(4,u/mx*100)}%"></i></div><span>${z?'unused':u}</span></div>`;}).join('')+`<div class="legrow">unused scopes are over-permissioned — tighten the role</div>`:'';
+  document.getElementById('agentPanelTitle').innerHTML=`${c.name} &nbsp;${rp}`;
+  document.getElementById('agentPanelBody').innerHTML=
+    `<div class="spsec">Owner · role</div><div style="font-size:15px;font-weight:600">${m.owner}</div><div class="ovsub" style="margin-top:4px">${esc(c.role)}</div>
+     <div class="spsec">Scope · can grant</div><div>${c.canGrant.length?c.canGrant.map(s=>`<span class="fb g">${s}</span>`).join(''):'<span class="ovsub">orchestration only</span>'}</div>
+     <div class="spsec">Hard caps (denied)</div><div>${c.denied.length?c.denied.map(d=>`<span class="fb r">${d} ✕</span>`).join(''):'<span class="ovsub">none</span>'}</div>
+     <div class="spstat"><div><div class="n">${g.allowed}</div><div class="l">allowed</div></div><div><div class="n" style="color:var(--err)">${g.blocked}</div><div class="l">blocked</div></div><div><div class="n" style="color:#065f69">${g.masked}</div><div class="l">PII masked</div></div><div><div class="n" style="color:var(--err)">${g.halted}</div><div class="l">halts</div></div></div>
+     ${scopeBlock}
+     <div class="spsec">Runs this agent acted in (${g.runs.length})</div>
+     <table class="ftable"><tbody>${g.runs.slice(0,12).map(r=>`<tr data-id="${r.id}"><td><b>${esc(r.name)}</b></td><td style="color:var(--tx2)">${r.when}</td></tr>`).join('')}</tbody></table>`;
+  document.querySelectorAll('#agentPanelBody tbody tr').forEach(tr=>tr.onclick=()=>{closeAgentPanel();drillRun(FLEET.find(x=>x.id===tr.dataset.id));});
+  document.getElementById('agentPanel').classList.add('open');}
+let curRunMeta=null;
+function drillRun(m){if(!m||busy)return;curRunMeta=m;showView('explorer');loadRun(m);}
+async function replayRun(m){if(!m||busy)return;busy=true;curRunMeta=m;showView('explorer');
+  run=fresh();run.status='running';buildFlow();clearActive();railUpdate(m.scenario);renderAudit();
+  document.getElementById('runTitle').textContent=m.name;document.getElementById('runCrumb').textContent=m.name;
+  let t=14;
+  for(const a of actionsFor(m.scenario)){const res=gate(a);const ts='09:'+String(t++).padStart(2,'0');const aid=addActionCard(a,res,ts);
+    await activate(a,res,aid);gateStamp(res);
+    if(res.d==='allow'){if(a.type==='grantAccess'){run.grants++;run.ledger.push({aid,label:a.label});}audit(ts,a.label,'g','Allowed');}
+    else if(res.d==='mask'){run.masked++;audit(ts,a.label+' — PII redacted','o','Masked');}
+    else if(res.d==='approve'){run.hr++;run.grants++;run.ledger.push({aid,label:a.label});actData[aid].res={d:'allow'};tagAction(aid,{d:'allow'});audit(ts,a.label+' — approved','g','Allowed');gateStamp({d:'allow'});}
+    else if(res.d==='block'){run.viol++;audit(ts,a.label+' — '+res.reason,'r','Blocked');}
+    else if(res.d==='halt'){run.status='halted';run.viol++;audit(ts,a.label+' — '+res.reason,'r','Halted');railUpdate(m.scenario);busy=false;return;}
+    railUpdate(m.scenario);await sleep(res.d==='allow'?240:150);}
+  run.status='completed';railUpdate(m.scenario);busy=false;}
+function loadRun(m){run=fresh();run.status='running';buildFlow();let t=14;
+  for(const a of actionsFor(m.scenario)){const res=gate(a);const ts='09:'+String(t++).padStart(2,'0');const aid=addActionCard(a,res,ts);
+    if(res.d==='allow'){if(a.type==='grantAccess'){run.grants++;run.ledger.push({aid,label:a.label});}audit(ts,a.label,'g','Allowed');}
+    else if(res.d==='mask'){run.masked++;audit(ts,a.label+' — PII redacted','o','Masked');}
+    else if(res.d==='approve'){run.hr++;run.grants++;run.ledger.push({aid,label:a.label});actData[aid].res={d:'allow'};tagAction(aid,{d:'allow'});audit(ts,a.label+' — approved','g','Allowed');}
+    else if(res.d==='block'){run.viol++;audit(ts,a.label+' — '+res.reason,'r','Blocked');}
+    else if(res.d==='halt'){run.status='halted';run.viol++;audit(ts,a.label+' — '+res.reason,'r','Halted');gateStamp(res);break;}
+    gateStamp(res);}
+  if(run.status!=='halted')run.status='completed';
+  document.getElementById('runTitle').textContent=m.name;document.getElementById('runCrumb').textContent=m.name;
+  railUpdate(m.scenario);renderAudit();}
+function fleetAgg(){let blocked=0,masked=0,halted=0,held=0,rev=0,irr=0;const roleUse={},sys={};const saved=run;
+  WIN().forEach(m=>{run=fresh();
+    for(const a of actionsFor(m.scenario)){const r=gate(a);const ed=effD(m,r);
+      if(ed==='allow'&&a.type==='grantAccess')run.grants++;else if(ed==='approve')run.grants++;
+      if(actionPass(a)){
+        sys[a.sys]=sys[a.sys]||{ok:0,blk:0};if(ed==='block'||ed==='halt')sys[a.sys].blk++;else sys[a.sys].ok++;
+        if(ed==='allow'){if(a.type==='grantAccess'){roleUse[a.role]=(roleUse[a.role]||0)+1;rev++;}else if(a.type==='createAccount'){rev++;}else{irr++;}}
+        else if(ed==='approve'){held++;roleUse[a.role]=(roleUse[a.role]||0)+1;rev++;}
+        else if(ed==='mask'){masked++;irr++;}
+        else if(ed==='block'){blocked++;}
+        else if(ed==='halt'){halted++;}}
+      if(r.d==='halt')break;}});
+  run=saved;return{blocked,masked,halted,held,roleUse,sys,rev,irr,prevented:blocked+masked+halted};}
+function renderOverview(){renderFilters();const g=fleetAgg();
+  const kpis=[
+    {n:g.prevented,l:'Harm prevented',c:'#1a57e5',s:'prev',f:'prev'},
+    {n:g.blocked,l:'Blocked',c:'#da3b1c',s:'b',f:'blocked'},
+    {n:g.masked,l:'PII masked',c:'#108291',s:'m',f:'masked'},
+    {n:g.halted,l:'Runs halted',c:'#e67009',s:'h',f:'halted'},
+    {n:g.held,l:'Awaiting approval',c:'#bd5200',s:'held',f:'held'}];
+  document.getElementById('ovTop').innerHTML=`<div class="kpihd">This fleet · last ${ovWin} days</div><div class="kpirow">`+kpis.map(k=>`<div class="kpi link${trendSel===k.s?' sel':''}" data-s="${k.s}" data-f="${k.f}"><div class="kpin" style="color:${k.c}">${k.n}</div><div class="kpil">${k.l}</div></div>`).join('')+`</div>`;
+  document.querySelectorAll('#ovTop .kpi').forEach(k=>k.onclick=()=>pickMetric(k.dataset.s,k.dataset.f));
+  // windowed trend: per-day counts for each metric (colors match the tiles)
+  const N=ovWin;const days=Array.from({length:N},()=>({b:0,m:0,h:0,held:0,runs:0}));const _sv=run;
+  WIN().forEach(mr=>{const d=mr.day||0;if(d>=N)return;const i=N-1-d;run=fresh();let hit=false,o={b:0,m:0,h:0,held:0};
+    for(const a of actionsFor(mr.scenario)){const r=gate(a);const ed=effD(mr,r);
+      if(ed==='allow'&&a.type==='grantAccess')run.grants++;else if(ed==='approve')run.grants++;
+      if(actionPass(a)){hit=true;if(ed==='block')o.b++;else if(ed==='mask')o.m++;else if(ed==='halt')o.h++;else if(ed==='approve')o.held++;}
+      if(r.d==='halt')break;}
+    if(hit){const t=days[i];t.b+=o.b;t.m+=o.m;t.h+=o.h;t.held+=o.held;t.runs++;}});
+  run=_sv;
+  const SERIES=[{k:'prev',nm:'Harm prevented',c:'#1a57e5',v:o=>o.b+o.m+o.h},{k:'b',nm:'Blocked',c:'#da3b1c',v:o=>o.b},{k:'m',nm:'PII masked',c:'#108291',v:o=>o.m},{k:'h',nm:'Runs halted',c:'#e67009',v:o=>o.h},{k:'held',nm:'Awaiting approval',c:'#bd5200',v:o=>o.held}];
+  const FK={prev:'prev',b:'blocked',m:'masked',h:'halted',held:'held'};
+  const vis=trendSel?SERIES.filter(s=>s.k===trendSel):SERIES;
+  const mx=Math.max(1,...days.flatMap(o=>vis.map(s=>s.v(o))));
+  const totPrev=days.reduce((a,o)=>a+o.b+o.m+o.h,0),totRuns=days.reduce((a,o)=>a+o.runs,0);
+  const W=720,H=150,px=10,py=16,den=Math.max(1,N-1);const xOf=i=>px+i*(W-2*px)/den,yOf=v=>H-py-(v/mx)*(H-2*py);
+  const smooth=pts=>{let d=`M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;for(let i=0;i<pts.length-1;i++){const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2;const c1x=p1[0]+(p2[0]-p0[0])/6,c1y=p1[1]+(p2[1]-p0[1])/6,c2x=p2[0]-(p3[0]-p1[0])/6,c2y=p2[1]-(p3[1]-p1[1])/6;d+=` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;}return d;};
+  const grid=[0,0.5,1].map(f=>`<line x1="${px}" y1="${(py+(H-2*py)*f).toFixed(1)}" x2="${W-px}" y2="${(py+(H-2*py)*f).toFixed(1)}" stroke="#eef2f7" stroke-width="1"/>`).join('');
+  const paths=vis.map(s=>{const pts=days.map((o,i)=>[xOf(i),yOf(s.v(o))]);const sp=smooth(pts);
+    const drawArea=trendSel?true:(s.k==='prev');
+    const area=drawArea?`<path d="${sp} L${(W-px).toFixed(1)} ${H-py} L${px} ${H-py} Z" fill="${s.c}" fill-opacity="0.12"/>`:'';
+    return area+`<path d="${sp}" fill="none" stroke="${s.c}" stroke-width="${trendSel?2.8:(s.k==='prev'?2.6:1.9)}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;}).join('');
+  const svg=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" width="100%" height="${H}" style="display:block">${grid}${paths}</svg>`;
+  const legend=SERIES.map(s=>`<span class="tleg${trendSel&&trendSel!==s.k?' off':''}" data-s="${s.k}" data-f="${FK[s.k]}"><span class="dotb" style="background:${s.c}"></span>${s.nm}</span>`).join('');
+  const subtxt=trendSel?`showing ${SERIES.find(s=>s.k===trendSel).nm} · click again to reset`:`${totPrev} stopped across ${totRuns} matching runs · last ${ovWin} days`;
+  trendData={days,N,series:vis};
+  document.getElementById('ovTrend').innerHTML=`<div class="trendhd"><div><h4 style="margin:0">Harm prevented over time</h4><div class="ovsub">${subtxt}</div></div><div class="tlegrow">${legend}</div></div><div class="trendwrap" id="trendWrap" style="position:relative"><div class="tguide" id="tGuide"></div>${svg}<div class="ttip" id="tTip"></div></div><div class="trendx"><span>${ovWin}d ago</span><span>today</span></div>`;
+  document.querySelectorAll('#ovTrend .tleg').forEach(l=>l.onclick=()=>pickMetric(l.dataset.s,l.dataset.f));
+  attachTrendHover();
+}
+let trendSel=null;
+function pickMetric(s,f){if(trendSel===s){trendSel=null;ovFilter=null;}else{trendSel=s;ovFilter=f?{kind:'gate',val:f}:null;}renderOverview();renderFleet();}
+let trendData=null;
+function attachTrendHover(){const wrap=document.getElementById('trendWrap');if(!wrap||!trendData)return;const guide=document.getElementById('tGuide'),tip=document.getElementById('tTip');
+  wrap.onmousemove=e=>{const r=wrap.getBoundingClientRect();const x=e.clientX-r.left;const N=trendData.N;const i=Math.max(0,Math.min(N-1,Math.round(x/r.width*(N-1))));const px=i/(N-1)*r.width;
+    guide.style.display='block';guide.style.left=px+'px';
+    const o=trendData.days[i];const lbl=i===N-1?'today':(N-1-i)+'d ago';
+    tip.innerHTML=`<div class="ttd">${lbl} · ${o.runs} runs</div>`+trendData.series.map(s=>`<div class="ttr"><span class="dotb" style="background:${s.c}"></span>${s.nm}<b>${s.v(o)}</b></div>`).join('');
+    tip.style.display='block';const tw=tip.offsetWidth;tip.style.left=Math.max(2,Math.min(r.width-tw-2,px-tw/2))+'px';};
+  wrap.onmouseleave=()=>{guide.style.display='none';tip.style.display='none';};}
+
+let approvalResolve=null;function waitApproval(){return new Promise(r=>approvalResolve=r);}let busy=false;
+async function handlePrompt(text){if(busy)return;busy=true;user(text);
+  const scenario=routePrompt(text);curRunMeta={id:'L'+FLEET.length,name:text,scenario,owner:'you',when:'now',crew:'onboard'};FLEET.unshift(curRunMeta);
+  run=fresh();run.status='running';routineBox=null;buildFlow();clearActive();railUpdate();renderAudit();
+  document.getElementById('runTitle').textContent=text;document.getElementById('runCrumb').textContent=text;showView('explorer');
+  await sleep(420);const pol=POL();
+  airo(`Running an <b>onboarding crew</b> on your behalf. Enforcing your policies:<div class="env-row"><span class="pill b">4 Genies</span><span class="pill n">max ${pol.max}</span>${[...pol.blocked].map(b=>`<span class="pill r">${b}✕</span>`).join('')}${[...pol.approve].map(a=>`<span class="pill o">${a}→approve</span>`).join('')}</div>`);
+  await sleep(540);const q=actionsFor(scenario);let t=14;
+  for(const a of q){const res=gate(a);const ts='09:'+String(t++).padStart(2,'0');const aid=addActionCard(a,res,ts);
+    await activate(a,res,aid);gateStamp(res);
+    if(res.d==='allow'){if(a.type==='grantAccess'){run.grants++;run.ledger.push({aid,label:a.label});}railUpdate();audit(ts,a.label,'g','Allowed');routineLine(a.label);}
+    else if(res.d==='mask'){run.masked++;railUpdate();audit(ts,a.label+' — '+res.masked.length+' PII fields redacted','o','Masked');const m=sysB();m.appendChild(el(`<div class="note" style="background:#e6f6f2;color:#065f69">🛡 <b>PII redacted.</b> AIRO masked ${res.masked.length} fields (${esc(res.masked.join(', '))}) before the external model saw them — the draft still went through. <a style="color:var(--accent);cursor:pointer" onclick="openDrawer('${aid}')">view</a></div>`));await sleep(440);}
+    else if(res.d==='block'){run.viol++;railUpdate();audit(ts,a.label+' — '+res.reason,'r','Blocked');const m=sysB();m.appendChild(el(`<div class="note block">⛔ <b>Blocked.</b> ${esc(a.label)} — ${esc(res.reason)}. <a style="color:var(--accent);cursor:pointer" onclick="openDrawer('${aid}')">view</a></div>`));await sleep(460);}
+    else if(res.d==='halt'){run.status='halted';run.viol++;railUpdate(scenario);audit(ts,a.label+' — '+res.reason,'r','Halted');const m=sysB();m.appendChild(el(`<div class="note halt">🛑 <b>Run halted.</b> Hit the ${POL().max}-grant ceiling. Stopped before further action. <a style="color:var(--accent);cursor:pointer" onclick="rollback()">roll back</a></div>`));busy=false;return;}
+    else if(res.d==='approve'){run.hr++;railUpdate();const card=approvalCard(a);const ok=await waitApproval();card.querySelector('.row').remove();
+      if(ok){run.grants++;run.ledger.push({aid,label:a.label});actData[aid].res={d:'allow'};tagAction(aid,{d:'allow'});railUpdate();audit(ts,a.label+' — approved','g','Allowed');card.querySelector('.bd').insertAdjacentHTML('beforeend','<div style="color:var(--ok);font-weight:600;margin-top:4px">✓ Approved</div>');await activate(a,{d:'allow'},aid);gateStamp({d:'allow'});}
+      else{run.viol++;actData[aid].res={d:'block',reason:'denied by sponsor'};tagAction(aid,{d:'block'});railUpdate();audit(ts,a.label+' — denied','r','Denied');card.querySelector('.bd').insertAdjacentHTML('beforeend','<div style="color:var(--err);font-weight:600;margin-top:4px">✕ Denied</div>');}}
+    await sleep(res.d==='allow'?300:140);
+  }
+  run.status='completed';railUpdate(scenario);airo(`✅ <b>Onboarding complete.</b> ${run.grants} grants for one new hire — all attributable and reversible. <span class="pill g">audit ready</span>`);busy=false;}
+function approvalCard(a){const c=el(`<div class="approve"><div class="hd">⚠ Needs your approval</div><div class="bd">AccessGenie wants to go beyond the standard bundle:<div class="grant"><b>${esc(a.label)}</b><span class="pill o">risk ${a.risk}</span></div><label class="ack"><input type="checkbox" id="ackbox"> I understand this exceeds the standard bundle and is logged against my name.</label><div class="row"><button class="btn danger" id="denyB">Deny</button><button class="btn brand" id="apprB" disabled>Approve</button></div></div></div>`);
+  const m=sysB();m.appendChild(c);scrollT();c.querySelector('#ackbox').onchange=e=>c.querySelector('#apprB').disabled=!e.target.checked;c.querySelector('#apprB').onclick=()=>approvalResolve(true);c.querySelector('#denyB').onclick=()=>approvalResolve(false);return c;}
+async function rollback(){if(!run.ledger.length){airo('Nothing to roll back yet.');return;}
+  airo('Rolling the run back as one transaction…');run.status='rolledback';let t=30;const led=run.ledger.slice().reverse();
+  for(const g of led){run.grants=Math.max(0,run.grants-1);railUpdate();audit('09:'+(t++),'Reversed '+g.label,'o','Reversed');if(actData[g.aid]){actData[g.aid].res={d:'reversed'};tagAction(g.aid,{d:'reversed'});}await sleep(140);}
+  run.ledger=[];const m=sysB();m.appendChild(el(`<div class="note block" style="background:#eaf1fe;color:#23406e">↩︎ <b>Run rolled back.</b> Every grant reversed.</div>`));}
+async function handleRule(text){user(text);await sleep(360);const r=parseRule(text);
+  if(!r){airo(`I recognize rules like <b>“max 5 grants per run”</b>, <b>“block VPN access”</b>, or <b>“finance access needs approval”</b>.`);return;}
+  const id='p'+Date.now().toString().slice(-4);const pol={id,...r,on:true};
+  if(r.kind==='ceiling')policies=policies.filter(p=>p.kind!=='ceiling');else policies=policies.filter(p=>!(p.kind===r.kind&&p.role===r.role));
+  policies.push(pol);renderPolicies();const m=airo(`Done — turned that into a policy. Applies to your <b>next run</b>.`);m.appendChild(policyCard(pol));}
+
+const CHIPS=[['Onboard Sarah as a sales contractor',0],['Onboard the whole incoming class',0],['Give Sarah finance access too',0],['Draft Sarah’s welcome with external AI',0],["What's awaiting my approval?",2],['Open the fleet map, blocked runs',2],['max 5 grants per run',1]];
+const chipWrap=document.getElementById('chips');CHIPS.forEach(([txt,rule])=>{const b=el(`<button class="chip ${rule===1?'rule':rule===2?'cmd':''}">${txt}</button>`);b.onclick=()=>{document.getElementById('input').value=txt;send();};chipWrap.appendChild(b);});
+// ---- AIRO: approval queue (#4) ----
+const APPR={};
+function effD(m,r){if(r.d==='approve'&&m&&APPR[m.id])return APPR[m.id]==='approved'?'allow':'block';return r.d;}
+function heldRuns(){return WIN().filter(m=>m.scenario==='approval'&&!APPR[m.id]);}
+function showApprovals(){const list=heldRuns();
+  if(!list.length){airo('✓ Nothing is waiting on you — the approval queue is clear.');return;}
+  airo(`<b>${list.length} access request${list.length>1?'s':''} awaiting your approval</b><div class="apprq">`+list.slice(0,8).map(m=>`<div class="approw" id="appr-${m.id}"><div class="ainfo"><div class="an2">${esc(m.name)}</div><div class="asub">on behalf of ${esc(m.owner)} · elevated grant</div></div><div class="abtns"><button class="abtn ok" onclick="resolveAppr('${m.id}','approved')">Approve</button><button class="abtn no" onclick="resolveAppr('${m.id}','denied')">Deny</button></div></div>`).join('')+(list.length>8?`<div class="asub" style="padding:6px 2px">+${list.length-8} more</div>`:'')+`</div>`);}
+function resolveAppr(id,st){APPR[id]=st;const m=FLEET.find(x=>x.id===id);const row=document.getElementById('appr-'+id);
+  if(row)row.outerHTML=`<div class="approw done ${st}">${st==='approved'?'✓ Approved':'✕ Denied'} · ${esc(m?m.name:id)}</div>`;
+  airo(st==='approved'?`✓ Approved <b>${esc(m.name)}</b>. The grant is applied and logged against you — fully attributable and reversible.`:`✕ Denied <b>${esc(m.name)}</b>. The access was never granted.`);
+  renderOverview();renderFleet();}
+// ---- AIRO: command palette (#7) ----
+function routeCmd(v){const t=v.toLowerCase();
+  if(/approv|awaiting|waiting on me|pending|sign.?off|review queue/.test(t)){user(v);showApprovals();return true;}
+  if(/(fleet|flow) ?map|fleet flow/.test(t)||/^\s*crews?\s*$/.test(t)){user(v);const verd=/blocked/.test(t)?'blocked':/halt/.test(t)?'halted':/mask|pii/.test(t)?'masked':/held/.test(t)?'held':null;if(verd)ovFilter={kind:'gate',val:verd};showView('crews');airo(`Opening the fleet map${verd?` · ${verd} runs`:''}.`);return true;}
+  if(/dashboard|overview|^\s*home\s*$/.test(t)){user(v);showView('overview');airo('Opening the dashboard.');return true;}
+  if(/(show|open|view|see|list).*(polic)/.test(t)){user(v);showView('pol');airo('Opening policies.');return true;}
+  let win=/24\s?h|past day|last day|24 hour/.test(t)?1:/7\s?d|past week|last week|7 day/.test(t)?7:/30\s?d|past month|last month|30 day/.test(t)?30:/14\s?d|two week|2 week|14 day/.test(t)?14:null;
+  const verd=/(show|filter|view|see|only).*(block)|blocked runs/.test(t)?'blocked':/halted runs|(show|filter|view).*halt/.test(t)?'halted':/masked|pii runs/.test(t)?'masked':/held runs|awaiting runs/.test(t)?'held':null;
+  if(win||verd){user(v);if(win){FIL.win=win;ovWin=win;}if(verd)ovFilter={kind:'gate',val:verd};showView('overview');renderOverview();renderFleet();airo(`Filtered the dashboard${win?` to the last ${win} days`:''}${verd?` · ${verd} runs`:''}.`);if(verd){const an=document.getElementById('runsAnchor');if(an)an.scrollIntoView({behavior:'smooth',block:'start'});}return true;}
+  return false;}
+function send(){const i=document.getElementById('input');const v=i.value.trim();if(!v||busy)return;if(/roll.*back|undo/i.test(v)){user(v);i.value='';rollback();return;}i.value='';if(routeCmd(v))return;if(isPolicyIntent(v))handleRule(v);else handlePrompt(v);}
+document.getElementById('send').onclick=send;
+document.getElementById('input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
+let FLOW=null;let selCrew=null;
+function applyCrewSel(){const cr=selCrew&&CREWS.find(c=>c.id===selCrew);const mem=cr?new Set(cr.members.filter(r=>r!=='coord').map(r=>selCrew+'~'+r)):null;
+  document.querySelectorAll('#fcols .crewn').forEach(n=>{const on=cr&&n.dataset.crew===selCrew;n.classList.toggle('selc',!!on);n.classList.toggle('dimc',!!cr&&!on);});
+  document.querySelectorAll('#fcols .ain').forEach(n=>{const on=mem&&mem.has(n.dataset.ai);n.classList.toggle('selc',!!on);n.classList.toggle('dimc',!!cr&&!on);});}
+function selectCrew(id){selCrew=id;applyCrewSel();drawFleetWires();}
+// aggregate a set of runs into a flow model (agents, apps, tools, links, gate verdicts)
+function flowOf(runs,filt){filt=filt||(()=>true);const saved=run;const ag={},tl={},tlStop={},ap={},link={};let pass=0,blocked=0,masked=0,halted=0,held=0;
+  runs.forEach(m=>{run=fresh();
+   for(const a of actionsFor(m.scenario)){const r=gate(a);const ed=effD(m,r);
+     if(ed==='allow'&&a.type==='grantAccess')run.grants++;else if(ed==='approve')run.grants++;
+     if(filt(a)){
+       ag[a.actor]=ag[a.actor]||{pass:0,stop:0};ap[a.sys]=ap[a.sys]||{ok:0,blk:0};tl[a.type]=(tl[a.type]||0)+1;
+       link[a.sys+'>'+a.type]=(link[a.sys+'>'+a.type]||0)+1;
+       if(ed==='allow'){pass++;ag[a.actor].pass++;ap[a.sys].ok++;}
+       else if(ed==='mask'){masked++;ag[a.actor].pass++;ap[a.sys].ok++;}
+       else if(ed==='approve'){held++;ag[a.actor].pass++;ap[a.sys].ok++;}
+       else if(ed==='block'){blocked++;ag[a.actor].stop++;ap[a.sys].blk++;tlStop[a.type]=(tlStop[a.type]||0)+1;}
+       else if(ed==='halt'){halted++;ag[a.actor].stop++;ap[a.sys].blk++;tlStop[a.type]=(tlStop[a.type]||0)+1;}}
+     if(r.d==='halt')break;}});
+  run=saved;return{ag,tl,tlStop,ap,link,pass,blocked,masked,halted,held};}
+function fleetFlow(){return flowOf(WIN(),actionPass);}
+function renderFleetGraph(){const cols=document.getElementById('fcols');if(!cols)return;const F=fleetFlow();FLOW=F;
+  const stop=n=>n?` · <span style="color:#da3b1c">${n} stopped</span>`:'';
+  const riskPill=r=>`<span class="rkpill ${r==='High'?'r':r==='Med'?'o':'g'}">${r}</span>`;
+  const met=(bad,txt)=>`<div class="metric ${bad?'warn':'ok'}">${bad?'⚠':'✓'} <span>${txt}</span></div>`;
+  const appCard=a=>{const s=F.ap[a.id]||{ok:0,blk:0};const u=s.ok+s.blk;return `<div class="ncard fnode${u?'':' faint'}" data-drill="sys:${a.id}" id="fl-app-${a.id}"><div class="nmrow"><span class="nm">${a.nm}</span></div>${u?met(s.blk,s.blk?`${s.blk} blocked · ${s.ok} ok`:`${s.ok} ok`):`<div class="metric">unused</div>`}</div>`;};
+  const toolCard=t=>{const c=F.tl[t.id]||0;return `<div class="ncard${c?'':' faint'}" id="fl-tool-${t.id}"><div class="nmrow"><span class="nm">${t.nm}</span></div><div class="metric">${c?c+' calls':'unused'}</div></div>`;};
+  const outCard=t=>{const sp=F.tlStop[t.id]||0,tot=F.tl[t.id]||0,ok=tot-sp;return `<div class="ncard${tot?'':' faint'}" id="fl-act-${t.id}"><div class="nmrow"><span class="nm">${t.nm.replace('_',' ')}</span></div>${tot?met(sp,sp?`${sp} stopped · ${ok} done`:`${ok} executed`):`<div class="metric">—</div>`}</div>`;};
+  const grow=(col,lbl,n,key)=>`<div class="grow" data-gate="${key}"><span class="gdot" style="background:${col}"></span>${lbl}<span class="gn">${n}</span></div>`;
+  const agName=r=>(crew.find(c=>c.id===r)||{}).name||r;const workers=c=>c.members.filter(r=>r!=='coord');
+  const crewRuns={},owners={};WIN().forEach(r=>{crewRuns[r.crew]=(crewRuns[r.crew]||0)+1;owners[r.owner]=(owners[r.owner]||0)+1;});
+  const ownerList=Object.keys(owners).sort((a,b)=>owners[b]-owners[a]);
+  const ordered=CREWS.slice().sort((a,b)=>(crewRuns[b.id]||0)-(crewRuns[a.id]||0));
+  const CMAX=12,U=54;const shown=ordered.slice(0,CMAX);
+  if(!selCrew||!shown.find(c=>c.id===selCrew))selCrew=shown[0]&&shown[0].id;
+  const crewCol=shown.map(c=>{const h=Math.max(1,workers(c).length)*U;return `<div class="band" style="height:${h}px;display:flex;align-items:center"><div class="ncard crewn fnode" data-crew="${c.id}" id="fl-crew-${c.id}"><div class="nmrow"><span class="nm">${esc(c.name)}</span>${riskPill(crewRisk(c))}<span class="crewgo" title="Open crew" onclick="event.stopPropagation();openCrew('${c.id}')">↗</span></div><div class="metric">${crewRuns[c.id]||0} runs · ${c.members.length} agents</div></div></div>`;}).join('');
+  const agentCol=shown.map(c=>{const ws=workers(c);const h=Math.max(1,ws.length)*U;return `<div class="band" style="height:${h}px;display:flex;flex-direction:column;justify-content:center;gap:6px">`+ws.map(r=>`<div class="ncard ain" data-ai="${c.id}~${r}" data-role="${r}" id="fl-ai-${c.id}~${r}"><div class="nmrow"><span class="nm">${agName(r)}</span>${riskPill((AGENTS_META[r]||{}).risk||'Low')}</div><div class="metric">${esc(c.name)}</div></div>`).join('')+`</div>`;}).join('');
+  cols.innerHTML=
+    `<div class="col"><h5>CREWS (${CREWS.length})</h5>${crewCol}</div>`
+   +`<div class="col"><h5>AGENTS (${TOTAL_AGENTS})</h5>${agentCol}</div>`
+   +`<div class="col"><h5>IDENTITIES (${IDPOOL.length})</h5>`+IDPOOL.map(o=>{const n=owners[o]||0;return `<div class="ncard${n?'':' faint'}" id="fl-id-${o}"><div class="nmrow"><span class="nm">${esc(o)}</span>${n?'<span class="rkpill g">sponsor</span>':''}</div><div class="metric">${n?n+' runs':'no runs'}</div></div>`;}).join('')+`</div>`
+   +`<div class="col gatecol"><h5>GATE</h5><div class="gate" id="fl-gate"><div class="gstrip"></div><div class="ghd"><span class="glive"></span>Gateway</div>`
+     +grow('#1a57e5','Passed',F.pass,'pass')+grow('#da3b1c','Blocked',F.blocked,'blocked')+grow('#108291','Masked',F.masked,'masked')+grow('#bd5200','Held',F.held,'held')+grow('#e67009','Halted',F.halted,'halted')
+   +`</div></div>`
+   +`<div class="col"><h5>APPLICATIONS (${APPS.length})</h5>${APPS.map(appCard).join('')}</div>`
+   +`<div class="col"><h5>TOOLS (${TOOLS.length})</h5>${TOOLS.map(toolCard).join('')}</div>`
+   +`<div class="col"><h5>OUTCOMES</h5>${TOOLS.map(outCard).join('')}</div>`;
+  cols.querySelectorAll('.crewn').forEach(n=>n.onclick=()=>selectCrew(n.dataset.crew));
+  cols.querySelectorAll('.ain').forEach(n=>n.onclick=()=>openAgent(n.dataset.role));
+  cols.querySelectorAll('[data-drill]').forEach(n=>{const d=n.dataset.drill;if(d.indexOf('sys:')===0)n.onclick=()=>setOvFilter('sys',d.slice(4));});
+  cols.querySelectorAll('#fl-gate .grow[data-gate]').forEach(n=>n.onclick=()=>setOvFilter('gate',n.dataset.gate));
+  applyCrewSel();
+  requestAnimationFrame(drawFleetWires);}
+function fbox(id){const c=document.getElementById('fcols');if(!c)return{x:0,y:0,w:0,h:0};const f=c.getBoundingClientRect();const e=document.getElementById(id);if(!e||!e.getBoundingClientRect)return{x:0,y:0,w:0,h:0};const b=e.getBoundingClientRect();return{x:b.left-f.left,y:b.top-f.top,w:b.width,h:b.height};}
+function drawFleetWires(){const cols=document.getElementById('fcols'),w=document.getElementById('fwires');if(!cols||!w)return;const fRp=id=>{const b=fbox(id);return[b.x+b.w,b.y+b.h/2];},fLp=id=>{const b=fbox(id);return[b.x,b.y+b.h/2];};
+  w.setAttribute('width',cols.scrollWidth);w.setAttribute('height',cols.scrollHeight);w.innerHTML='';
+  const LC='#e3e9f2';
+  const add=(a,b,st,sw)=>w.appendChild(svgEl('path',{d:curve(a,b),fill:'none',stroke:st||LC,'stroke-width':sw||1.1,'stroke-linecap':'round'}));
+  const dot=(p,c)=>w.appendChild(svgEl('circle',{cx:p[0].toFixed(1),cy:p[1].toFixed(1),r:3.4,fill:'#fff',stroke:c,'stroke-width':2}));
+  // shared funnel (light): only nodes with traffic get lines. sponsors → gate → apps(used) → tools(used) → outcomes
+  const F=FLOW||{ap:{},tl:{},link:{}};
+  const owners=[...new Set(WIN().map(r=>r.owner))];
+  owners.forEach(o=>add(fRp('fl-id-'+o),fLp('fl-gate')));
+  const gateR=fRp('fl-gate');APPS.forEach(a=>{if((F.ap[a.id]||{}).ok||(F.ap[a.id]||{}).blk)add(gateR,fLp('fl-app-'+a.id));});
+  const links=F.link||{};const mxl=Math.max(1,...Object.values(links));
+  Object.keys(links).forEach(k=>{const i=k.indexOf('>'),sys=k.slice(0,i),type=k.slice(i+1);const sw=1+Math.min(2.2,links[k]/mxl*2.2);add(fRp('fl-app-'+sys),fLp('fl-tool-'+type),LC,sw);});
+  TOOLS.forEach(t=>{if(F.tl[t.id])add(fRp('fl-tool-'+t.id),fLp('fl-act-'+t.id));});
+  dot(fLp('fl-gate'),'#b9c6d8');dot(gateR,'#b9c6d8');
+  // selected crew trace (bold): crew → its agents → the crew's sponsors → gate (through identities, no skipping)
+  if(selCrew){const cr=CREWS.find(c=>c.id===selCrew);if(cr){const HC='#6b3fc9';const cp=fRp('fl-crew-'+selCrew);let any=false;
+    const cOwners=[...new Set(FLEET.filter(r=>r.crew===selCrew&&inWin(r)).map(r=>r.owner))].filter(o=>document.getElementById('fl-id-'+o));
+    const ags=cr.members.filter(r=>r!=='coord').map(r=>'fl-ai-'+selCrew+'~'+r).filter(id=>document.getElementById(id));
+    ags.forEach((aid,i)=>{add(cp,fLp(aid),HC,2.4);const idn=cOwners.length?cOwners[i%cOwners.length]:null;if(idn)add(fRp(aid),fLp('fl-id-'+idn),HC,1.5);any=true;});
+    cOwners.forEach(o=>add(fRp('fl-id-'+o),fLp('fl-gate'),HC,1.8));
+    if(any)dot(cp,HC);}}}
+function showView(v){const navKey=(v==='explorer')?'overview':(v==='agentdetail'||v==='crewdetail')?'crews':v;document.querySelectorAll('.htab').forEach(a=>a.classList.toggle('active',a.dataset.view===navKey));
+  document.getElementById('view-overview').style.display=v==='overview'?'':'none';document.getElementById('view-explorer').style.display=v==='explorer'?'':'none';document.getElementById('view-crews').style.display=v==='crews'?'':'none';document.getElementById('view-crewdetail').style.display=v==='crewdetail'?'':'none';document.getElementById('view-agentdetail').style.display=v==='agentdetail'?'':'none';document.getElementById('view-pol').style.display=v==='pol'?'':'none';document.getElementById('view-activity').style.display=v==='activity'?'':'none';
+  if(v==='overview'){renderOverview();renderFleet();setTimeout(()=>{try{drawFleetWires();}catch(e){}},40);}if(v==='crews')renderCrews();if(v==='pol')renderPolicies();
+  if(v==='explorer')setTimeout(()=>{try{drawBase();}catch(e){}},30);}
+document.querySelectorAll('.htab').forEach(a=>a.onclick=()=>showView(a.dataset.view));
+const dock=document.getElementById('dock');
+document.getElementById('dockX').onclick=()=>dock.classList.add('collapsed');
+document.getElementById('aibtn').onclick=()=>dock.classList.toggle('collapsed');
+document.getElementById('drClose').onclick=()=>document.getElementById('drawer').classList.remove('open');
+document.getElementById('agentPanelX').onclick=closeAgentPanel;
+document.querySelectorAll('.drtab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.drtab').forEach(x=>x.classList.remove('active'));t.classList.add('active');drawTab(t.dataset.dt);});
+document.getElementById('remBtn').onclick=()=>document.getElementById('remediate').classList.toggle('open');
+document.querySelectorAll('#remediate .pop div').forEach(d=>d.onclick=()=>remediate(d.dataset.act));
+window.addEventListener('resize',()=>{try{drawBase();}catch(e){}try{if(document.getElementById('view-crews').style.display!=='none')drawFleetWires();}catch(e){}try{if(document.getElementById('view-crewdetail').style.display!=='none'&&curCrew)drawCrewWires(curCrew);}catch(e){}});
+// drag the AIRO panel by its header
+(function(){const h=dock.querySelector('.dhd');let dr=false,ox=0,oy=0;
+  h.addEventListener('mousedown',e=>{if(e.target.id==='dockX')return;dr=true;const r=dock.getBoundingClientRect();ox=e.clientX-r.left;oy=e.clientY-r.top;e.preventDefault();});
+  window.addEventListener('mousemove',e=>{if(!dr)return;let x=Math.max(6,Math.min(window.innerWidth-dock.offsetWidth-6,e.clientX-ox)),y=Math.max(56,Math.min(window.innerHeight-60,e.clientY-oy));dock.style.left=x+'px';dock.style.top=y+'px';dock.style.right='auto';dock.style.bottom='auto';});
+  window.addEventListener('mouseup',()=>dr=false);})();
+
+document.getElementById('backFleet').onclick=()=>showView('overview');
+document.getElementById('replayBtn').onclick=()=>{if(curRunMeta)replayRun(curRunMeta);};
+buildFlow();clearActive();railUpdate();renderAudit();renderPolicies();renderFleet();showView('overview');
+airo(`Hi — I'm AIRO. Tell me what to run, or set a rule in plain English. I'll execute with a crew of Genies and govern every action. Fleet lists all runs; click one to drill into its lineage and gate.`);
+</script>
+</body>
+</html>

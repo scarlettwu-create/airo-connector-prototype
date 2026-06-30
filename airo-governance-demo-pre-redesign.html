@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIRO · Agent Operations</title>
+<style>
+  :root{
+    --bg:#f4f7fb; --bg2:#eef2f7; --panel:#ffffff; --panel2:#ffffff;
+    --line:#e3e9f1; --line2:#d6dfea;
+    --tx:#1d2733; --tx2:#5d6b7c; --tx3:#8a97a8;
+    --teal:#0d9488; --accent:#3b6fe0; --accent2:#3b6fe0;
+    --ok:#1f9d6b; --warn:#b8820f; --err:#d5403a; --risk:#bf3aa0;
+    --r:12px; --rs:8px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:var(--font);background:var(--bg);color:var(--tx);font-size:14px;overflow:hidden}
+  .nav{height:50px;display:flex;align-items:center;gap:26px;padding:0 20px;border-bottom:1px solid var(--line);background:#fff}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700}
+  .brand .star{color:var(--teal);font-size:18px}
+  .nav a{color:var(--tx2);font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;text-decoration:none;padding:4px 2px;font-weight:600}
+  .nav a.active{color:var(--tx);border-bottom:2px solid var(--teal);padding-bottom:14px}
+  .nav .sp{flex:1}
+  .nav .aibtn{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line2);color:var(--tx);border-radius:999px;padding:6px 13px;cursor:pointer;font-size:13px;font-weight:600;box-shadow:0 1px 2px rgba(20,30,50,.05)}
+  .nav .aibtn .star{color:var(--teal)}
+  .main{display:flex;height:calc(100% - 50px);position:relative}
+  .stage{flex:1;min-width:0;overflow:auto;position:relative}
+  .exhd{display:flex;align-items:center;gap:12px;padding:18px 24px 6px}
+  .exhd .crumb{color:var(--tx3);font-size:12px}
+  .exhd h1{margin:0;font-size:22px}
+  .extop{display:flex;align-items:center;gap:10px;padding:0 24px 10px;color:var(--tx2);font-size:13px}
+  .exwrap{display:flex;gap:0;height:calc(100% - 86px);min-width:0;overflow:hidden}
+  .graph{flex:1;min-width:0;position:relative;overflow:auto;background:#fbfcfe;background-image:radial-gradient(circle at 1px 1px,#e1e8f2 1px,transparent 0);background-size:22px 22px}
+  #wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .cols{position:relative;display:grid;grid-template-columns:1fr 1fr 138px 1fr 1fr 1fr;gap:14px;padding:18px;z-index:1;min-width:1000px}
+  .col h5{font-size:10px;color:var(--tx2);margin:0 0 10px;font-weight:700;background:#fff;border:1px solid var(--line2);display:inline-block;padding:3px 9px;border-radius:999px}
+  .gatecol h5{visibility:hidden}
+  .gate{background:#fff;border:1px solid var(--line2);border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(20,30,50,.06);transition:.2s}
+  .gate .gstrip{height:5px;background:var(--line2);transition:.25s}
+  .gate .ghd{font-size:10px;letter-spacing:.05em;font-weight:700;color:var(--teal);padding:13px 14px 9px;display:flex;align-items:center;gap:7px}
+  .gate .glive{width:6px;height:6px;border-radius:50%;background:var(--line2)}
+  .gate.active-run .glive{background:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,.18)}
+  .gate .grow{display:flex;align-items:center;gap:9px;padding:8px 14px;font-size:12.5px;border-top:1px solid var(--line);color:var(--tx2)}
+  .gate .grow .gdot{width:8px;height:8px;border-radius:50%;flex:none}
+  .gate .grow .gn{margin-left:auto;font-weight:700;font-size:14px;color:var(--tx)}
+  .gate.shut{border-color:var(--err)}
+  .gate.shut .gstrip{background:var(--err)}
+  .cols.gateshut .col:nth-child(n+4){opacity:.45;transition:.3s}
+  .ncard{background:#fff;border:1px solid var(--line2);border-radius:11px;padding:10px 11px;margin-bottom:11px;position:relative;transition:.2s;box-shadow:0 1px 2px rgba(20,30,50,.04)}
+  .ncard .nm{font-weight:600;color:var(--tx);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ncard.act{cursor:pointer}.ncard.act .nm{white-space:normal;line-height:1.3}
+  .ncard .sub{font-size:10.5px;color:var(--tx3);margin-top:3px;display:flex;gap:10px}
+  .ncard.dim{opacity:.45}
+  .ncard.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 16px rgba(59,111,224,.25)}
+  .ncard.active.green{border-color:var(--ok);box-shadow:0 0 0 1px var(--ok),0 0 16px rgba(31,157,107,.22)}
+  .ncard.active.red{border-color:var(--err);box-shadow:0 0 0 1px var(--err),0 0 16px rgba(213,64,58,.22)}
+  .ncard.active.amber{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn),0 0 16px rgba(184,130,15,.22)}
+  .rk{position:absolute;top:-8px;right:7px;font-size:9px;font-weight:700;background:var(--risk);color:#fff;border-radius:999px;padding:1px 6px;display:none}
+  .ncard.show-risk .rk{display:inline-block}
+  .ncard.flag{border-color:#e6cf8f;background:#fdf7e6}
+  .capr{display:inline-block;font-size:9px;color:var(--err);border:1px solid #f0c0bc;border-radius:999px;padding:0 5px;margin-top:4px}
+  .vtag{font-size:9.5px;font-weight:700;border-radius:999px;padding:1px 7px;margin-left:6px}
+  .vtag.r{background:#fcebe9;color:#d5403a}.vtag.g{background:#e8f6ef;color:#1f9d6b}.vtag.o{background:#fbf2dd;color:#9a7212}.vtag.m{background:#dff3ee;color:#0d7a66}
+  .rail{width:300px;flex:none;border-left:1px solid var(--line);padding:18px 18px 24px;overflow:auto;background:#fafcff}
+  .rail h3{font-size:15px;margin:0 0 14px}
+  .rail .reason{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--tx);margin-bottom:9px}
+  .rail .kv{border-top:1px solid var(--line);padding:12px 0 0;margin-top:12px}
+  .rail .kv .k{font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.03em}
+  .rail .kv .v{font-size:15px;font-weight:700;margin-top:3px}
+  .page{padding:22px 26px;max-width:980px}
+  .page h1{font-size:22px;margin:0 0 16px}
+  .fstats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+  .fstat{background:#fff;border:1px solid var(--line2);border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(20,30,50,.04)}
+  .fstat .n{font-size:26px;font-weight:700}
+  .fstat .l{font-size:11px;color:var(--tx2);margin-top:5px;text-transform:uppercase;letter-spacing:.03em}
+  .fstat.alert .n{color:var(--err)}
+  .ftable{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border:1px solid var(--line2);border-radius:12px;overflow:hidden}
+  .ftable th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--tx2);padding:11px 14px;border-bottom:1px solid var(--line);font-weight:600}
+  .ftable td{padding:12px 14px;border-bottom:1px solid var(--line)}
+  .ftable tr:last-child td{border-bottom:none}
+  .ftable tbody tr{cursor:pointer}
+  .ftable tbody tr:hover{background:#f6f9fd}
+  .ftable tr.flagged td:first-child{box-shadow:inset 3px 0 0 var(--err)}
+  .fb{font-size:10.5px;font-weight:700;border-radius:999px;padding:1px 8px;margin-right:4px}
+  .fb.r{background:#fcebe9;color:#d5403a}.fb.o{background:#fbf2dd;color:#9a7212}.fb.t{background:#dff3ee;color:#0d7a66}.fb.g{background:#e8f6ef;color:#1f9d6b}
+  .ovgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .ovcard{background:#fff;border:1px solid var(--line2);border-radius:14px;padding:16px 18px;box-shadow:0 1px 2px rgba(20,30,50,.04)}
+  .ovcard.ovwide{grid-column:1 / -1}
+  .ovcard h4{margin:0 0 6px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--tx2)}
+  .ovbig{font-size:34px;font-weight:700;line-height:1;color:var(--tx)}
+  .ovsub{font-size:12px;color:var(--tx2)}
+  .ovbar{height:16px;border-radius:8px;background:#eef2f8;overflow:hidden;display:flex;margin-top:12px}
+  .ovbar span{height:100%}
+  .legrow{font-size:11.5px;color:var(--tx2);margin-top:10px}
+  .utilrow{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:12px}
+  .utilrow .ul{width:88px;color:var(--tx);flex:none}
+  .utiltrack{flex:1;height:9px;border-radius:5px;background:#eef2f8;overflow:hidden}
+  .utiltrack i{display:block;height:100%;background:var(--accent2);border-radius:5px}
+  .utilrow.zero .ul{color:var(--warn)}
+  .ovgrid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+  .attn{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .attncard{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line2);border-left:4px solid var(--err);border-radius:10px;padding:10px 16px;cursor:pointer;box-shadow:0 1px 2px rgba(20,30,50,.04)}
+  .attncard:hover{border-color:var(--accent)}
+  .attncard.ok{border-left-color:var(--ok);cursor:default}
+  .attncard .an{font-size:22px;font-weight:700;line-height:1}
+  .attncard .al{font-size:12px;color:var(--tx2);line-height:1.3}
+  .statline{display:flex;gap:24px;margin-top:14px;flex-wrap:wrap}
+  .statline .si{font-size:13px;color:var(--tx2)}
+  .statline .si b{font-size:18px;color:var(--tx);margin-right:6px}
+  .dotb{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .hr-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12.5px;cursor:pointer;padding:3px 0}
+  .hr-row:hover .hn{color:var(--accent)}
+  .hr-row .hn{flex:1;font-weight:600}
+  .spark{display:flex;align-items:flex-end;gap:4px;height:42px;margin:10px 0 6px}
+  .spark i{flex:1;background:#0d9488;border-radius:2px 2px 0 0;opacity:.65;min-height:3px}
+  .sysbar{flex:1;height:10px;border-radius:5px;background:#eef2f8;overflow:hidden;display:flex}
+  .sysbar span{height:100%}
+  .ovtop{display:flex;align-items:center;gap:24px}
+  .ovtop-act{flex:none;width:230px;display:flex;align-items:center;gap:12px}
+  .ovtop-act.req{padding-left:14px;border-left:4px solid var(--err);cursor:pointer}
+  .ovtop-act.req:hover b{color:var(--accent)}
+  .ovtop-act .an{font-size:30px;font-weight:700;line-height:1;flex:none}
+  .ovtop-act b{font-size:13px}
+  .ovtop-div{width:1px;height:66px;background:var(--line);flex:none}
+  .ovtop-harm{flex:1}
+  .trust{display:flex;align-items:stretch;margin-top:6px}
+  .trust-t{flex:1;padding:2px 22px;display:flex;flex-direction:column;gap:3px}
+  .trust-t + .trust-t{border-left:1px solid var(--line)}
+  .trust-t .tv{font-size:30px;font-weight:700;line-height:1.1}
+  .trust-t .tl{font-size:13px;font-weight:600;color:var(--tx)}
+  .trust-t .ts2{font-size:11.5px;color:var(--tx2)}
+  .polrow{background:#fff;border:1px solid var(--line2);border-radius:11px;padding:13px 15px;margin-bottom:11px;box-shadow:0 1px 2px rgba(20,30,50,.04)}
+  .polrow .pn{font-weight:600;display:flex;align-items:center;gap:8px}
+  .polrow .pm{font-size:12px;color:var(--tx2);margin-top:6px;display:flex;gap:16px;flex-wrap:wrap}
+  .polrow .pm b{color:var(--tx)}
+  .sw{margin-left:auto;width:36px;height:20px;border-radius:999px;background:#cfd8e4;position:relative;cursor:pointer;flex:none}
+  .sw.on{background:var(--ok)}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}.sw.on::after{left:18px}
+  .auditv .ar{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .auditv .ar .t{color:var(--tx2);width:50px;flex:none}
+  .dpill{font-size:10px;font-weight:700;border-radius:999px;padding:1px 8px}
+  .dpill.g{background:#e8f6ef;color:#1f9d6b}.dpill.r{background:#fcebe9;color:#d5403a}.dpill.o{background:#fbf2dd;color:#9a7212}
+  .dock{width:380px;flex:none;border-left:1px solid var(--line);background:#fff;display:flex;flex-direction:column;transition:width .2s}
+  .dock.collapsed{width:0;border:none;overflow:hidden}
+  .dock .dhd{height:44px;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid var(--line);font-weight:700}
+  .dock .dhd .star{color:var(--teal)}
+  .dock .dhd .x{margin-left:auto;cursor:pointer;color:var(--tx2);background:none;border:none;font-size:16px}
+  .thread{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;background:var(--bg)}
+  .msg{font-size:13px;line-height:1.5}
+  .msg.user{align-self:flex-end;background:var(--accent2);color:#fff;border-radius:12px 12px 3px 12px;padding:8px 11px;max-width:88%}
+  .msg.airo{background:#fff;border:1px solid var(--line2);border-radius:3px 12px 12px 12px;padding:9px 12px;max-width:94%}
+  .msg.sys{background:transparent;color:var(--tx2);padding:0;font-size:12.5px}
+  .env-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+  .pill{font-size:11px;font-weight:600;border-radius:999px;padding:2px 8px}
+  .pill.b{background:#eaf1fe;color:#3b6fe0}.pill.n{background:#eef2f8;color:var(--tx2)}.pill.r{background:#fcebe9;color:#d5403a}.pill.o{background:#fbf2dd;color:#9a7212}.pill.g{background:#e8f6ef;color:#1f9d6b}
+  .routine{border:1px dashed var(--line2);border-radius:10px;background:#f6f8fc}
+  .routine summary{cursor:pointer;list-style:none;padding:8px 11px;font-size:12.5px;color:var(--tx2)}
+  .routine summary::-webkit-details-marker{display:none}
+  .routine .ln{padding:4px 11px 4px 26px;font-size:12px;color:var(--tx2);border-top:1px solid var(--line)}
+  .note{border-radius:8px;padding:9px 11px;font-size:12.5px}
+  .note.block{background:#fbf2dd;color:#7c5a06}.note.halt{background:#fcebe9;color:#8a2a25}
+  .approve{border:1.5px solid var(--warn);border-radius:10px;background:#fbf6e6;overflow:hidden}
+  .approve .hd{padding:9px 12px;font-weight:700;color:#7c5a06}
+  .approve .bd{padding:0 12px 11px;font-size:12.5px;color:#6b5a2e}
+  .approve .grant{background:#fff;border:1px solid #e8d7a8;border-radius:7px;padding:6px 9px;margin:7px 0;display:flex;justify-content:space-between}
+  .ack{display:flex;gap:6px;font-size:12px;margin:6px 0 9px}
+  .pcard{border:1px solid var(--accent2);border-radius:10px;background:#eef4ff;padding:10px 12px;margin-top:7px}
+  .pcard .pn{font-weight:700;color:#23406e}.pcard .pm{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:11.5px;color:var(--tx2)}
+  .row{display:flex;gap:8px;align-items:center}
+  .btn{height:30px;padding:0 12px;border-radius:7px;font-size:12.5px;font-weight:600;border:1px solid transparent;cursor:pointer;font-family:inherit}
+  .btn.brand{background:var(--accent2);color:#fff}.btn.neutral{background:#fff;border-color:var(--line2);color:var(--tx)}.btn.danger{background:var(--err);color:#fff}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .composer{border-top:1px solid var(--line);padding:11px 13px 14px;background:#fff}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .chip{font-size:11.5px;padding:4px 9px;border-radius:999px;border:1px solid var(--line2);background:#fff;color:var(--tx2);cursor:pointer;white-space:nowrap}
+  .chip.rule{border-style:dashed}.chip:hover{border-color:var(--accent);color:var(--tx)}
+  .inrow{display:flex;gap:8px}
+  .inrow textarea{flex:1;resize:none;background:#fff;border:1px solid var(--line2);border-radius:10px;color:var(--tx);padding:9px 11px;font-family:inherit;font-size:13px;height:42px}
+  .inrow textarea:focus{outline:none;border-color:var(--accent)}
+  .drawer{position:absolute;top:0;right:0;height:100%;width:640px;max-width:92%;background:#fff;border-left:1px solid var(--line);box-shadow:-18px 0 44px rgba(20,30,50,.12);transform:translateX(100%);transition:transform .25s;z-index:20;display:flex;flex-direction:column}
+  .drawer.open{transform:none}
+  .drhd{padding:16px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)}
+  .drhd h2{margin:0;font-size:17px;flex:1}
+  .menu{position:relative}
+  .menu .pop{position:absolute;right:0;top:36px;background:#fff;border:1px solid var(--line2);border-radius:10px;min-width:190px;display:none;overflow:hidden;z-index:5;box-shadow:0 8px 24px rgba(20,30,50,.12)}
+  .menu.open .pop{display:block}
+  .menu .pop div{padding:10px 13px;font-size:13px;cursor:pointer}.menu .pop div:hover{background:#f0f3f8}
+  .drtabs{display:flex;gap:18px;padding:0 20px;border-bottom:1px solid var(--line)}
+  .drtab{padding:11px 0;font-size:12.5px;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.03em;font-weight:600}
+  .drtab.active{color:var(--tx);border-color:var(--teal)}
+  .drbody{flex:1;overflow:auto;padding:20px}
+  .drbody h4{font-size:13px;margin:0 0 9px;display:flex;align-items:center;gap:7px}
+  .drbody p{font-size:13.5px;line-height:1.55;color:var(--tx);margin:0 0 18px}
+  .fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px 20px;margin-bottom:20px}
+  .fields .k{font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.03em}
+  .fields .v{font-size:14px;margin-top:4px}
+  .tl{position:relative;padding-left:18px}
+  .tl .ev{border-left:2px solid var(--line2);padding:0 0 18px 16px;position:relative}
+  .tl .ev::before{content:"";position:absolute;left:-5px;top:2px;width:8px;height:8px;border-radius:50%;background:var(--teal)}
+  .tl .ev .ts{font-size:11px;color:var(--tx2)}
+  .tl .ev .tt{font-weight:600;margin:3px 0}
+  .tl .ev .td{font-size:12.5px;color:var(--tx2)}
+  .tl pre{background:#f4f7fb;border:1px solid var(--line2);border-radius:8px;padding:9px 11px;font-size:11.5px;color:#23406e;overflow:auto;margin-top:7px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d2733;border:1px solid #2c3a4e;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:50;display:none;box-shadow:0 8px 24px rgba(20,30,50,.2)}
+</style>
+</head>
+<body>
+  <div class="nav">
+    <div class="brand"><span class="star">✦</span> AIRO <span style="color:var(--tx3);font-weight:500">· Agent Operations</span></div>
+    <a data-view="overview" class="active">Overview</a>
+    <a data-view="agents">Agents</a>
+    <a data-view="pol">Policies</a>
+    <a data-view="activity">Activity Log</a>
+    <span class="sp"></span>
+    <button class="aibtn" id="aibtn"><span class="star">✦</span> Ask AIRO</button>
+  </div>
+  <div class="main">
+    <div class="stage">
+      <!-- OVERVIEW (home: outcomes + runs) -->
+      <div id="view-overview"><div class="page" style="max-width:1120px"><h1>Overview</h1>
+        <div class="ovcard" id="ovTop" style="margin-bottom:16px"></div>
+        <div class="ovgrid">
+          <div class="ovcard" id="ovAgents"></div>
+          <div class="ovcard" id="ovUse"></div>
+        </div>
+        <div class="ovcard" id="ovTrust" style="margin-top:16px"></div>
+        <h2 style="font-size:16px;margin:26px 0 12px">Runs</h2>
+        <table class="ftable"><thead><tr><th>Run</th><th>Owner</th><th>Status</th><th>Grants</th><th>Flags</th><th>When</th></tr></thead><tbody id="fleetList"></tbody></table>
+        <p style="color:var(--tx2);font-size:13px;margin-top:14px">Click any run to drill into its lineage and gate. Flagged rows hit a policy.</p>
+      </div></div>
+      <!-- EXPLORER -->
+      <div id="view-explorer">
+        <div class="exhd"><div><div class="crumb"><a id="backFleet" style="cursor:pointer;color:var(--accent)">‹ Overview</a> › <span id="runCrumb">Onboarding</span></div><h1 id="runTitle">Onboarding run</h1></div></div>
+        <div class="extop">Explorer · <b style="color:var(--tx)">this run</b> &nbsp;|&nbsp; <span id="runStatus">idle</span></div>
+        <div class="exwrap">
+          <div class="graph"><svg id="wires"></svg><div class="cols" id="cols"></div></div>
+          <div class="rail">
+            <h3>Run summary</h3>
+            <div id="reasons"><div class="reason" style="color:var(--tx2)">Run something from the AIRO panel to see the lineage and a plain-language summary.</div></div>
+            <div class="kv"><div class="k">Grants used</div><div class="v" id="kvGrants">0 / 8</div></div>
+            <div class="kv"><div class="k">Blocked</div><div class="v" id="kvViol">0</div></div>
+            <div class="kv"><div class="k">Sponsor</div><div class="v" style="font-size:13px">it-ops-manager</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- POLICIES -->
+      <div id="view-pol" style="display:none"><div class="page"><h1>Policies</h1><div id="pollist"></div>
+        <p style="color:var(--tx2);font-size:13px">Create new policies by telling AIRO a rule in plain English, e.g. “max 5 grants per run”.</p></div></div>
+      <!-- ACTIVITY -->
+      <div id="view-activity" style="display:none"><div class="page"><h1>Activity Log</h1><div class="auditv" id="auditv"></div></div></div>
+      <!-- AGENTS -->
+      <div id="view-agents" style="display:none"><div class="page" style="max-width:1000px"><h1>Agents · registry</h1>
+        <table class="ftable"><thead><tr><th>Agent</th><th>Owner</th><th>Scope</th><th>Risk</th><th>Denied capabilities</th></tr></thead><tbody id="agentList"></tbody></table>
+        <p style="color:var(--tx2);font-size:13px;margin-top:14px">Click an agent to see its activity and runs. Denied capabilities are hard caps no run can exceed.</p>
+      </div></div>
+      <!-- AGENT DETAIL -->
+      <div id="view-agentdetail" style="display:none"><div class="page" style="max-width:1120px" id="agentDetail"></div></div>
+
+      <!-- action drawer -->
+      <div class="drawer" id="drawer">
+        <div class="drhd"><h2 id="drTitle">Action</h2>
+          <span class="pill o" id="drStatus">Open</span>
+          <div class="menu" id="remediate"><button class="btn brand" id="remBtn">Remediate ▾</button>
+            <div class="pop"><div data-act="rewind">↺ Rewind action</div><div data-act="jira">Create Jira ticket</div><div data-act="snow">Create ServiceNow ticket</div></div></div>
+          <button class="btn neutral" id="drClose">✕</button>
+        </div>
+        <div class="drtabs"><span class="drtab active" data-dt="ov">Overview</span><span class="drtab" data-dt="logs">Agent Logs</span></div>
+        <div class="drbody" id="drBody"></div>
+      </div>
+    </div>
+
+    <!-- AIRO dock -->
+    <div class="dock" id="dock">
+      <div class="dhd"><span class="star">✦</span> AIRO <button class="x" id="dockX">›</button></div>
+      <div class="thread" id="thread"></div>
+      <div class="composer">
+        <div class="chips" id="chips"></div>
+        <div class="inrow"><textarea id="input" placeholder="Run something, or set a rule…"></textarea><button class="btn brand" id="send" style="height:42px">↑</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+<script>
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const crew=[
+  {name:'Coordinator',id:'coord',role:'orchestrate only',allowed:['delegate'],canGrant:[],denied:[]},
+  {name:'AccountGenie',id:'acct',role:'standard accounts',allowed:['createAccount'],canGrant:[],denied:[]},
+  {name:'AccessGenie',id:'access',role:'standard roles',allowed:['grantAccess'],canGrant:['crm:read','calendar','wiki','drive','vpn','finance:read'],denied:['admin','pii:export']},
+  {name:'NotifyGenie',id:'notify',role:'notify · drafts',allowed:['notify','modelCall'],canGrant:[],denied:[]},
+];
+const IDENT=[{id:'spons',nm:'it-ops-manager',sub:'sponsor'},{id:'broker',nm:'AIRO',sub:'broker'}];
+const APPS=[{id:'okta',nm:'Okta'},{id:'slack',nm:'Slack'},{id:'drive',nm:'Drive'},{id:'finance',nm:'Finance'},{id:'extllm',nm:'External LLM'}];
+const TOOLS=[{id:'createAccount',nm:'create_account'},{id:'grantAccess',nm:'grant_access'},{id:'notify',nm:'notify'},{id:'modelCall',nm:'model_call'}];
+
+let policies=defaultPolicies();
+function defaultPolicies(){return [
+  {id:'p1',name:'No admin grants',type:'Rule-based',enf:'Block',on:true,kind:'block',role:'admin'},
+  {id:'p2',name:'No PII export',type:'Rule-based',enf:'Block',on:true,kind:'block',role:'pii:export'},
+  {id:'p3',name:'Max 8 grants per run',type:'Rule-based',enf:'Block',on:true,kind:'ceiling',n:8},
+  {id:'p4',name:'Finance access needs approval',type:'Rule-based',enf:'Approve',on:true,kind:'approve',role:'finance:read'},
+  {id:'p5',name:'No PII to external models',type:'Content / PII',enf:'Mask',on:true,kind:'pii'},
+  {id:'p6',name:'Block unsafe content',type:'LLM-as-judge',enf:'Block',on:true,kind:'content'},
+];}
+function POL(){const blocked=new Set(),approve=new Set();let max=999,pii=false,content=false;
+  policies.filter(p=>p.on).forEach(p=>{if(p.kind==='block')blocked.add(p.role);if(p.kind==='approve')approve.add(p.role);if(p.kind==='ceiling')max=Math.min(max,p.n);if(p.kind==='pii')pii=true;if(p.kind==='content')content=true;});return{blocked,approve,max,pii,content};}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+function parseRule(t){t=t.toLowerCase();let m=t.match(/(\d+)\s*grants?/);
+  if(m&&/(max|ceiling|limit|no more than|only|at most)/.test(t))return{kind:'ceiling',n:+m[1],name:`Max ${m[1]} grants per run`,type:'Rule-based',enf:'Block'};
+  if(/(pii|personal data|personal info|sensitive data)/.test(t)&&/(share|leak|send|external|expose|reveal|can't|cannot|no )/.test(t))return{kind:'pii',name:'No PII to external models',type:'Content / PII',enf:'Mask'};
+  if(/(unsafe|toxic|harmful|inappropriate|content moderation|content policy)/.test(t))return{kind:'content',name:'Block unsafe content',type:'LLM-as-judge',enf:'Block'};
+  const roles=['vpn','finance','calendar','wiki','drive','crm','admin'];const role=roles.find(r=>t.includes(r));const full={finance:'finance:read',crm:'crm:read'}[role]||role;
+  if(role&&/(approv|review|sign[- ]?off|confirm|needs|require)/.test(t))return{kind:'approve',role:full,name:`${cap(role)} access needs approval`,type:'Rule-based',enf:'Approve'};
+  if(role&&/(block|deny|no |cannot|can't|forbid|disallow|don't allow|never)/.test(t))return{kind:'block',role:full,name:`Block ${full}`,type:'Rule-based',enf:'Block'};return null;}
+function isPolicyIntent(t){return /\b(rule|policy|block|deny|forbid|disallow|cannot|can't|must|require)\b|ceiling|limit|\d+\s*grants?|approval|pii|sensitive|personal data|content/i.test(t);}
+
+let run=fresh();
+function fresh(){return {grants:0,ledger:[],audit:[],status:'idle',hr:0,viol:0,masked:0};}
+function gate(a){const g=crew.find(c=>c.id===a.actor);const pol=POL();
+  if(!g.allowed.includes(a.type))return{d:'block',reason:'action not in role'};
+  if(a.type==='grantAccess'&&a.role&&!g.canGrant.includes(a.role))return{d:'block',reason:`role cap — cannot grant ${a.role}`};
+  if(a.type==='grantAccess'&&a.role&&pol.blocked.has(a.role))return{d:'block',reason:`read-only / blocked tools policy — ${a.role}`};
+  if(a.type==='grantAccess'&&run.grants+1>pol.max)return{d:'halt',reason:`ceiling (${pol.max} grants) reached`};
+  if(a.type==='grantAccess'&&a.role&&pol.approve.has(a.role))return{d:'approve'};
+  if(a.external&&a.unsafe&&pol.content)return{d:'block',reason:'content policy — unsafe output blocked'};
+  if(a.external&&a.pii&&a.pii.length&&pol.pii)return{d:'mask',masked:a.pii};
+  if(a.highRisk)return{d:'approve'};return{d:'allow'};}
+function bundle(){return [
+  {actor:'acct',type:'createAccount',label:'Create email account',sys:'okta'},
+  {actor:'acct',type:'createAccount',label:'Create Slack account',sys:'slack'},
+  {actor:'access',type:'grantAccess',role:'crm:read',label:'Grant CRM (read)',sys:'drive'},
+  {actor:'access',type:'grantAccess',role:'calendar',label:'Grant Calendar',sys:'drive'},
+  {actor:'access',type:'grantAccess',role:'wiki',label:'Grant Wiki',sys:'drive'},
+  {actor:'access',type:'grantAccess',role:'drive',label:'Grant Drive',sys:'drive'},
+  {actor:'notify',type:'notify',label:'Send welcome message',sys:'slack'}];}
+function actionsFor(s){
+  if(s==='overgrant')return [...bundle().slice(0,6),{actor:'access',type:'grantAccess',role:'admin',label:'Grant admin console',sys:'okta'},{actor:'access',type:'grantAccess',role:'pii:export',label:'Grant PII export',sys:'okta'},bundle()[6]];
+  if(s==='approval')return [...bundle().slice(0,6),{actor:'access',type:'grantAccess',role:'finance:read',label:'Grant Finance (read)',sys:'finance',risk:0.7,highRisk:true},bundle()[6]];
+  if(s==='loop'){const a=[bundle()[0],bundle()[1]];const r=['crm:read','calendar','wiki','drive','vpn','crm:read','calendar','wiki','drive','vpn','wiki','calendar'];r.forEach((x,i)=>a.push({actor:'access',type:'grantAccess',role:x,label:`Grant ${x} · person ${i+1}`,sys:'drive'}));return a;}
+  if(s==='enrich')return [bundle()[0],{actor:'notify',type:'modelCall',label:'Draft personalized welcome (external AI)',sys:'extllm',external:true,pii:['email','phone','home address']},bundle()[6]];
+  return bundle();}
+function routePrompt(t){t=t.toLowerCase();if(/draft|external ai|enrich|summari[sz]e|with ai|personali/.test(t))return 'enrich';if(/class|everyone|whole|all new|30|batch/.test(t))return 'loop';if(/admin|administrator/.test(t))return 'overgrant';if(/finance|elevated|extra|more access/.test(t))return 'approval';return 'normal';}
+function actLabel(a){return a.role||(a.type==='createAccount'?(a.sys+' account'):a.type==='notify'?'welcome msg':a.label);}
+
+const thread=document.getElementById('thread');
+function scrollT(){thread.scrollTop=thread.scrollHeight;}
+function airo(html){const m=el(`<div class="msg airo">${html}</div>`);thread.appendChild(m);scrollT();return m;}
+function user(t){thread.appendChild(el(`<div class="msg user">${esc(t)}</div>`));scrollT();}
+function sysB(){const m=el(`<div class="msg sys"></div>`);thread.appendChild(m);scrollT();return m;}
+function el(h){const d=document.createElement('div');d.innerHTML=h.trim();return d.firstChild;}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+let routineBox=null;
+function routineLine(label){if(!routineBox){routineBox=el(`<details class="routine" open><summary>▾ <span class="rc">Routine actions</span></summary></details>`);const m=sysB();m.appendChild(routineBox);}
+  routineBox.appendChild(el(`<div class="ln">✓ ${esc(label)}</div>`));const n=routineBox.querySelectorAll('.ln').length;routineBox.querySelector('.rc').textContent=`${n} routine action${n>1?'s':''} auto-cleared`;scrollT();}
+
+let actN=0; const actData={};
+function buildFlow(){const cols=document.getElementById('cols');
+  cols.innerHTML=
+    `<div class="col"><h5>AGENTS (4)</h5>`+crew.map(c=>`<div class="ncard" id="ag-${c.id}"><span class="rk">High risk</span><div class="nm">${c.name}</div><div class="sub">${c.role}</div>${c.denied.map(d=>`<span class="capr">${d} ✕</span>`).join('')}</div>`).join('')+`</div>`
+   +`<div class="col"><h5>IDENTITIES (2)</h5>`+IDENT.map(i=>`<div class="ncard" id="id-${i.id}"><div class="nm">${i.nm}</div><div class="sub">${i.sub}</div></div>`).join('')+`</div>`
+   +`<div class="col gatecol"><h5>GATE</h5><div class="gate" id="gate"><div class="gstrip" id="gstrip"></div><div class="ghd"><span class="glive"></span>AIRO GATE</div><div class="grow"><span class="gdot" style="background:#1f9d6b"></span>Passed<span class="gn" id="gPass">0</span></div><div class="grow"><span class="gdot" style="background:#d5403a"></span>Blocked<span class="gn" id="gBlk">0</span></div><div class="grow"><span class="gdot" style="background:#0d9488"></span>Masked<span class="gn" id="gMsk">0</span></div><div class="grow"><span class="gdot" style="background:#b8820f"></span>Held<span class="gn" id="gApr">0</span></div></div></div>`
+   +`<div class="col"><h5>APPLICATIONS (5)</h5>`+APPS.map(a=>`<div class="ncard" id="app-${a.id}"><div class="nm">${a.nm}</div></div>`).join('')+`</div>`
+   +`<div class="col"><h5>TOOLS (4)</h5>`+TOOLS.map(t=>`<div class="ncard" id="tool-${t.id}"><div class="nm">${t.nm}</div></div>`).join('')+`</div>`
+   +`<div class="col"><h5>ACTIONS (<span id="actcount">0</span>)</h5><div id="col-actions"></div></div>`;
+  actN=0;Object.keys(actData).forEach(k=>delete actData[k]);drawBase();}
+function box(id){const f=document.getElementById('cols').getBoundingClientRect();const e=document.getElementById(id);if(!e||!e.getBoundingClientRect)return{x:0,y:0,w:0,h:0};const b=e.getBoundingClientRect();return{x:b.left-f.left,y:b.top-f.top,w:b.width,h:b.height};}
+const Rp=id=>{const b=box(id);return[b.x+b.w,b.y+b.h/2];};const Lp=id=>{const b=box(id);return[b.x,b.y+b.h/2];};
+function curve(p1,p2){const dx=Math.max(16,(p2[0]-p1[0])/2);return `M${p1[0]} ${p1[1]} C ${p1[0]+dx} ${p1[1]}, ${p2[0]-dx} ${p2[1]}, ${p2[0]} ${p2[1]}`;}
+function svgEl(t,a){const e=document.createElementNS('http://www.w3.org/2000/svg',t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function drawBase(){const w=document.getElementById('wires');w.innerHTML='';const add=(a,b)=>w.appendChild(svgEl('path',{d:curve(a,b),fill:'none',stroke:'#cdd8e6','stroke-width':1.2}));
+  crew.forEach(c=>add(Rp('ag-'+c.id),Lp('id-spons')));add(Rp('id-spons'),Lp('gate'));add(Rp('id-broker'),Lp('gate'));APPS.forEach(a=>add(Rp('gate'),Lp('app-'+a.id)));TOOLS.forEach(t=>add(Rp('app-drive'),Lp('tool-'+t.id)));}
+function clearActive(){document.querySelectorAll('.ncard').forEach(n=>{n.classList.remove('active','green','red','amber','show-risk');n.classList.add('dim');});const a=document.getElementById('active');if(a)a.remove();}
+function addActionCard(a,res,ts){const id='act-'+(actN++);const v=res.d==='allow'?'<span class="vtag g">ok</span>':res.d==='mask'?'<span class="vtag m">🛡 PII masked</span>':res.d==='approve'?'':'<span class="vtag r">Violation</span>';
+  const c=el(`<div class="ncard act" id="${id}"><div class="nm">${esc(actLabel(a))} ${v}</div><div class="sub">${a.type}</div></div>`);
+  document.getElementById('col-actions').appendChild(c);document.getElementById('actcount').textContent=actN;
+  actData[id]={a,res,ts,id};c.onclick=()=>openDrawer(id);return id;}
+function tagAction(id,res){const c=document.getElementById(id);if(!c)return;const nm=c.querySelector('.nm');
+  const t=res.d==='allow'?'<span class="vtag g">ok</span>':res.d==='approve'?'<span class="vtag o">approved</span>':res.d==='reversed'?'<span class="vtag o">↩ reversed</span>':'<span class="vtag r">Violation</span>';
+  nm.innerHTML=esc(actLabel(actData[id].a))+' '+t;}
+async function activate(act,res,actId){clearActive();
+  const tone=(res.d==='allow'||res.d==='mask')?'green':res.d==='approve'?'amber':'red';
+  const ids=['ag-'+act.actor,'id-spons','gate','app-'+act.sys,'tool-'+act.type,actId];
+  ids.forEach(id=>{const n=document.getElementById(id);if(n){n.classList.remove('dim');n.classList.add('active',tone);}});
+  const br=document.getElementById('id-broker');br.classList.remove('dim');br.classList.add('active',tone);
+  if(res.d!=='allow')document.getElementById('ag-'+act.actor).classList.add('show-risk');
+  if(res.d==='block'||res.d==='halt')document.getElementById('tool-'+act.type).classList.add('flag');
+  const g=svgEl('g',{id:'active'});document.getElementById('wires').appendChild(g);
+  const col=tone==='green'?'#1f9d6b':tone==='amber'?'#b8820f':'#d5403a';
+  const segs=[[Rp(ids[0]),Lp(ids[1])],[Rp(ids[1]),Lp(ids[2])],[Rp(ids[2]),Lp(ids[3])],[Rp(ids[3]),Lp(ids[4])],[Rp(ids[4]),Lp(ids[5])]];
+  const path=svgEl('path',{d:segs.map(s=>curve(s[0],s[1])).join(' '),fill:'none',stroke:col,'stroke-width':2.4,opacity:.95});g.appendChild(path);
+  const dot=svgEl('circle',{r:4.5,fill:col});g.appendChild(dot);await pulse(path,dot,res.d==='block'||res.d==='halt');}
+function pulse(path,dot,bounce){return new Promise(res=>{let len;try{len=path.getTotalLength?path.getTotalLength():0;}catch(e){len=0;}if(!len){res();return;}
+  const dur=560,t0=performance.now();function fr(t){let k=Math.min(1,(t-t0)/dur);const e=bounce?(k<.6?k:1.2-k):k;const pt=path.getPointAtLength(Math.max(0,Math.min(1,e))*len);dot.setAttribute('cx',pt.x);dot.setAttribute('cy',pt.y);if(k<1)requestAnimationFrame(fr);else{dot.setAttribute('opacity','0');res();}}requestAnimationFrame(fr);});}
+
+function gateStamp(res){
+  const colMap={allow:'#1f9d6b',mask:'#0d9488',approve:'#b8820f',block:'#d5403a',halt:'#d5403a'};
+  const g=document.getElementById('gate');if(!g)return;g.classList.add('active-run');
+  const strip=document.getElementById('gstrip');if(strip)strip.style.background=colMap[res.d]||'var(--line2)';
+  const v=Object.values(actData).map(x=>x.res.d);
+  document.getElementById('gPass').textContent=v.filter(d=>d==='allow').length;
+  document.getElementById('gBlk').textContent=v.filter(d=>d==='block'||d==='halt').length;
+  document.getElementById('gMsk').textContent=v.filter(d=>d==='mask').length;
+  document.getElementById('gApr').textContent=v.filter(d=>d==='approve').length;
+  if(res.d==='halt'){g.classList.add('shut');document.getElementById('cols').classList.add('gateshut');}
+}
+function railUpdate(scenario){
+  document.getElementById('kvGrants').textContent=`${run.grants} / ${POL().max}`;
+  document.getElementById('kvViol').textContent=run.viol;
+  document.getElementById('runStatus').textContent=run.status;
+  const reasons=[];
+  if(run.status==='halted')reasons.push(['var(--err)',`Halted at the ${POL().max}-grant ceiling — looked like onboarding many people at once`]);
+  if(run.viol)reasons.push(['var(--warn)',`${run.viol} action(s) blocked by policy / role cap`]);
+  if(run.hr)reasons.push(['var(--warn)',`${run.hr} high-risk action routed to you for approval`]);
+  if(run.masked)reasons.push(['#0d7a66',`${run.masked} external call(s) had PII auto-redacted`]);
+  reasons.push(['var(--ok)',`${run.grants} grants applied, all attributable to it-ops-manager`]);
+  if(run.ledger.length)reasons.push(['var(--ok)',`Fully reversible — every grant has a recorded inverse`]);
+  document.getElementById('reasons').innerHTML=reasons.map(r=>`<div class="reason"><span class="i" style="color:${r[0]}">●</span><span>${r[1]}</span></div>`).join('');
+}
+function renderAudit(){document.getElementById('auditv').innerHTML=run.audit.length?run.audit.map(a=>`<div class="ar"><span class="t">${a.t}</span><span>${a.txt}</span><span style="margin-left:auto"><span class="dpill ${a.c}">${a.r}</span></span></div>`).join(''):'<div style="color:var(--tx2)">No actions yet.</div>';}
+function audit(t,txt,c,r){run.audit.push({t,txt,c,r});renderAudit();}
+
+let curDraw=null;
+function openDrawer(id){curDraw=id;const {a,res,ts}=actData[id];
+  document.getElementById('drTitle').textContent=actLabel(a)+(res.reason?' — '+res.reason:'');
+  const st=document.getElementById('drStatus');st.textContent=res.d==='allow'?'Resolved':res.d==='mask'?'Masked':res.d==='approve'?'Approved':'Open';st.className='pill '+(res.d==='allow'||res.d==='mask'?'g':'o');
+  document.querySelectorAll('.drtab').forEach(t=>t.classList.toggle('active',t.dataset.dt==='ov'));
+  drawTab('ov');document.getElementById('drawer').classList.add('open');}
+function drawTab(which){const {a,res,ts}=actData[curDraw];const b=document.getElementById('drBody');
+  const genie=crew.find(c=>c.id===a.actor).name;const viol=(res.d==='block'||res.d==='halt');const masked=(res.d==='mask');
+  if(which==='ov'){
+    const summary=viol?`At ${ts}, ${genie} attempted to ${actLabel(a).toLowerCase()} on ${cap(a.sys)} while running this onboarding. AIRO blocked it before it committed — ${res.reason}.`
+      :masked?`At ${ts}, ${genie} sent a draft request to External LLM. AIRO detected ${res.masked.length} PII fields (${res.masked.join(', ')}) and redacted them before the request left Workato. The draft proceeded without exposing any personal data.`
+      :res.d==='approve'?`At ${ts}, ${genie} requested ${actLabel(a)} on ${cap(a.sys)}. Because it exceeds the standard bundle, AIRO paused it for your approval.`
+      :`At ${ts}, ${genie} performed ${actLabel(a)} on ${cap(a.sys)}, on behalf of it-ops-manager. Within policy and recorded with an inverse for rollback.`;
+    const stTxt=viol?('⚠ '+res.reason):masked?('🛡 PII redacted — '+res.masked.length+' fields'):res.d==='approve'?'Approved by sponsor':'Allowed';
+    const stCol=viol?'var(--err)':masked?'#0d7a66':'var(--ok)';
+    b.innerHTML=`<h4>💬 Action summary</h4><p>${esc(summary)}</p>
+      <div class="fields">
+        <div><div class="k">Application</div><div class="v">${cap(a.sys)}</div></div>
+        <div><div class="k">Agent</div><div class="v">${genie}</div></div>
+        <div><div class="k">Time</div><div class="v">${ts}</div></div>
+        <div><div class="k">Tool</div><div class="v">${a.type}</div></div>
+        <div><div class="k">Identity</div><div class="v">it-ops-manager</div></div>
+        <div><div class="k">${viol?'Policy violation':'Status'}</div><div class="v" style="color:${stCol}">${stTxt}</div></div>
+      </div>
+      ${viol?`<h4>⚠ Violation summary</h4><p>This action violates the active policy. ${genie} attempted a ${a.type} operation that is not permitted under the current access policy, so AIRO denied it. Nothing was committed.</p>`:''}
+      ${masked?`<h4>🛡 Guardrail summary</h4><p>This call would have sent personal data (${res.masked.join(', ')}) to an external model. The “No PII to external models” policy masked those fields automatically; the rest of the request went through, so the task still completed.</p>`:''}`;
+  } else {
+    const args=JSON.stringify(a.type==='grantAccess'?{role:a.role,target:cap(a.sys)}:a.type==='modelCall'?{prompt:'Draft personalized welcome',target:cap(a.sys),piiRedacted:(res.masked||[])}:{system:cap(a.sys)},null,2);
+    b.innerHTML=`<div class="fields" style="grid-template-columns:1fr 1fr"><div><div class="k">User</div><div class="v">it-ops-manager</div></div><div><div class="k">Time</div><div class="v">${ts}</div></div></div>
+      <h4>🕐 Action timeline</h4>
+      <div class="tl">
+        <div class="ev"><div class="ts">${ts}</div><div class="tt">Plan · ${genie}</div><div class="td">Genie selected the “${a.type}” tool for this task.</div></div>
+        <div class="ev"><div class="ts">${ts}</div><div class="tt">${a.type} ${viol?'<span class="vtag r">Violation</span>':''}</div><div class="td">${esc(actLabel(a))}</div><pre>${esc(args)}</pre></div>
+      </div>`;
+  }
+}
+function showToast(t){const el2=document.getElementById('toast');el2.textContent=t;el2.style.display='block';setTimeout(()=>el2.style.display='none',2200);}
+function remediate(act){const id=curDraw;const {a,res}=actData[id];
+  document.getElementById('remediate').classList.remove('open');
+  if(act==='rewind'){
+    if(res.d!=='allow'){showToast('Nothing to rewind — this action was blocked, never committed.');return;}
+    const li=run.ledger.findIndex(l=>l.aid===id);if(li>=0){run.ledger.splice(li,1);run.grants=Math.max(0,run.grants-1);}
+    actData[id].res={d:'reversed'};tagAction(id,{d:'reversed'});railUpdate();audit('rwnd','Rewound '+a.label,'o','Reversed');
+    document.getElementById('drStatus').textContent='Reversed';showToast('↺ Action rewound — the grant was reversed.');airo(`↺ Rewound <b>${esc(a.label)}</b> on your request. The grant is reversed and logged.`);
+  } else showToast((act==='jira'?'Jira':'ServiceNow')+' ticket created for this violation.');
+}
+
+function renderPolicies(){document.getElementById('pollist').innerHTML=policies.map(p=>
+  `<div class="polrow"><div class="pn">${esc(p.name)}<span class="sw ${p.on?'on':''}" data-id="${p.id}"></span></div>
+   <div class="pm"><span>Type: <b>${p.type}</b></span><span>Scope: <b>All Genies</b></span><span>Enforcement: <b>${p.enf}</b></span></div></div>`).join('');
+  document.querySelectorAll('#pollist .sw').forEach(s=>s.onclick=()=>{const p=policies.find(x=>x.id===s.dataset.id);p.on=!p.on;renderPolicies();});}
+function policyCard(p){return el(`<div class="pcard"><div class="pn">⊕ ${esc(p.name)}</div><div class="pm"><span>Type: ${p.type}</span><span>Enforce: ${p.enf}</span><span>Enabled</span></div></div>`);}
+
+const FLEET=[
+ {id:'r1',name:'Onboard Marco — sales contractor',scenario:'normal',owner:'it-ops-manager',when:'2m ago'},
+ {id:'r2',name:'Bulk onboarding — Q3 class',scenario:'loop',owner:'hr-ops',when:'9m ago'},
+ {id:'r3',name:'Grant finance access — Dana',scenario:'approval',owner:'it-ops-manager',when:'14m ago'},
+ {id:'r4',name:'Admin request — vendor portal',scenario:'overgrant',owner:'it-admin',when:'23m ago'},
+ {id:'r5',name:'Draft welcome — Priya (ext AI)',scenario:'enrich',owner:'people-ops',when:'35m ago'},
+ {id:'r6',name:'Onboard Sam — contractor',scenario:'normal',owner:'it-ops-manager',when:'48m ago'},
+];
+function summaryOf(s){const saved=run;run=fresh();let blocked=0,halt=0,held=0,masked=0,status='completed';
+  for(const a of actionsFor(s)){const r=gate(a);
+    if(r.d==='allow'){if(a.type==='grantAccess')run.grants++;}
+    else if(r.d==='mask')masked++;
+    else if(r.d==='block')blocked++;
+    else if(r.d==='approve'){held++;run.grants++;}
+    else if(r.d==='halt'){halt=1;status='halted';break;}}
+  const grants=run.grants;run=saved;return{grants,blocked,halt,held,masked,status};}
+function renderFleet(){let totHeld=0,totMsk=0,flagged=0;
+  const rows=FLEET.map(m=>{const s=summaryOf(m.scenario);totHeld+=s.held;totMsk+=s.masked;const isFlag=(s.halt||s.blocked);if(isFlag)flagged++;
+    const st=s.status==='halted'?'<span class="fb r">halted</span>':'<span class="fb g">completed</span>';
+    const flags=(`${s.blocked?`<span class="fb r">${s.blocked} blocked</span>`:''}${s.held?`<span class="fb o">${s.held} held</span>`:''}${s.masked?`<span class="fb t">${s.masked} masked</span>`:''}`)||'<span style="color:var(--tx3)">—</span>';
+    return `<tr class="${isFlag?'flagged':''}" data-id="${m.id}"><td><b>${esc(m.name)}</b></td><td>${esc(m.owner)}</td><td>${st}</td><td>${s.grants}</td><td>${flags}</td><td style="color:var(--tx2)">${m.when}</td></tr>`;}).join('');
+  document.getElementById('fleetList').innerHTML=rows;
+  document.querySelectorAll('#fleetList tr').forEach(tr=>tr.onclick=()=>drillRun(FLEET.find(m=>m.id===tr.dataset.id)));}
+const AGENTS_META={coord:{owner:'platform-team',risk:'Low'},acct:{owner:'it-ops',risk:'Low'},access:{owner:'it-ops',risk:'High'},notify:{owner:'people-ops',risk:'Med'}};
+function renderAgents(){document.getElementById('agentList').innerHTML=crew.map(c=>{const m=AGENTS_META[c.id]||{owner:'—',risk:'Low'};
+  const rp=m.risk==='High'?'<span class="fb r">High</span>':m.risk==='Med'?'<span class="fb o">Med</span>':'<span class="fb g">Low</span>';
+  const scope=c.canGrant.length?(c.canGrant.length+' grant scopes'):c.allowed.join(', ');
+  const caps=c.denied.map(d=>`<span class="fb r">${d} ✕</span>`).join('')||'<span style="color:var(--tx3)">none</span>';
+  return `<tr data-id="${c.id}"><td><b>${c.name}</b></td><td>${m.owner}</td><td>${esc(scope)}</td><td>${rp}</td><td>${caps}</td></tr>`;}).join('');
+  document.querySelectorAll('#agentList tr').forEach(tr=>tr.onclick=()=>openAgent(tr.dataset.id));}
+function agentAgg(id){let allowed=0,blocked=0,masked=0,halted=0;const runs=[];const roleUse={};const saved=run;
+  FLEET.forEach(m=>{run=fresh();let used=false;
+    for(const a of actionsFor(m.scenario)){const r=gate(a);const me=(a.actor===id);
+      if(me){used=true;if(r.d==='allow'||r.d==='approve'){allowed++;if(a.type==='grantAccess')roleUse[a.role]=(roleUse[a.role]||0)+1;}else if(r.d==='block')blocked++;else if(r.d==='mask')masked++;else if(r.d==='halt')halted++;}
+      if(r.d==='allow'&&a.type==='grantAccess')run.grants++;else if(r.d==='approve')run.grants++;
+      if(r.d==='halt')break;}
+    if(used)runs.push(m);});
+  run=saved;return{allowed,blocked,masked,halted,runs,roleUse};}
+function openAgent(id){const c=crew.find(x=>x.id===id);const m=AGENTS_META[id]||{owner:'—',risk:'Low'};const g=agentAgg(id);const mx=Math.max(1,...Object.values(g.roleUse));
+  const scopeBlock=c.canGrant.length?`<h2 style="font-size:16px;margin:24px 0 10px">Granted vs used</h2><div class="ovcard">`+c.canGrant.map(s=>{const u=g.roleUse[s]||0;const z=u===0;return `<div class="utilrow ${z?'zero':''}"><span class="ul">${s}</span><div class="utiltrack"><i style="width:${Math.max(4,u/mx*100)}%"></i></div><span>${z?'unused':u}</span></div>`;}).join('')+`<div class="legrow">unused scopes are over-permissioned — tighten the role</div></div>`:'';
+  const rp=m.risk==='High'?'<span class="fb r">High risk</span>':m.risk==='Med'?'<span class="fb o">Med risk</span>':'<span class="fb g">Low risk</span>';
+  document.getElementById('agentDetail').innerHTML=
+    `<div class="exhd" style="padding:0 0 14px"><div><div class="crumb"><a onclick="showView('agents')" style="cursor:pointer;color:var(--accent)">‹ Agents</a> › ${c.name}</div><h1>${c.name} ${rp}</h1></div></div>
+     <div class="ovgrid" style="grid-template-columns:1fr 1fr 1fr">
+       <div class="ovcard"><h4>Owner</h4><div style="font-size:16px;font-weight:600">${m.owner}</div><div class="ovsub" style="margin-top:8px">${esc(c.role)}</div></div>
+       <div class="ovcard"><h4>Scope · can grant</h4><div>${c.canGrant.length?c.canGrant.map(s=>`<span class="fb g">${s}</span>`).join(''):'<span class="ovsub">orchestration only</span>'}</div></div>
+       <div class="ovcard"><h4>Hard caps (denied)</h4><div>${c.denied.length?c.denied.map(d=>`<span class="fb r">${d} ✕</span>`).join(''):'<span class="ovsub">none</span>'}</div></div>
+     </div>
+     <div class="ovgrid" style="grid-template-columns:1fr 1fr 1fr 1fr;margin-top:16px">
+       <div class="ovcard"><div class="ovbig" style="font-size:26px">${g.allowed}</div><div class="ovsub">allowed actions</div></div>
+       <div class="ovcard"><div class="ovbig" style="font-size:26px;color:var(--err)">${g.blocked}</div><div class="ovsub">blocked by gate</div></div>
+       <div class="ovcard"><div class="ovbig" style="font-size:26px;color:#0d7a66">${g.masked}</div><div class="ovsub">PII masked</div></div>
+       <div class="ovcard"><div class="ovbig" style="font-size:26px;color:var(--err)">${g.halted}</div><div class="ovsub">halts triggered</div></div>
+     </div>
+     ${scopeBlock}
+     <h2 style="font-size:16px;margin:26px 0 12px">Runs this agent acted in</h2>
+     <table class="ftable"><thead><tr><th>Run</th><th>Owner</th><th>When</th></tr></thead><tbody>${g.runs.map(r=>`<tr data-id="${r.id}"><td><b>${esc(r.name)}</b></td><td>${esc(r.owner)}</td><td style="color:var(--tx2)">${r.when}</td></tr>`).join('')}</tbody></table>`;
+  document.querySelectorAll('#agentDetail tbody tr').forEach(tr=>tr.onclick=()=>drillRun(FLEET.find(x=>x.id===tr.dataset.id)));
+  showView('agentdetail');}
+async function drillRun(m){if(!m||busy)return;busy=true;showView('explorer');
+  run=fresh();run.status='running';buildFlow();clearActive();railUpdate(m.scenario);renderAudit();
+  document.getElementById('runTitle').textContent=m.name;document.getElementById('runCrumb').textContent=m.name;
+  let t=14;
+  for(const a of actionsFor(m.scenario)){const res=gate(a);const ts='09:'+String(t++).padStart(2,'0');const aid=addActionCard(a,res,ts);
+    await activate(a,res,aid);gateStamp(res);
+    if(res.d==='allow'){if(a.type==='grantAccess'){run.grants++;run.ledger.push({aid,label:a.label});}audit(ts,a.label,'g','Allowed');}
+    else if(res.d==='mask'){run.masked++;audit(ts,a.label+' — PII redacted','o','Masked');}
+    else if(res.d==='approve'){run.hr++;run.grants++;run.ledger.push({aid,label:a.label});actData[aid].res={d:'allow'};tagAction(aid,{d:'allow'});audit(ts,a.label+' — approved','g','Allowed');gateStamp({d:'allow'});}
+    else if(res.d==='block'){run.viol++;audit(ts,a.label+' — '+res.reason,'r','Blocked');}
+    else if(res.d==='halt'){run.status='halted';run.viol++;audit(ts,a.label+' — '+res.reason,'r','Halted');railUpdate(m.scenario);busy=false;return;}
+    railUpdate(m.scenario);await sleep(res.d==='allow'?240:150);}
+  run.status='completed';railUpdate(m.scenario);busy=false;}
+function loadRun(m){run=fresh();run.status='running';buildFlow();clearActive();let t=14;
+  for(const a of actionsFor(m.scenario)){const res=gate(a);const ts='09:'+String(t++).padStart(2,'0');const aid=addActionCard(a,res,ts);
+    if(res.d==='allow'){if(a.type==='grantAccess'){run.grants++;run.ledger.push({aid,label:a.label});}audit(ts,a.label,'g','Allowed');}
+    else if(res.d==='mask'){run.masked++;audit(ts,a.label+' — PII redacted','o','Masked');}
+    else if(res.d==='approve'){run.hr++;run.grants++;run.ledger.push({aid,label:a.label});actData[aid].res={d:'allow'};tagAction(aid,{d:'allow'});audit(ts,a.label+' — approved','g','Allowed');}
+    else if(res.d==='block'){run.viol++;audit(ts,a.label+' — '+res.reason,'r','Blocked');}
+    else if(res.d==='halt'){run.status='halted';run.viol++;audit(ts,a.label+' — '+res.reason,'r','Halted');gateStamp(res);break;}
+    gateStamp(res);}
+  if(run.status!=='halted')run.status='completed';
+  document.getElementById('runTitle').textContent=m.name;document.getElementById('runCrumb').textContent=m.name;
+  railUpdate(m.scenario);renderAudit();}
+function fleetAgg(){let blocked=0,masked=0,halted=0,held=0,rev=0,irr=0;const roleUse={},sys={};const saved=run;
+  FLEET.forEach(m=>{run=fresh();
+    for(const a of actionsFor(m.scenario)){const r=gate(a);
+      sys[a.sys]=sys[a.sys]||{ok:0,blk:0};if(r.d==='block'||r.d==='halt')sys[a.sys].blk++;else sys[a.sys].ok++;
+      if(r.d==='allow'){if(a.type==='grantAccess'){run.grants++;roleUse[a.role]=(roleUse[a.role]||0)+1;rev++;}else if(a.type==='createAccount'){rev++;}else{irr++;}}
+      else if(r.d==='approve'){held++;run.grants++;roleUse[a.role]=(roleUse[a.role]||0)+1;rev++;}
+      else if(r.d==='mask'){masked++;irr++;}
+      else if(r.d==='block'){blocked++;}
+      else if(r.d==='halt'){halted++;break;}}});
+  run=saved;return{blocked,masked,halted,held,roleUse,sys,rev,irr,prevented:blocked+masked+halted};}
+function renderOverview(){const g=fleetAgg();
+  const apprRun=FLEET.find(m=>m.scenario==='approval');
+  const act=g.held?`<div class="ovtop-act req" id="attnAppr"><div class="an">${g.held}</div><div><b>Action required</b><div class="ovsub">approve or deny an access request</div><span style="color:var(--accent);font-size:12px">review →</span></div></div>`:`<div class="ovtop-act"><div class="an" style="color:var(--ok)">✓</div><div><b>All clear</b><div class="ovsub">no decisions waiting on you</div></div></div>`;
+  const harm=`<div class="ovtop-harm"><h4>Harm prevented · this fleet (7d)</h4><div style="display:flex;align-items:baseline;gap:12px"><div class="ovbig">${g.prevented}</div><div class="ovsub">harmful actions the gate stopped before they committed</div></div><div class="statline"><span class="si"><span class="dotb" style="background:#d5403a"></span><b>${g.blocked}</b>blocked</span><span class="si"><span class="dotb" style="background:#0d9488"></span><b>${g.masked}</b>PII masked</span><span class="si"><span class="dotb" style="background:#5d6b7c"></span><b>${g.halted}</b>runs halted</span></div></div>`;
+  document.getElementById('ovTop').innerHTML=`<div class="ovtop">${act}<div class="ovtop-div"></div>${harm}</div>`;
+  if(g.held&&apprRun)document.getElementById('attnAppr').onclick=()=>drillRun(apprRun);
+  const ranked=crew.map(c=>({c,m:AGENTS_META[c.id]||{risk:'Low'},a:agentAgg(c.id)})).map(o=>({o,score:o.a.halted*3+o.a.blocked*2+o.a.masked})).sort((x,y)=>y.score-x.score).map(x=>x.o);
+  document.getElementById('ovAgents').innerHTML=`<h4>Highest-risk agents</h4>`+ranked.map(o=>{const rp=o.m.risk==='High'?'<span class="fb r">High</span>':o.m.risk==='Med'?'<span class="fb o">Med</span>':'<span class="fb g">Low</span>';return `<div class="hr-row" data-id="${o.c.id}"><span class="hn">${o.c.name}</span>${rp}<span class="ovsub">${o.a.blocked} blocked · ${o.a.halted} halts</span></div>`;}).join('')+`<div class="legrow">click an agent to inspect &amp; tighten</div>`;
+  document.querySelectorAll('#ovAgents .hr-row').forEach(r=>r.onclick=()=>openAgent(r.dataset.id));
+  const sysList=APPS.map(a=>({nm:a.nm,ok:(g.sys[a.id]||{}).ok||0,blk:(g.sys[a.id]||{}).blk||0})).filter(s=>s.ok+s.blk>0).sort((x,y)=>(y.ok+y.blk)-(x.ok+x.blk));
+  const maxT=Math.max(1,...sysList.map(s=>s.ok+s.blk));
+  document.getElementById('ovUse').innerHTML=`<h4>Top systems · fleet</h4>`+sysList.map(s=>`<div class="utilrow"><span class="ul">${s.nm}</span><div class="sysbar"><span style="width:${s.ok/maxT*100}%;background:#3b6fe0"></span><span style="width:${s.blk/maxT*100}%;background:#d5403a"></span></div><span>${s.ok+s.blk}</span></div>`).join('')+`<div class="legrow"><span class="dotb" style="background:#3b6fe0"></span>allowed &nbsp;&nbsp;<span class="dotb" style="background:#d5403a"></span>blocked / halted</div>`;
+  const pct=Math.round(g.rev/((g.rev+g.irr)||1)*100);
+  document.getElementById('ovTrust').innerHTML=`<h4>Trust &amp; safety · can we rely on the gate?</h4><div class="trust">`
+    +`<div class="trust-t"><div class="tv" style="color:#1f9d6b">${pct}%</div><div class="tl">Reversible</div><div class="ts2">${g.rev} of ${g.rev+g.irr} actions undo in one click</div></div>`
+    +`<div class="trust-t"><div class="tv" style="color:#1f9d6b">0</div><div class="tl">PII leaked</div><div class="ts2">${g.masked} field(s) auto-masked before external AI</div></div>`
+    +`<div class="trust-t"><div class="tv" style="color:#b8820f">1</div><div class="tl">Rubber-stamp risk</div><div class="ts2">it-admin approves 100% in ~3s</div></div>`
+    +`</div>`;}
+
+let approvalResolve=null;function waitApproval(){return new Promise(r=>approvalResolve=r);}let busy=false;
+async function handlePrompt(text){if(busy)return;busy=true;user(text);
+  const scenario=routePrompt(text);FLEET.unshift({id:'L'+FLEET.length,name:text,scenario,owner:'you',when:'now'});
+  run=fresh();run.status='running';routineBox=null;buildFlow();clearActive();railUpdate();renderAudit();
+  document.getElementById('runTitle').textContent=text;document.getElementById('runCrumb').textContent=text;showView('explorer');
+  await sleep(420);const pol=POL();
+  airo(`Running an <b>onboarding crew</b> on your behalf. Enforcing your policies:<div class="env-row"><span class="pill b">4 Genies</span><span class="pill n">max ${pol.max}</span>${[...pol.blocked].map(b=>`<span class="pill r">${b}✕</span>`).join('')}${[...pol.approve].map(a=>`<span class="pill o">${a}→approve</span>`).join('')}</div>`);
+  await sleep(540);const q=actionsFor(scenario);let t=14;
+  for(const a of q){const res=gate(a);const ts='09:'+String(t++).padStart(2,'0');const aid=addActionCard(a,res,ts);
+    await activate(a,res,aid);gateStamp(res);
+    if(res.d==='allow'){if(a.type==='grantAccess'){run.grants++;run.ledger.push({aid,label:a.label});}railUpdate();audit(ts,a.label,'g','Allowed');routineLine(a.label);}
+    else if(res.d==='mask'){run.masked++;railUpdate();audit(ts,a.label+' — '+res.masked.length+' PII fields redacted','o','Masked');const m=sysB();m.appendChild(el(`<div class="note" style="background:#e6f6f2;color:#0d7a66">🛡 <b>PII redacted.</b> AIRO masked ${res.masked.length} fields (${esc(res.masked.join(', '))}) before the external model saw them — the draft still went through. <a style="color:var(--accent);cursor:pointer" onclick="openDrawer('${aid}')">view</a></div>`));await sleep(440);}
+    else if(res.d==='block'){run.viol++;railUpdate();audit(ts,a.label+' — '+res.reason,'r','Blocked');const m=sysB();m.appendChild(el(`<div class="note block">⛔ <b>Blocked.</b> ${esc(a.label)} — ${esc(res.reason)}. <a style="color:var(--accent);cursor:pointer" onclick="openDrawer('${aid}')">view</a></div>`));await sleep(460);}
+    else if(res.d==='halt'){run.status='halted';run.viol++;railUpdate(scenario);audit(ts,a.label+' — '+res.reason,'r','Halted');const m=sysB();m.appendChild(el(`<div class="note halt">🛑 <b>Run halted.</b> Hit the ${POL().max}-grant ceiling. Stopped before further action. <a style="color:var(--accent);cursor:pointer" onclick="rollback()">roll back</a></div>`));busy=false;return;}
+    else if(res.d==='approve'){run.hr++;railUpdate();const card=approvalCard(a);const ok=await waitApproval();card.querySelector('.row').remove();
+      if(ok){run.grants++;run.ledger.push({aid,label:a.label});actData[aid].res={d:'allow'};tagAction(aid,{d:'allow'});railUpdate();audit(ts,a.label+' — approved','g','Allowed');card.querySelector('.bd').insertAdjacentHTML('beforeend','<div style="color:var(--ok);font-weight:600;margin-top:4px">✓ Approved</div>');await activate(a,{d:'allow'},aid);gateStamp({d:'allow'});}
+      else{run.viol++;actData[aid].res={d:'block',reason:'denied by sponsor'};tagAction(aid,{d:'block'});railUpdate();audit(ts,a.label+' — denied','r','Denied');card.querySelector('.bd').insertAdjacentHTML('beforeend','<div style="color:var(--err);font-weight:600;margin-top:4px">✕ Denied</div>');}}
+    await sleep(res.d==='allow'?300:140);
+  }
+  run.status='completed';railUpdate(scenario);airo(`✅ <b>Onboarding complete.</b> ${run.grants} grants for one new hire — all attributable and reversible. <span class="pill g">audit ready</span>`);busy=false;}
+function approvalCard(a){const c=el(`<div class="approve"><div class="hd">⚠ Needs your approval</div><div class="bd">AccessGenie wants to go beyond the standard bundle:<div class="grant"><b>${esc(a.label)}</b><span class="pill o">risk ${a.risk}</span></div><label class="ack"><input type="checkbox" id="ackbox"> I understand this exceeds the standard bundle and is logged against my name.</label><div class="row"><button class="btn danger" id="denyB">Deny</button><button class="btn brand" id="apprB" disabled>Approve</button></div></div></div>`);
+  const m=sysB();m.appendChild(c);scrollT();c.querySelector('#ackbox').onchange=e=>c.querySelector('#apprB').disabled=!e.target.checked;c.querySelector('#apprB').onclick=()=>approvalResolve(true);c.querySelector('#denyB').onclick=()=>approvalResolve(false);return c;}
+async function rollback(){if(!run.ledger.length){airo('Nothing to roll back yet.');return;}
+  airo('Rolling the run back as one transaction…');run.status='rolledback';let t=30;const led=run.ledger.slice().reverse();
+  for(const g of led){run.grants=Math.max(0,run.grants-1);railUpdate();audit('09:'+(t++),'Reversed '+g.label,'o','Reversed');if(actData[g.aid]){actData[g.aid].res={d:'reversed'};tagAction(g.aid,{d:'reversed'});}await sleep(140);}
+  run.ledger=[];const m=sysB();m.appendChild(el(`<div class="note block" style="background:#eaf1fe;color:#23406e">↩︎ <b>Run rolled back.</b> Every grant reversed.</div>`));}
+async function handleRule(text){user(text);await sleep(360);const r=parseRule(text);
+  if(!r){airo(`I recognize rules like <b>“max 5 grants per run”</b>, <b>“block VPN access”</b>, or <b>“finance access needs approval”</b>.`);return;}
+  const id='p'+Date.now().toString().slice(-4);const pol={id,...r,on:true};
+  if(r.kind==='ceiling')policies=policies.filter(p=>p.kind!=='ceiling');else policies=policies.filter(p=>!(p.kind===r.kind&&p.role===r.role));
+  policies.push(pol);renderPolicies();const m=airo(`Done — turned that into a policy. Applies to your <b>next run</b>.`);m.appendChild(policyCard(pol));}
+
+const CHIPS=[['Onboard Sarah as a sales contractor',0],['Onboard the whole incoming class',0],['Give Sarah finance access too',0],['Onboard Sarah as an admin',0],['Draft Sarah’s welcome with external AI',0],['max 5 grants per run',1],['block VPN access',1]];
+const chipWrap=document.getElementById('chips');CHIPS.forEach(([txt,rule])=>{const b=el(`<button class="chip ${rule?'rule':''}">${txt}</button>`);b.onclick=()=>{document.getElementById('input').value=txt;send();};chipWrap.appendChild(b);});
+function send(){const i=document.getElementById('input');const v=i.value.trim();if(!v||busy)return;if(/roll.*back|undo/i.test(v)){user(v);i.value='';rollback();return;}i.value='';if(isPolicyIntent(v))handleRule(v);else handlePrompt(v);}
+document.getElementById('send').onclick=send;
+document.getElementById('input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
+function showView(v){const navKey=(v==='explorer')?'overview':(v==='agentdetail')?'agents':v;document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('active',a.dataset.view===navKey));
+  document.getElementById('view-overview').style.display=v==='overview'?'':'none';document.getElementById('view-explorer').style.display=v==='explorer'?'':'none';document.getElementById('view-agents').style.display=v==='agents'?'':'none';document.getElementById('view-agentdetail').style.display=v==='agentdetail'?'':'none';document.getElementById('view-pol').style.display=v==='pol'?'':'none';document.getElementById('view-activity').style.display=v==='activity'?'':'none';
+  if(v==='overview'){renderOverview();renderFleet();}if(v==='agents')renderAgents();
+  if(v==='explorer')setTimeout(()=>{try{drawBase();}catch(e){}},30);}
+document.querySelectorAll('.nav a').forEach(a=>a.onclick=()=>showView(a.dataset.view));
+const dock=document.getElementById('dock');
+document.getElementById('dockX').onclick=()=>dock.classList.add('collapsed');
+document.getElementById('aibtn').onclick=()=>dock.classList.toggle('collapsed');
+document.getElementById('drClose').onclick=()=>document.getElementById('drawer').classList.remove('open');
+document.querySelectorAll('.drtab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.drtab').forEach(x=>x.classList.remove('active'));t.classList.add('active');drawTab(t.dataset.dt);});
+document.getElementById('remBtn').onclick=()=>document.getElementById('remediate').classList.toggle('open');
+document.querySelectorAll('#remediate .pop div').forEach(d=>d.onclick=()=>remediate(d.dataset.act));
+window.addEventListener('resize',()=>{try{drawBase();}catch(e){}});
+
+document.getElementById('backFleet').onclick=()=>showView('overview');
+buildFlow();clearActive();railUpdate();renderAudit();renderPolicies();renderFleet();showView('overview');
+airo(`Hi — I'm AIRO. Tell me what to run, or set a rule in plain English. I'll execute with a crew of Genies and govern every action. Fleet lists all runs; click one to drill into its lineage and gate.`);
+</script>
+</body>
+</html>

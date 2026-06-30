@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIRO SDK Connector — Multi-location change review options</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.34.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=Roboto+Mono:ital@0;1&display=swap">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;min-height:100vh;font-family:'Source Sans 3',-apple-system,sans-serif;color:#373d47}
+  .mono{font-family:'Roboto Mono','SFMono-Regular',Menlo,monospace}
+  .page{display:flex;gap:20px;max-width:1560px;margin:0 auto;padding:24px 20px;align-items:flex-start}
+  body.embed .rail{display:none}
+  body.embed .page{padding:14px;max-width:none}
+  body.embed .stage{position:static;top:auto}
+  body.embed .body{height:calc(100vh - 120px)}
+  body.embed .appbar{display:none}
+
+  /* ---- Left rail ---- */
+  .rail{width:430px;flex-shrink:0}
+  .rail h1{font-size:20px;margin:0 0 6px}
+  .rail .sub{font-size:13px;line-height:1.55;color:#586373;margin:0 0 14px}
+  .opt{background:#fff;border:1px solid #d5dbe4;border-radius:10px;padding:11px 13px;margin-bottom:9px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+  .opt:hover{border-color:#bcc3ce}
+  .opt.on{border-color:#1a57e5;box-shadow:0 0 0 2px #dce6ff}
+  .opt .top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .opt .num{width:20px;height:20px;border-radius:50%;background:#eef1f6;color:#586373;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .opt.on .num{background:#1a57e5;color:#fff}
+  .opt .name{font-size:13.5px;font-weight:600}
+  .opt .desc{font-size:12px;line-height:1.5;color:#586373}
+  .opt.rec{border-color:#bfe3cd}
+  .rec-badge{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:5px;background:#e7f5ee;color:#1f8a4c;margin-left:auto}
+  .procon{display:none}
+  .opt.on .procon{display:flex;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid #eef1f6}
+  .pc-col{flex:1;min-width:0}
+  .pc-h{font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px}
+  .pros .pc-h{color:#1f8a4c}
+  .cons .pc-h{color:#b42318}
+  .procon ul{margin:0;padding-left:15px}
+  .procon li{font-size:11.5px;line-height:1.45;color:#373d47;margin-bottom:4px}
+
+  /* ---- Right prototype ---- */
+  .stage{flex:1;min-width:0;position:sticky;top:24px}
+  .frame{background:#e5eaf1;border-radius:12px;padding:10px;border:1px solid #d5dbe4}
+  .app{background:#fff;border:1px solid #d5dbe4;border-radius:10px;overflow:hidden}
+  .appbar{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #e5eaf1}
+  .body{display:flex;align-items:stretch;height:calc(100vh - 170px);min-height:440px}
+  .editor{flex:1;min-width:0;background:#fbfcfe;display:flex;flex-direction:column;position:relative}
+  .editorhead{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid #e5eaf1;flex-shrink:0}
+  .editorhead .fname{display:inline-flex;align-items:center;gap:6px;color:#373d47;font-size:12.5px}
+  .editorhead .fname i{color:#586373}
+  .editorhead .grow{flex:1}
+  .navgroup{display:flex;align-items:center;gap:8px}
+  .navstep{display:flex;align-items:center;gap:8px;border:1px solid #d5dbe4;border-radius:8px;padding:3px 9px}
+  .navstep .nav{cursor:pointer;font-size:16px;color:#586373}
+  .navstep .nav:hover{color:#1a57e5}
+  .navstep .mono{font-size:11.5px;color:#586373}
+  .sbtn{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+  .sbtn.reject{background:#fff;color:#373d47;border:1px solid #d5dbe4}
+  .sbtn.reject:hover{background:#f4f6fa}
+  .sbtn.accept{background:#1a57e5;color:#fff}
+  .sbtn.accept:hover{background:#1549c0}
+  #code{position:relative;font-size:12px;line-height:1.9;padding:8px 0;color:#586373;flex:1;overflow:auto}
+  .row{display:flex;align-items:flex-start;position:relative}
+  .cmark{display:none}
+  .cmark:hover{background:#dde3ec}
+  .cmark.cur{background:#1a57e5;color:#fff}
+  .row.add{background:#e6f4ea}
+  .row.del{background:#fde8e8}
+  .row.add .tx{color:#2f7d46}
+  .row.del .tx{color:#b42318;text-decoration:line-through;opacity:.8}
+  .row.flash{animation:fl 1.5s ease}
+  @keyframes fl{0%,55%{box-shadow:inset 3px 0 0 #1a57e5, inset 0 0 0 200px rgba(26,87,229,.12)}100%{box-shadow:none}}
+  .gut{width:34px;text-align:right;padding-right:10px;color:#aab3c0;font-size:11px;flex-shrink:0;user-select:none}
+  .row.add .gut{color:#2f7d46}.row.del .gut{color:#b42318}
+  .tx{white-space:pre}
+  /* blended diff (Pierre): additions inline; each deletion block collapses to a labeled line you can expand */
+  .row.bl-add{background:rgba(47,125,70,.07);box-shadow:inset 3px 0 0 #9ad86a}
+  .row.bl-add .tx{color:#1f7a3d}
+  .row.bl-add .gut{color:#2f7d46}
+  .row.bl-del{background:rgba(229,115,125,.06);box-shadow:inset 3px 0 0 #e5737d}
+  .row.bl-del .tx{color:#cf6b78}
+  .row.bl-del .gut{color:#cf6b78}
+  .bl-bar{display:flex;align-items:center;height:26px;cursor:pointer;position:relative;padding-right:44px}
+  .bl-bar:hover .bl-dellabel{color:#b42318}
+  .bl-bar:hover .bl-rule{background:#eaa9b3}
+  .bl-foldicon{width:34px;display:flex;align-items:center;justify-content:center;color:#c98b95;font-size:15px;flex-shrink:0}
+  .bl-rule{flex:1;height:1px;background:#f3c2cb}
+  .bl-dellabel{flex-shrink:0;padding:0 14px 0 12px;color:#d06b78;font-size:12.5px;white-space:nowrap}
+
+  .divider{width:10px;background:#e5eaf1;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .divider div{width:2px;height:26px;border-radius:2px;background:#bcc3ce}
+  .panel{width:404px;flex-shrink:0;display:flex;flex-direction:column;background:#fff}
+  .panelhead{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;flex-shrink:0}
+  .tabs{display:flex;gap:18px;padding:0 14px;border-bottom:1px solid #e5eaf1;flex-shrink:0}
+  .tab{font-size:13px;padding:8px 0;color:#586373;border-bottom:2px solid transparent}
+  .tab.on{color:#1a57e5;border-bottom-color:#1a57e5}
+  .chat{flex:1;min-height:0;overflow:auto;padding:14px}
+
+  .chip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #d5dbe4;border-radius:6px;padding:3px 8px;font-size:12px;color:#373d47}
+  .dchev{color:#1a57e5;font-weight:700;letter-spacing:-4px;margin-right:4px}
+  .lnk{color:#1a57e5;cursor:pointer}
+  .lnk:hover{text-decoration:underline}
+  .btn{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #d5dbe4;color:#373d47;background:#fff;cursor:pointer}
+  .btn:hover{background:#f4f6fa}
+  .btn-pri{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #1a57e5;color:#fff;background:#1a57e5;cursor:pointer}
+  .btn-pri:hover{background:#1549c0}
+  .ck{width:16px;height:16px;border-radius:50%;background:#1a57e5;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #fff}
+
+  .composer{padding:12px 14px;border-top:1px solid #e5eaf1;flex-shrink:0}
+  .composer .box{display:flex;align-items:center;gap:8px;border:1px solid #d5dbe4;border-radius:10px;padding:8px 11px}
+  .composer input{flex:1;border:none;outline:none;font-size:13px;font-family:inherit;color:#373d47;background:transparent}
+
+  /* mode-specific surfaces */
+  .cdexpbtn{display:inline-flex;align-items:center;gap:7px;border:1px solid #d5dbe4;background:#fff;border-radius:8px;padding:6px 12px;font-size:12.5px;cursor:pointer;font-family:inherit;color:#373d47}
+  .cdexpbtn:hover{background:#f4f6fa;border-color:#bcc3ce}
+  .cdexpbtn .chev{transition:transform .15s;color:#586373}
+  .cdexpbtn.open{background:#eef3ff;border-color:#1a57e5;color:#1a57e5}
+  .cdexpbtn.open .chev{transform:rotate(90deg);color:#1a57e5}
+  .cdexppanel{display:none;margin-top:8px;max-height:340px;overflow:auto}
+  .cdchev{cursor:pointer;color:#586373}
+  .cddetail .hcode{font-size:11.5px;line-height:1.8;padding:2px 0 6px}
+
+  .tag-combo{background:#e7f5ee;color:#1f8a4c}
+
+  .toast{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;background:#373d47;color:#fff;font-size:12px;padding:7px 13px;border-radius:8px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9}
+  .toast.show{opacity:1}
+
+  /* consolidation blocks inside chat */
+  .csummary{font-size:13px;line-height:1.5;color:#373d47;margin-bottom:12px}
+  .intent-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:7px 10px;border:1px solid #e5eaf1;border-radius:8px;margin-bottom:6px;cursor:pointer}
+  .intent-item:hover{background:#f4f6fa;border-color:#bcc3ce}
+  .intent-item .badge{font-size:11px;color:#586373;margin-left:auto}
+  .ctable{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;border:1px solid #e5eaf1;border-radius:8px;overflow:hidden}
+  .ctable th{text-align:left;background:#f4f6fa;color:#586373;font-weight:600;padding:7px 9px;font-size:11px}
+  .ctable td{padding:7px 9px;border-top:1px solid #eef1f6}
+  .ctable tr.clk{cursor:pointer}
+  .ctable tr.clk:hover{background:#f4f6fa}
+  .cd-card{border:1px solid #e5eaf1;border-radius:9px;margin-bottom:9px;overflow:hidden}
+  .cd-card .cdh{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:12.5px;background:#fbfcfe}
+  .cd-card .cdh .badge{font-size:11px;margin-left:auto}
+  .cd-card .cdbody{font-size:11px;line-height:1.75;padding:4px 0}
+  .pos{color:#2f7d46}.neg{color:#b42318}
+  .label-head{font-size:11px;color:#586373;margin-bottom:3px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ================= LEFT RAIL ================= -->
+  <div class="rail">
+    <h1>Reviewing changes that land in many places</h1>
+    <p class="sub">One prompt touched three regions of <span class="mono">connector.rb</span>. Five ways to point the user at each change and act on them together. Click any one to see it in the prototype and its pros and cons.</p>
+
+    <div id="opts"></div>
+  </div>
+
+  <!-- ================= RIGHT PROTOTYPE ================= -->
+  <div class="stage">
+    <div class="frame">
+      <div class="app">
+        <div class="appbar">
+          <div style="display:flex;align-items:center;gap:7px;"><i class="ti ti-vector-triangle" style="font-size:15px;color:#586373;"></i><span style="font-size:13px;font-weight:600;">Create or update deals</span></div>
+        </div>
+
+        <div class="body">
+          <!-- editor -->
+          <div class="editor">
+            <div class="editorhead">
+              <span class="mono fname"><i class="ti ti-vector-triangle"></i> connector.rb</span>
+              <span class="grow"></span>
+              <span id="navgroup" class="navgroup">
+                <span class="navstep"><i class="ti ti-chevron-up nav" onclick="step(-1)"></i><span id="barLbl" class="mono">1 / 3</span><i class="ti ti-chevron-down nav" onclick="step(1)"></i></span>
+                <span class="sbtn reject" onclick="toast('Rejected all 3 changes')"><i class="ti ti-x"></i>Reject all</span>
+                <span class="sbtn accept" onclick="toast('Accepted all 3 changes')"><i class="ti ti-check"></i>Accept all</span>
+              </span>
+            </div>
+
+            <div id="code"></div>
+
+            <div id="toast" class="toast"></div>
+          </div>
+
+          <div class="divider"><div></div></div>
+
+          <!-- AIRO panel -->
+          <div class="panel">
+            <div class="panelhead">
+              <div style="display:flex;align-items:center;gap:6px;"><span class="dchev" style="font-size:15px;">&raquo;</span><span style="font-size:14px;font-weight:600;color:#1a57e5;">AIRO</span><span style="font-size:10px;padding:1px 6px;border-radius:6px;background:#dce6ff;color:#1a57e5;">Beta</span></div>
+              <div style="display:flex;align-items:center;gap:14px;color:#586373;"><i class="ti ti-history" style="font-size:15px;"></i><i class="ti ti-arrows-diagonal" style="font-size:15px;"></i></div>
+            </div>
+            <div class="tabs"><span class="tab on">Chat</span><span class="tab">Test code</span><span class="tab">Recent tests</span></div>
+            <div id="chat" class="chat"></div>
+            <div class="composer"><div class="box"><input placeholder="Ask AIRO anything"><i class="ti ti-paperclip" style="font-size:16px;color:#586373;"></i><span style="width:28px;height:28px;border-radius:50%;background:#1a57e5;display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-weight:700;letter-spacing:-3px;font-size:14px;">&raquo;</span></span></div></div>
+          </div>
+        </div>
+
+        <!-- (the review bar now lives on top of the editor) -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+/* ---- shared data ---- */
+const regions=[
+  {id:1, label:'OAuth2 connection',  intent:'Set up authentication',          adds:5, dels:1},
+  {id:2, label:'Deal object',        intent:'Define the Deal object (12 fields)', adds:6, dels:0},
+  {id:3, label:'create_or_update_deal', intent:'Add the create / update action', adds:5, dels:0},
+];
+
+const codeLines=[
+ {t:"connector = {"},
+ {t:"  title: 'HubSpot',"},
+ {t:"  connection: {"},
+ {t:"    authorization: {"},
+ {t:"      type: 'none'", k:'del', r:1},
+ {t:"      type: 'oauth2',", k:'add', r:1},
+ {t:"      token_url: '/oauth/token',", k:'add', r:1},
+ {t:"      client_id: 'HS_CLIENT_ID',", k:'add', r:1},
+ {t:"      client_secret: 'HS_SECRET',", k:'add', r:1},
+ {t:"      apply: ->(c){ headers(c) }", k:'add', r:1},
+ {t:"    }"},
+ {t:"  },"},
+ {t:""},
+ {t:"  object_definitions: {"},
+ {t:"    deal: {", k:'add', r:2},
+ {t:"      fields: lambda do", k:'add', r:2},
+ {t:"        [ { name: 'dealname' },", k:'add', r:2},
+ {t:"          { name: 'amount' },", k:'add', r:2},
+ {t:"          { name: 'pipeline' } ] # +9", k:'add', r:2},
+ {t:"      end", k:'add', r:2},
+ {t:"    }"},
+ {t:"  },"},
+ {t:""},
+ {t:"  actions: {"},
+ {t:"    create_or_update_deal: {", k:'add', r:3},
+ {t:"      execute: lambda do |c, input|", k:'add', r:3},
+ {t:"        post('/objects/deals')", k:'add', r:3},
+ {t:"          .payload(input)", k:'add', r:3},
+ {t:"      end,", k:'add', r:3},
+ {t:"    },"},
+ {t:"  },"},
+ {t:"}"},
+];
+
+/* ---- render editor ---- */
+function renderCode(blended){
+  $('code').innerHTML='';
+  let n=1; const seen={};
+  codeLines.forEach(l=>{
+    const row=document.createElement('div');
+    row.className='row'+(l.k?((blended?' bl-':' ')+l.k):'');
+    if(l.r) row.dataset.r=l.r;
+    const gut=l.k==='del'?'−':(l.k==='add'?'+':n);
+    if(l.k!=='del') n++;
+    let marker='';
+    if(l.r && !seen[l.r]){ seen[l.r]=1; const num=regions.findIndex(r=>r.id===l.r)+1; marker=`<span class="cmark" data-jump="${l.r}">#${num}</span>`; }
+    row.innerHTML=`<span class="gut">${gut}</span><span class="tx">${l.t.replace(/</g,'&lt;')||' '}</span>${marker}`;
+    $('code').appendChild(row);
+  });
+  [...$('code').querySelectorAll('.cmark')].forEach(m=>m.onclick=()=>goTo(navMarks().indexOf(m)));
+}
+function navMarks(){ return [...document.querySelectorAll('#code .cmark')]; }
+function highlightMarker(){ const a=navMarks(); a.forEach((m,i)=>m.classList.toggle('cur',i===idx)); $('barLbl').textContent = a.length ? (idx+1)+' / '+a.length : '0 / 0'; }
+function goTo(i){ const a=navMarks(); if(!a.length) return; idx=(i+a.length)%a.length; const row=a[idx].closest('.row, .bl-bar')||a[idx]; if(row.scrollIntoView) row.scrollIntoView({block:'center',behavior:'smooth'}); if(row.classList && row.classList.contains('row')){ row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); setTimeout(()=>row.classList.remove('flash'),1500); } highlightMarker(); }
+
+/* blended-diff model (Pierre): a dedicated refactor diff so deletions exist to collapse.
+   k:'ctx' unchanged line · k:'add' addition · k:'del' a removed block (collapsed by default). */
+const BLENDED=[
+ {k:'ctx', t:"connector = {"},
+ {k:'ctx', t:"  title: 'HubSpot',"},
+ {k:'ctx', t:"  connection: {"},
+ {k:'del', label:"Replaced the legacy API-key auth", lines:["    authorization: { type: 'api_key',","      api_key: 'HS_KEY' },"]},
+ {k:'add', t:"    authorization: { type: 'oauth2',"},
+ {k:'add', t:"      token_url: '/oauth/token' } },"},
+ {k:'ctx', t:"  },"},
+ {k:'ctx', t:"  object_definitions: {"},
+ {k:'del', label:"Dropped deprecated Deal fields", lines:["    deal_legacy_id: { type: 'string' },","    notes_blob:     { type: 'text' },"]},
+ {k:'add', t:"    deal:    { fields: [...41] },"},
+ {k:'add', t:"    company: { fields: [...28] },"},
+ {k:'add', t:"    contact: { fields: [...35] } },"},
+ {k:'ctx', t:"  actions: {"},
+ {k:'del', label:"Removed the old single-create action", lines:["    create_deal_v1: {","      execute: ->(c,i){ legacy_post(i) }","    },"]},
+ {k:'add', t:"    create_or_update_deal,"},
+ {k:'add', t:"    archive_deal },"},
+ {k:'ctx', t:"  triggers: { new_or_updated_deal },"},
+ {k:'ctx', t:"}"},
+];
+let blDel={};
+function renderBlended(){
+  const E=s=>s.replace(/</g,'&lt;');
+  let html='', oldNo=1, newNo=1, chgNo=0;
+  BLENDED.forEach((r,i)=>{
+    if(r.k==='ctx'){ html+=`<div class="row"><span class="gut">${newNo}</span><span class="tx">${E(r.t)}</span></div>`; oldNo++; newNo++; }
+    else if(r.k==='add'){ html+=`<div class="row bl-add"><span class="gut">+</span><span class="tx">${E(r.t)}</span></div>`; newNo++; }
+    else if(r.k==='del'){
+      const open=!!blDel[i], n=r.lines.length; chgNo++;
+      const chev=open?'ti-chevron-up':'ti-chevron-down', suffix=open?' · collapse':'';
+      html+=`<div class="bl-bar" data-grp="${i}"><span class="bl-foldicon"><i class="ti ${chev}"></i></span><span class="bl-rule"></span><span class="bl-dellabel">${E(r.label)} (${n} line${n>1?'s':''})${suffix}</span><span class="cmark" data-jump="${i}">#${chgNo}</span></div>`;
+      if(open){ r.lines.forEach(ln=>{ html+=`<div class="row bl-del"><span class="gut">${oldNo}</span><span class="tx">${E(ln)}</span></div>`; oldNo++; }); }
+      else { oldNo+=n; }
+    }
+  });
+  $('code').innerHTML=html;
+  [...$('code').querySelectorAll('.bl-bar')].forEach(el=>el.onclick=()=>{ const g=+el.dataset.grp; blDel[g]=!blDel[g]; renderBlended(); });
+  [...$('code').querySelectorAll('.cmark')].forEach(m=>m.onclick=(e)=>{ e.stopPropagation(); goTo(navMarks().indexOf(m)); });
+  highlightMarker();
+}
+
+function regionLines(id){ return codeLines.filter(l=>l.r===id); }
+
+function jumpTo(id){
+  const rows=[...document.querySelectorAll('#code .row[data-r="'+id+'"]')];
+  if(!rows.length) return;
+  $('code').scrollTo({top:Math.max(0,rows[0].offsetTop-44),behavior:'smooth'});
+  rows.forEach(r=>{ r.classList.remove('flash'); void r.offsetWidth; r.classList.add('flash'); setTimeout(()=>r.classList.remove('flash'),1500); });
+}
+
+/* ---- stepper / sticky nav (options 3 & 6) ---- */
+let idx=0;
+function step(d){ goTo(idx+d); }
+
+/* ---- toast ---- */
+let tt;
+function toast(t){ const e=$('toast'); e.textContent=t; e.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>e.classList.remove('show'),1700); }
+
+/* ---- consolidated diff viewer: expandable button -> change table (option 4) ---- */
+function buildCdExp(){
+  let rows='';
+  regions.forEach(r=>{
+    const hunk=regionLines(r.id).map(l=>`<div class="row ${l.k} mono"><span class="gut">${l.k==='del'?'−':'+'}</span><span class="tx">${l.t.replace(/</g,'&lt;')}</span></div>`).join('');
+    rows+=`<tr class="clk cdrow" data-jump="${r.id}">
+        <td><i class="ti ti-chevron-right cdchev" data-exp="${r.id}"></i> <b>${r.label}</b></td>
+        <td style="color:#586373">${r.intent}</td>
+        <td class="mono"><span class="pos">+${r.adds}</span>${r.dels?' <span class="neg">−'+r.dels+'</span>':''}</td></tr>
+      <tr class="cddetail" id="cddetail-${r.id}" style="display:none"><td colspan="3" style="padding:0 0 0 8px;"><div class="hcode mono">${hunk}</div></td></tr>`;
+  });
+  $('cdexpPanel').innerHTML=`<table class="ctable"><thead><tr><th>Change</th><th>What it does</th><th>Lines</th></tr></thead><tbody>${rows}</tbody></table>`;
+  [...$('cdexpPanel').querySelectorAll('.cdrow')].forEach(tr=>tr.onclick=()=>jumpTo(+tr.dataset.jump));
+  [...$('cdexpPanel').querySelectorAll('.cdchev')].forEach(ch=>ch.onclick=e=>{
+    e.stopPropagation();
+    const d=$('cddetail-'+ch.dataset.exp);
+    const open=d.style.display!=='table-row';
+    d.style.display=open?'table-row':'none';
+    ch.classList.toggle('ti-chevron-down',open); ch.classList.toggle('ti-chevron-right',!open);
+  });
+}
+function toggleCdExp(){
+  const open=$('cdexpPanel').style.display!=='block';
+  $('cdexpPanel').style.display=open?'block':'none';
+  $('cdexpBtn').classList.toggle('open',open);
+}
+function collapseCdExp(){ $('cdexpPanel').style.display='none'; $('cdexpBtn').classList.remove('open'); }
+
+/* ---- chat base + consolidation ---- */
+function baseChat(){
+  return `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+      <div style="background:#dce6ff;max-width:82%;padding:9px 12px;border-radius:13px 13px 4px 13px;font-size:13px;line-height:1.45;">Build a connector for HubSpot to create or update deals</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+      <span class="ck"><i class="ti ti-check" style="font-size:11px;color:#fff;"></i></span>
+      <span style="font-size:12.5px;color:#586373;">Built the connector in 6s</span>
+      <i class="ti ti-chevron-right" style="font-size:14px;color:#586373;"></i>
+    </div>`;
+}
+
+function renderChat(mode){
+  let html=baseChat();
+  html+=`<div class="label-head">Message</div>`;
+
+  if(mode==='intent'){
+    html+=`<div class="csummary">Done. I made 3 changes to <span class="mono">connector.rb</span>:</div>`;
+    regions.forEach(r=>{
+      html+=`<div class="intent-item" data-jump="${r.id}"><i class="ti ti-point-filled" style="color:#1a57e5;font-size:14px;"></i><span>${r.intent}</span><span class="badge mono"><span class="pos">+${r.adds}</span>${r.dels?' <span class="neg">−'+r.dels+'</span>':''}</span></div>`;
+    });
+  }
+  else if(mode==='chatdiff'){
+    html+=`<div class="csummary">Done. Here's everything I changed, click any change to view it in the code.</div>`;
+    regions.forEach(r=>{
+      const lines=regionLines(r.id).slice(0,4)
+        .map(l=>`<div class="row ${l.k}"><span class="gut">${l.k==='del'?'−':'+'}</span><span class="tx">${l.t.replace(/</g,'&lt;')}</span></div>`).join('');
+      html+=`<div class="cd-card"><div class="cdh lnk" data-jump="${r.id}"><i class="ti ti-code" style="color:#586373"></i><b>${r.label}</b><span class="badge mono"><span class="pos">+${r.adds}</span>${r.dels?' <span class="neg">−'+r.dels+'</span>':''}</span></div><div class="cdbody mono">${lines}<div style="padding:2px 0 0 34px;color:#aab3c0;font-size:11px;">…</div></div></div>`;
+    });
+  }
+  else if(mode==='table'){
+    html+=`<div class="csummary">Done. Built the HubSpot connector. Summary of changes:</div>`;
+    let rows=regions.map(r=>`<tr class="clk" data-jump="${r.id}"><td><b>${r.label}</b></td><td style="color:#586373">${r.intent}</td><td class="mono"><span class="pos">+${r.adds}</span>${r.dels?' <span class="neg">−'+r.dels+'</span>':''}</td></tr>`).join('');
+    html+=`<table class="ctable"><thead><tr><th>Change</th><th>What it does</th><th>Lines</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  else if(mode==='blended'){
+    html+=`<div class="csummary">Done. I modernized <span class="mono">connector.rb</span>: moved to OAuth2, dropped deprecated fields, and replaced the old create action. Read it top to bottom — additions are highlighted in place, and each block of removals is collapsed into a one-line summary you can expand.</div>`;
+  }
+  else { /* editortop — review lives in the editor; drawer — expandable button lives in chat */
+    html+=`<div class="csummary">Done. I built the HubSpot connector with OAuth2 and a create_or_update_deal action that maps 12 Deal fields.</div>`;
+    if(mode==='drawer') html+=`<div id="cdexp">
+        <button id="cdexpBtn" class="cdexpbtn" onclick="toggleCdExp()">
+          <i class="ti ti-chevron-right chev" style="font-size:14px;"></i>
+          <i class="ti ti-git-compare" style="font-size:14px;"></i><b>Review 3 changes</b>
+        </button>
+        <div id="cdexpPanel" class="cdexppanel"></div>
+      </div>`;
+    if(mode==='editortop') html+=`<div style="font-size:12px;color:#586373;">Use the review bar on top of the editor to step through all 3 changes and accept or reject them together.</div>`;
+  }
+
+  $('chat').innerHTML=html;
+  if(mode==='drawer') buildCdExp();
+  [...$('chat').querySelectorAll('[data-jump]')].forEach(el=>el.onclick=()=>jumpTo(+el.dataset.jump));
+}
+
+/* ---- options metadata + selection ---- */
+const OPTIONS=[
+  {key:'chatdiff', name:'Inline diffs in the chat',
+   desc:"Each change is rendered in the conversation with its + / − lines. Click a card to view it in the code.",
+   pros:["Read the change without leaving the chat","Reasoning and the actual lines sit together"],
+   cons:["Duplicates the diff, so a hand-edit makes the chat copy lie","The ~404px panel wraps real Ruby badly","Buried up-scroll on the next turn"]},
+  {key:'table', name:'Change table at end of turn',
+   desc:"A summary table after the turn lists every change. Click a row to jump to its red/green section.",
+   pros:["Compact, scannable manifest of everything that changed","Keeps raw code out of the chat"],
+   cons:["Scrolls away on the next turn unless pinned","Only points at the code; you still open the editor","Does the same job as option 4"]},
+  {key:'editortop', name:'Review bar on top of the editor', rec:true,
+   desc:"One bar pinned above the code: change count, up/down arrows to walk each region, and Accept all / Reject all.",
+   pros:["Sits next to the source of truth, nothing duplicated","Shows the count, walks each region, accepts/rejects as a set","Answers both halves at once: redirect and act-together"],
+   cons:["Accept all is one click, so it needs a strict two-state model","No human labels unless it borrows option 5's grouping"]},
+  {key:'drawer', name:'Consolidated diff viewer (expandable)', rec:true,
+   desc:"An expandable button in the chat. Click it to drop down a change table; expand any row for that hunk's diff. Click a row to jump to the code.",
+   pros:["Compact by default, full detail on demand","Drills from summary to the real hunk in place","Folded away, so it never crowds the panel"],
+   cons:["Lives in chat, so it scrolls away on the next turn","Very close to option 2; you wouldn't ship both"]},
+  {key:'intent', name:'Group-by-intent in the message',
+   desc:"AIRO's summary lists what it changed as clickable lines, grouped by intent rather than by line number.",
+   pros:["Reads the most human (\"Set up authentication\", not line numbers)","Matches how users think about the change"],
+   cons:["Lives in chat and scrolls away","Only as good as the grouping AIRO infers"]},
+  {key:'blended', name:'Blended diff in the editor (Pierre)',
+   desc:"Additions are highlighted in place; each block of removals collapses into a one-line summary you can expand. You read the connector top to bottom, not as separate red/green hunks.",
+   pros:["Reads as one continuous file, keeping full surrounding context","Deletions are summarized, not dumped, so the file isn't a wall of red","Multi-location changes stay legible without hunt-and-jump"],
+   cons:["A collapsed deletion can hide a change you needed to see","No act-on-all-together control on its own; pair it with the review bar","Relies on AI-generated summaries of what was removed being accurate"]},
+];
+
+function renderOpts(){
+  const c=$('opts'); c.innerHTML='';
+  OPTIONS.forEach((o,i)=>{
+    const d=document.createElement('div'); d.className='opt'+(o.rec?' rec':''); d.dataset.key=o.key;
+    const badge=o.rec?'<span class="rec-badge">Recommended</span>':'';
+    const pros=o.pros.map(p=>`<li>${p}</li>`).join('');
+    const cons=o.cons.map(p=>`<li>${p}</li>`).join('');
+    d.innerHTML=`
+      <div class="top"><span class="num">${i+1}</span><span class="name">${o.name}</span>${badge}</div>
+      <div class="desc">${o.desc}</div>
+      <div class="procon">
+        <div class="pc-col pros"><div class="pc-h">Pros</div><ul>${pros}</ul></div>
+        <div class="pc-col cons"><div class="pc-h">Cons</div><ul>${cons}</ul></div>
+      </div>`;
+    d.onclick=()=>select(o.key);
+    c.appendChild(d);
+  });
+}
+
+function select(key){
+  [...document.querySelectorAll('.opt')].forEach(el=>el.classList.toggle('on',el.dataset.key===key));
+  idx=0;
+  // every change-navigation option shares the same editor shell: full file, inline diff,
+  // #1/#2/#3 change markers, and the prev/next + Accept all / Reject all nav (including blended).
+  if(key==='blended'){ blDel={}; renderBlended(); }
+  else { renderCode(false); }
+  $('navgroup').style.display='flex';
+  highlightMarker();
+  renderChat(key);
+}
+
+const _params=new URLSearchParams(location.search);
+const EMBED=_params.has('embed');
+const _alt=_params.get('alt');
+if(EMBED) document.body.classList.add('embed');
+renderCode();
+renderOpts();
+select(_alt && OPTIONS.some(o=>o.key===_alt) ? _alt : 'editortop');
+</script>
+</body>
+</html>

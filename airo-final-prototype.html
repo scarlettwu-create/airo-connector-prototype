@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIRO connector builder — final prototype</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.34.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Roboto+Mono&display=swap">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;font-family:'Source Sans 3',-apple-system,sans-serif;color:#373d47}
+  .mono{font-family:'Roboto Mono',Menlo,monospace}
+  .frame{padding:14px;height:100vh}
+  .app{height:100%;background:#fff;border:1px solid #d5dbe4;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .btn{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #d5dbe4;background:#fff;cursor:pointer;color:#373d47;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{background:#f4f6fa}
+  .btn-pri{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #1a57e5;background:#1a57e5;color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .btn-pri:hover{background:#1549c0}
+
+  /* persistent top bar */
+  .topbar{display:flex;flex-shrink:0}
+  .tb-left{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:7px 13px;border-bottom:1px solid #e5eaf1;min-height:48px;font-size:12px;color:#586373}
+  .tb-left .fname{display:inline-flex;align-items:center;gap:6px;color:#373d47;font-size:12.5px}
+  .tb-left .fname i{color:#586373}
+  .tb-left .grow{flex:1}
+  .tb-right{width:392px;flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;border-bottom:1px solid #e5eaf1;border-left:1px solid #e5eaf1;min-height:48px}
+  .dchev{color:#1a57e5;font-weight:700;letter-spacing:-3px;font-size:15px}
+  .pname{font-size:14px;font-weight:600;color:#1a57e5}
+  .beta{font-size:10px;padding:1px 6px;border-radius:6px;background:#dce6ff;color:#1a57e5}
+  .hbtn{cursor:pointer;color:#586373;font-size:12.5px;display:inline-flex;align-items:center;gap:5px;border:1px solid #d5dbe4;border-radius:8px;padding:5px 10px}
+  .hbtn:hover{background:#f4f6fa}
+  .hbtn.on{border-color:#1a57e5;color:#1a57e5;background:#f4f8ff}
+
+  /* review bar (P3 · accept in editor) */
+  .rv{display:flex;align-items:center;gap:8px}
+  .rv .nav{width:26px;height:26px;border-radius:7px;border:1px solid #d5dbe4;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#586373}
+  .rv .nav:hover{border-color:#1a57e5;color:#1a57e5}
+  .rv .cnt{font-size:12px;color:#586373}
+  .rv .vbar{width:1px;height:20px;background:#e5eaf1}
+  .rv .b{font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:5px}
+  .rv .rej{border:1px solid #d5dbe4;background:#fff;color:#373d47}
+  .rv .rej:hover{border-color:#b42318;color:#b42318}
+  .rv .acc{border:1px solid #1a57e5;background:#1a57e5;color:#fff}
+  .rv .acc:hover{background:#1549c0}
+  .vtog{display:inline-flex;border:1px solid #d5dbe4;border-radius:7px;overflow:hidden}
+  .vtog .vt{font-size:11.5px;padding:3px 10px;cursor:pointer;color:#586373;background:#fff}
+  .vtog .vt+.vt{border-left:1px solid #d5dbe4}
+  .vtog .vt.on{color:#1a57e5;background:#f4f8ff;font-weight:600}
+
+  /* body + columns */
+  .body{flex:1;min-height:0;display:flex}
+  .leftcol{flex:1;min-width:0;display:flex;flex-direction:column;background:#fbfcfe;overflow:hidden}
+  .rightcol{width:392px;flex-shrink:0;border-left:1px solid #e5eaf1;display:flex;flex-direction:column;background:#fff;overflow:hidden}
+
+  /* code + diff */
+  .code{flex:1;overflow:auto;padding:8px 0;font-size:12.5px;line-height:1.95;color:#586373;position:relative}
+  .cline{display:flex}
+  .cn{width:34px;text-align:right;padding-right:6px;color:#aab3c0;font-size:11px;flex-shrink:0;user-select:none}
+  .cg{width:15px;text-align:center;flex-shrink:0;color:#9aa4b2;font-size:11px;user-select:none}
+  .ct{white-space:pre}
+  .cline.add{background:#e9f7ee}
+  .cline.add .cg{color:#1a7f37;font-weight:700}
+  .cline.add .ct{color:#19422a}
+  .cline.del{background:#fdecec}
+  .cline.del .cg{color:#b42318;font-weight:700}
+  .cline.del .ct{color:#b42318;text-decoration:line-through;opacity:.85}
+
+  /* pending hunks (P3) */
+  .hunk{position:relative}
+  .hunk.pending{box-shadow:inset 3px 0 0 #cdab3a}
+  .hunk.pending.cur{box-shadow:inset 3px 0 0 #1a57e5}
+  .hmeta{position:absolute;right:12px;top:2px;display:flex;align-items:center;gap:6px;z-index:3}
+  .hbadge{font-size:10.5px;font-weight:700;color:#8a96a3;font-family:'Roboto Mono',monospace;background:#fff;border:1px solid #e5eaf1;border-radius:9px;padding:0 6px}
+  .hunkctl{display:none;gap:5px}
+  .hunk.pending:hover .hunkctl{display:inline-flex}
+  .hc{width:22px;height:22px;border-radius:6px;border:1px solid #d5dbe4;background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#586373;font-size:13px}
+  .hc.acc:hover{border-color:#1a7f37;color:#1a7f37}
+  .hc.rej:hover{border-color:#b42318;color:#b42318}
+  @keyframes hkflash{0%,55%{box-shadow:inset 3px 0 0 #1a57e5, inset 0 0 0 600px rgba(26,87,229,.14)}100%{box-shadow:none}}
+  .hunk.flash{animation:hkflash 1.2s ease}
+
+  /* AIRO panel — activity (P1 · thoughts) */
+  .chat{flex:1;overflow:auto;padding:14px}
+  .urow{display:flex;justify-content:flex-end;margin-bottom:10px}
+  .ubub{background:#dce6ff;max-width:84%;padding:9px 12px;border-radius:13px 13px 4px 13px;font-size:13px;line-height:1.45}
+  .thought{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#8a8fa3;cursor:pointer;margin:2px 0 6px}
+  .thought i.lead{font-size:15px}
+  .thought .tchev{margin-left:2px;font-size:14px;color:#aab3c0}
+  .thoughtbody{display:none;font-size:12.5px;line-height:1.5;color:#7a8694;margin:0 0 10px 22px;padding-left:10px;border-left:2px solid #eef1f6}
+  .thoughtbody.open{display:block}
+  .task{margin-bottom:10px}
+  .task-head{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#1f2328}
+  .task-head .chev{margin-left:auto;color:#aab3c0;font-size:14px}
+  .ck{width:16px;height:16px;border-radius:50%;background:#1a57e5;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0}
+  .task-body{margin:8px 0 0 7px;padding-left:14px;border-left:2px solid #e3e9f5}
+  .rrow{display:flex;align-items:flex-start;gap:8px;padding:3px 0}
+  .rdot{width:8px;height:8px;border-radius:50%;background:#9ad86a;flex-shrink:0;margin-top:6px}
+  .rspin{width:9px;height:9px;border-radius:50%;border:2px solid #1a57e5;border-right-color:transparent;animation:spin .7s linear infinite;flex-shrink:0;margin-top:5px;box-sizing:border-box}
+  .ck.run{background:#fff;border:2px solid #1a57e5;border-right-color:transparent;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .thought .lead.gen{color:#1a57e5;animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+  .rmain{flex:1;min-width:0;display:flex;align-items:center;gap:8px}
+  .rlabel{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#586373}
+  .rlabel i{color:#586373;font-size:14px}
+  .rbadge{margin-left:auto;font-size:10.5px;background:#f0f3f8;color:#586373;padding:2px 7px;border-radius:6px;flex-shrink:0}
+  .msglabel{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8a96a3;margin:12px 0 4px}
+  .amsg{font-size:13px;line-height:1.55;color:#2f353e;margin-bottom:12px}
+
+  /* consolidated diff viewer drawer (P2 · drawer) */
+  .cdbtn{display:inline-flex;align-items:center;gap:7px;border:1px solid #d5dbe4;background:#fff;border-radius:8px;padding:7px 12px;font-size:12.5px;cursor:pointer;color:#373d47}
+  .cdbtn:hover{background:#f4f6fa;border-color:#bcc3ce}
+  .cdbtn .chev{transition:transform .15s;color:#586373;font-size:14px}
+  .cdbtn.open{background:#eef3ff;border-color:#1a57e5;color:#1a57e5}
+  .cdbtn.open .chev{transform:rotate(90deg);color:#1a57e5}
+  .cdpanel{display:none;margin-top:8px;border:1px solid #e5eaf1;border-radius:9px;overflow:hidden}
+  .cdpanel.open{display:block}
+  .crow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-top:1px solid #eef1f6;cursor:pointer;font-size:12.5px}
+  .crow:first-child{border-top:none}
+  .crow:hover{background:#f4f6fa}
+  .crow .cchev{color:#8a96a3;font-size:14px;cursor:pointer}
+  .crow .cintent{color:#8a96a3;font-size:11.5px}
+  .crow .cstat{margin-left:auto;font-family:'Roboto Mono',monospace;font-size:11px}
+  .chunk{display:none;background:#fbfcfe;border-top:1px solid #eef1f6;font-family:'Roboto Mono',monospace;font-size:11px;line-height:1.8;padding:4px 0}
+  .chunk.open{display:block}
+  .hrow{display:flex}.hrow .hg{width:22px;text-align:center;color:#aab3c0}
+  .hrow.add{background:#e6f4ea}.hrow.add .hg,.hrow.add .ht{color:#2f7d46}
+  .hrow .ht{white-space:pre}
+  .pos{color:#2f7d46}.neg{color:#b42318}
+
+  .cpsaved{display:flex;align-items:center;gap:8px;margin:14px 0 6px;font-size:11.5px;color:#7a8694}
+  .cpsaved::before,.cpsaved::after{content:'';flex:1;border-top:1px dashed #d7dde6}
+  .cpsaved i{color:#9aa4b2;font-size:13px}
+  .composer{flex-shrink:0;padding:12px 14px;border-top:1px solid #e5eaf1}
+  .cbox{display:flex;align-items:center;gap:8px;border:1px solid #d5dbe4;border-radius:10px;padding:8px 11px;font-size:13px;color:#9aa4b2}
+  .cbox .send{margin-left:auto;width:28px;height:28px;border-radius:50%;background:#1a57e5;color:#fff;display:flex;align-items:center;justify-content:center}
+
+  /* history (P5 · checkpoint list) */
+  .hscroll{flex:1;overflow:auto;padding:8px}
+  .started{font-size:11.5px;color:#8a96a3;padding:6px 8px 10px}
+  .cp{padding:11px 12px;border-radius:10px;border:1px solid transparent;margin-bottom:3px;cursor:pointer}
+  .cp:hover{background:#f6f8fb}
+  .cp.on{background:#f4f8ff;border-color:#1a57e5}
+  .cp .cph{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#2f7d46}
+  .cp .cph i{font-size:14px}
+  .cp .cph .t{margin-left:auto;color:#aab3c0;font-size:11px}
+  .cp .cpt{font-size:13px;color:#1f2328;margin:6px 0 8px}
+  .cp .cpb{display:flex;gap:8px}
+  .cp .mini{font-size:11.5px;padding:5px 10px;border-radius:7px;border:1px solid #d5dbe4;background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:5px;color:#373d47}
+  .cp .mini:hover{background:#f0f3f8}
+  .cp .mini.rb:hover{border-color:#1a57e5;color:#1a57e5}
+
+  .commit{flex:1;min-width:0;display:flex;flex-direction:column;background:#fff;overflow:hidden}
+  .commit-h{padding:12px 16px;border-bottom:1px solid #e5eaf1;flex-shrink:0}
+  .commit-h .ttl{font-size:15px;font-weight:600;color:#1f2328;margin-bottom:8px}
+  .commit-h .meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .tag{font-size:11.5px;padding:3px 9px;border-radius:7px;background:#f0f3f8;color:#586373;display:inline-flex;align-items:center;gap:6px;font-family:'Roboto Mono',monospace}
+  .restoreAll{font-size:11.5px;padding:4px 11px;border-radius:7px;border:1px solid #d5dbe4;background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:#373d47}
+  .restoreAll:hover{border-color:#1a57e5;color:#1a57e5}
+  .commit-body{flex:1;overflow:auto;padding:14px 16px}
+  .cbar{display:flex;align-items:center;margin-bottom:10px}
+  .cbar .ccnt{font-size:13px;color:#586373}
+  .filebox{border:1px solid #e5eaf1;border-radius:9px;overflow:hidden}
+  .filebox-h{display:flex;align-items:center;gap:8px;padding:9px 12px;background:#fbfcfe;font-size:12.5px}
+  .filebox-h .fn{font-family:'Roboto Mono',monospace}
+  .diff{font-family:'Roboto Mono',monospace;font-size:11.5px;line-height:1.85;overflow-x:auto}
+  .drow{display:flex;border-top:1px solid #f4f6fa;width:max-content;min-width:100%}
+  .drow.add{background:#e6f4ea}.drow.del{background:#fde8e8}
+  .dg{width:24px;text-align:center;flex-shrink:0;color:#aab3c0}
+  .drow.add .dg,.drow.add .dt{color:#2f7d46}.drow.del .dg,.drow.del .dt{color:#b42318}
+  .dt{white-space:pre;flex-shrink:0}
+  .split{display:flex}
+  .split .col{flex:1;min-width:0;overflow:hidden;border-right:1px solid #eef1f6}
+  .split .col:last-child{border-right:none}
+  .col-h{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#8a96a3;padding:5px 10px;background:#fbfcfe}
+  .empty-diff{padding:18px;color:#8a96a3;font-size:13px;text-align:center}
+
+  /* restore modal (P5) */
+  .modal-overlay{position:fixed;inset:0;background:rgba(31,41,55,.45);display:flex;align-items:center;justify-content:center;z-index:30;padding:26px}
+  .modal{background:#fff;border-radius:14px;width:min(940px,94%);max-height:88%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.28)}
+  .modal-h{padding:15px 18px;border-bottom:1px solid #e5eaf1;flex-shrink:0}
+  .modal-h .ttl{font-size:16px;font-weight:600;color:#1f2328}
+  .modal-body{flex:1;overflow:auto;padding:14px 18px}
+  .modal-foot{flex-shrink:0;border-top:1px solid #e5eaf1;padding:12px 18px;display:flex;gap:9px;justify-content:flex-end}
+  .cmp-sub{font-size:13px;color:#586373;margin-bottom:10px}
+  .restore-note{display:flex;gap:7px;align-items:flex-start;font-size:11.5px;line-height:1.45;color:#bd5200;background:#faf0e3;border:1px solid #ffd9a8;border-radius:8px;padding:8px 10px;margin-top:10px}
+  .restore-note i{font-size:14px;margin-top:1px;flex-shrink:0}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:#1f2937;color:#fff;font-size:13px;padding:10px 14px;border-radius:10px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:40}
+  .toast.show{opacity:1;pointer-events:auto}
+  .toast .undo{color:#9ec1ff;cursor:pointer;font-weight:600}
+  .hide{display:none!important}
+</style>
+</head>
+<body>
+<div class="frame"><div class="app">
+  <div class="topbar">
+    <div class="tb-left"><span class="fname"><i class="ti ti-vector-triangle"></i>connector.rb</span><span class="grow"></span><span id="rvbar"></span></div>
+    <div class="tb-right"><span class="dchev">&raquo;</span><span class="pname">AIRO</span><span class="beta">Beta</span><span style="flex:1"></span><span class="hbtn" id="hbtn" data-historytoggle><i class="ti ti-history"></i>History</span><span class="btn-pri" style="margin-left:8px">Save</span><span class="btn">Exit</span></div>
+  </div>
+  <div class="body">
+    <div class="leftcol" id="leftcol"></div>
+    <div class="rightcol" id="rightcol"></div>
+  </div>
+</div></div>
+<div id="modal" class="modal-overlay hide"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=t=>t.replace(/</g,'&lt;');
+
+/* ---------- shared connector, tagged by change group (g) ---------- */
+const CODE=[
+ {t:"connector = {",g:0},
+ {t:"  title: 'HubSpot',",g:0},
+ {t:"  connection: {",g:1},
+ {t:"    authorization: { type: 'oauth2',",g:1},
+ {t:"      token_url: '/oauth/token' } },",g:1},
+ {t:"  object_definitions: {",g:2},
+ {t:"    deal:    { fields: [...41] },",g:2},
+ {t:"    company: { fields: [...28] },",g:2},
+ {t:"    contact: { fields: [...35] } },",g:2},
+ {t:"  actions: {",g:3},
+ {t:"    create_deal, update_deal, search_deals,",g:3},
+ {t:"    create_or_update_deal, archive_deal },",g:3},
+ {t:"  triggers: { new_or_updated_deal },",g:4},
+ {t:"}",g:0},
+];
+const CHANGES=[
+ {g:1,label:'OAuth2 connection',intent:'Set up authentication',adds:6,dels:0},
+ {g:2,label:'Deal, Company, Contact',intent:'Define the CRM objects',adds:84,dels:0},
+ {g:3,label:'5 deal actions',intent:'Create, update, search, upsert, archive',adds:40,dels:0},
+ {g:4,label:'new_or_updated_deal trigger',intent:'Fire recipes when a deal changes',adds:18,dels:0},
+];
+const STEPS=[
+ {icon:'ti-search',       label:'Read the API, scoped to CRM', badge:null},
+ {icon:'ti-plug',         label:'Set up the OAuth2 connection', badge:'+6',  g:1},
+ {icon:'ti-list-details', label:'Defined Deal, Company, Contact', badge:'+84', g:2},
+ {icon:'ti-bolt',         label:'Wrote 5 deal actions', badge:'+40', g:3},
+ {icon:'ti-clock',        label:'Added the new_or_updated_deal trigger', badge:'+18', g:4},
+];
+/* checkpoints for the History panel; checkpoint k introduced change group k */
+const CPS=[
+ {id:0,title:'Connector scaffold',when:'5 min ago',hash:'a1b2c3',g:0},
+ {id:1,title:'OAuth2 connection',when:'4 min ago',hash:'67edbfe',g:1},
+ {id:2,title:'Deal, Company, Contact objects',when:'3 min ago',hash:'4f75051',g:2},
+ {id:3,title:'5 deal actions',when:'2 min ago',hash:'9c0aa12',g:3},
+ {id:4,title:'new_or_updated_deal trigger',when:'1 min ago',hash:'d3e8f90',g:4},
+];
+
+/* ---------- state ---------- */
+let phase='gen';                                   // gen (streaming) | review (done, reviewable)
+let genDone=-1;                                    // -1 thinking; 0..STEPS.length steps completed
+let view='build';                                  // build | history
+let hunkState={1:'pending',2:'pending',3:'pending',4:'pending'};
+let cur=0;                                          // review stepper over pending groups
+let thoughtOpen=false, taskOpen=true;               // P1 disclosures
+let drawerOpen=false; const chunkOpen={};           // P2 drawer
+let head=CPS.length-1, prevHead=null;               // P5
+let reviewSel=null, splitMode=false, confirmRestore=null;
+
+const pendingGroups=()=>CHANGES.map(c=>c.g).filter(g=>hunkState[g]==='pending');
+const groupsAt=n=>{ const s=new Set([0]); for(let k=1;k<=n;k++) s.add(k); return s; };
+
+/* ---------- editor (P3 · accept in editor) ---------- */
+function cline(n,cls,gut,t){ return `<div class="cline${cls?' '+cls:''}"><span class="cn">${n||''}</span><span class="cg">${gut}</span><span class="ct mono">${esc(t)}</span></div>`; }
+function codeHTML(){
+  const pend=pendingGroups(); let html='',ln=1,i=0;
+  while(i<CODE.length){
+    const l=CODE[i];
+    if(l.g===0){ html+=cline(ln++,'','',l.t); i++; continue; }
+    const g=l.g, st=hunkState[g], run=[];
+    while(i<CODE.length && CODE[i].g===g){ run.push(CODE[i]); i++; }
+    if(st==='rejected') continue;                                   // change dropped
+    if(st==='accepted'){ run.forEach(r=>html+=cline(ln++,'','',r.t)); continue; }  // committed → plain
+    const isCur=pend[cur]===g;                                      // pending → diff + controls
+    let inner=''; run.forEach(r=>inner+=cline(ln++,'add','+',r.t));
+    html+=`<div class="hunk pending${isCur?' cur':''}" id="hunk-${g}"><div class="hmeta"><span class="hunkctl"><span class="hc acc" data-acc="${g}" title="Accept"><i class="ti ti-check"></i></span><span class="hc rej" data-rej="${g}" title="Reject"><i class="ti ti-x"></i></span></span></div>${inner}</div>`;
+  }
+  return html;
+}
+function rvBuild(){
+  const pend=pendingGroups();
+  if(!pend.length) return `<span class="cnt" style="color:#1a7f37"><i class="ti ti-check" style="vertical-align:-2px"></i> All changes resolved</span>`;
+  if(cur>=pend.length) cur=0;
+  return `<span class="rv"><i class="ti ti-git-compare" style="color:#586373"></i><span class="cnt"><b>${pend.length}</b> change${pend.length>1?'s':''} to review</span>`
+    +`<i class="ti ti-chevron-up nav" data-step="-1"></i><span class="cnt mono">${cur+1} / ${pend.length}</span><i class="ti ti-chevron-down nav" data-step="1"></i>`
+    +`<span class="vbar"></span><span class="b rej" data-rejall><i class="ti ti-x"></i>Reject all</span><span class="b acc" data-accall><i class="ti ti-check"></i>Accept all</span></span>`;
+}
+function jumpHunk(g){
+  const c=$('#leftcol .code'), el=document.getElementById('hunk-'+g); if(!c||!el) return;
+  const cR=c.getBoundingClientRect(), eR=el.getBoundingClientRect();
+  c.scrollTop += (eR.top-cR.top)-(c.clientHeight/2)+(el.offsetHeight/2);
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),1200);
+}
+
+/* ---------- AIRO panel (P1 · thoughts + P2 · drawer) ---------- */
+function railRow(s,state){
+  const run=state==='run';
+  const dot=run?'<span class="rspin"></span>':'<span class="rdot"></span>';
+  return `<div class="rrow">${dot}<div class="rmain"><span class="rlabel"><i class="ti ${s.icon}"></i>${run?s.label+'…':s.label}</span>${(!run&&s.badge)?`<span class="rbadge mono">${s.badge}</span>`:''}</div></div>`;
+}
+function drawerHTML(){
+  const rows=CHANGES.map(c=>{
+    const hunk=CODE.filter(l=>l.g===c.g).map(l=>`<div class="hrow add"><span class="hg">+</span><span class="ht">${esc(l.t)}</span></div>`).join('');
+    return `<div class="crow" data-jump="${c.g}"><i class="ti ti-chevron-right cchev" data-exp="${c.g}"></i><b>${c.label}</b><span class="cintent">${c.intent}</span><span class="cstat"><span class="pos">+${c.adds}</span>${c.dels?' <span class="neg">−'+c.dels+'</span>':''}</span></div>`
+      +`<div class="chunk${chunkOpen[c.g]?' open':''}" id="chunk-${c.g}">${hunk}</div>`;
+  }).join('');
+  return `<div class="cdbtn${drawerOpen?' open':''}" data-drawer><i class="ti ti-chevron-right chev"></i><i class="ti ti-git-compare"></i><b>Review ${CHANGES.length} changes</b></div>`
+    +`<div class="cdpanel${drawerOpen?' open':''}">${rows}</div>`;
+}
+function panelBuild(){
+  const built = pendingGroups().length===0;
+  return `<div class="chat">
+    <div class="urow"><div class="ubub">Build a HubSpot CRM connector</div></div>
+    <div class="thought" data-thought><i class="ti ti-brain lead"></i><span>Thought for 4s</span><i class="ti ti-chevron-${thoughtOpen?'down':'right'} tchev"></i></div>
+    <div class="thoughtbody${thoughtOpen?' open':''}">I'll build a full HubSpot CRM connector that exposes Deals, Companies and Contacts, with an OAuth2 connection and a trigger. It's a fair bit of work, so I'll break it into steps.</div>
+    <div class="task">
+      <div class="task-head" data-task><span class="ck"><i class="ti ti-check"></i></span><span class="task-title">Built the HubSpot CRM connector</span><span class="chev">${taskOpen?'⌄':'›'}</span></div>
+      ${taskOpen?`<div class="task-body">${STEPS.map(s=>railRow(s,'done')).join('')}</div>`:''}
+    </div>
+    <div class="msglabel">Message</div>
+    <div class="amsg">Done. I built the connector: OAuth2 connection, Deal / Company / Contact objects, 5 deal actions, and a new-or-updated-deal trigger. ${built?'All changes accepted.':'Review and accept the changes in the editor, or open any change here.'}</div>
+    ${drawerHTML()}
+    <div class="cpsaved"><i class="ti ti-clock"></i>Checkpoint saved</div>
+  </div>
+  <div class="composer"><div class="cbox"><span>Ask AIRO anything</span><span class="send"><i class="ti ti-arrow-up"></i></span></div></div>`;
+}
+
+/* ---------- History (P5 · checkpoint list + commit + restore) ---------- */
+function commitView(i){
+  const cp=CPS[i];
+  const lines=CODE.filter(l=>l.g===cp.g);
+  let body;
+  if(cp.g===0){ body=`<div class="empty-diff">Initial scaffold — no prior version to diff against.</div>`; }
+  else if(!splitMode){ body=`<div class="diff">${lines.map(l=>`<div class="drow add"><span class="dg">+</span><span class="dt">${esc(l.t)}</span></div>`).join('')}</div>`; }
+  else { body=`<div class="split"><div class="col"><div class="col-h">Before</div><div class="diff"><div class="empty-diff" style="padding:20px 10px">did not exist</div></div></div><div class="col"><div class="col-h">After</div><div class="diff">${lines.map(l=>`<div class="drow add"><span class="dg">+</span><span class="dt">${esc(l.t)}</span></div>`).join('')}</div></div></div>`; }
+  const c=CHANGES.find(x=>x.g===cp.g);
+  return `<div class="commit"><div class="commit-h"><div class="ttl">${cp.title}</div></div>
+    <div class="commit-body"><div class="cbar"><span class="ccnt">Showing <b>1</b> change in <span class="mono">connector.rb</span> <span class="pos">+${c?c.adds:0}</span></span>
+      <span style="margin-left:auto" class="vtog"><span class="vt${!splitMode?' on':''}" data-mode="diff">Diff</span><span class="vt${splitMode?' on':''}" data-mode="split">Split</span></span></div>
+      <div class="filebox"><div class="filebox-h"><i class="ti ti-file-code" style="color:#586373"></i><span class="fn">connector.rb</span></div>${body}</div>
+    </div></div>`;
+}
+function historyList(){
+  let items=`<div class="started">Chat started 5 min ago</div>`;
+  for(let i=CPS.length-1;i>=0;i--){ const cp=CPS[i];
+    items+=`<div class="cp${reviewSel===i?' on':''}" data-sel="${i}"><div class="cph"><i class="ti ti-circle-check-filled"></i>Checkpoint${i===head?' · current':''}<span class="t">${cp.when}</span></div>
+      <div class="cpt">${cp.title}</div>
+      <div class="cpb"><span class="mini rb" data-rollback="${cp.id}"><i class="ti ti-history-toggle"></i>Rollback here</span></div></div>`;
+  }
+  return `<div class="hscroll">${items}</div>`;
+}
+function restoreModal(){
+  const cp=CPS[confirmRestore];
+  const cur=groupsAt(head), tgt=groupsAt(confirmRestore);
+  const undone=CPS.filter(c=>c.id>confirmRestore && c.id<=head).length;
+  let L='',R='',lnL=1,lnR=1;
+  CODE.forEach(l=>{ const inC=cur.has(l.g), inT=tgt.has(l.g);
+    if(inC) L+=`<div class="drow${inT?'':' del'}"><span class="dg">${inT?' ':'−'}</span><span class="dt">${esc(l.t)}</span></div>`;
+    if(inT) R+=`<div class="drow"><span class="dg"> </span><span class="dt">${esc(l.t)}</span></div>`;
+  });
+  return `<div class="modal">
+    <div class="modal-h"><div class="ttl">Restore to “${cp.title}”?</div>
+      <div class="restore-note"><i class="ti ti-alert-triangle"></i><div>Restoring undoes <b>${undone}</b> change${undone!==1?'s':''} made after this point. The OAuth2 <b>connection</b> AIRO authorized stays connected.</div></div></div>
+    <div class="modal-body"><div class="cmp-sub">Comparing <b>current</b> with <b>${cp.title}</b></div>
+      <div class="filebox"><div class="filebox-h"><i class="ti ti-file-code" style="color:#586373"></i><span class="fn">connector.rb</span></div>
+        <div class="split"><div class="col"><div class="col-h">Current</div><div class="diff">${L}</div></div><div class="col"><div class="col-h">After restore</div><div class="diff">${R}</div></div></div></div></div>
+    <div class="modal-foot"><button class="btn" data-cancelrestore>Cancel</button><button class="btn-pri" data-confirmrestore><i class="ti ti-history-toggle"></i>Restore to this checkpoint</button></div>
+  </div>`;
+}
+
+/* ---------- generation (P1 · live streaming) ---------- */
+function genCode(){
+  const groups=new Set();
+  for(let j=0;j<Math.max(0,genDone);j++){ if(STEPS[j].g) groups.add(STEPS[j].g); }
+  let html='',ln=1;
+  CODE.forEach(l=>{ if(l.g!==0 && !groups.has(l.g)) return; const add=l.g!==0; html+=cline(ln++, add?'add':'', add?'+':'', l.t); });
+  return html;
+}
+function genPanel(){
+  const thinking=genDone<0, allDone=genDone>=STEPS.length;
+  const shown=thinking?0:Math.min(genDone+1,STEPS.length);
+  let steps=''; for(let j=0;j<shown;j++) steps+=railRow(STEPS[j], j<genDone?'done':'run');
+  return `<div class="chat">
+    <div class="urow"><div class="ubub">Build a HubSpot CRM connector</div></div>
+    <div class="thought"><i class="ti ti-brain lead${thinking?' gen':''}"></i><span>${thinking?'Thinking…':'Thought for 4s'}</span></div>
+    ${thinking?'':`<div class="task"><div class="task-head"><span class="ck${allDone?'':' run'}">${allDone?'<i class="ti ti-check"></i>':''}</span><span class="task-title">${allDone?'Built the HubSpot CRM connector':'Building the connector…'}</span></div><div class="task-body">${steps}</div></div>`}
+  </div>
+  <div class="composer"><div class="cbox"><span>Ask AIRO anything</span><span class="send"><i class="ti ti-arrow-up"></i></span></div></div>`;
+}
+function startGen(){
+  phase='gen'; genDone=-1; render();
+  let i=0;
+  (function tick(){
+    setTimeout(()=>{
+      genDone=i; render(); i++;
+      if(i<=STEPS.length) tick();
+      else setTimeout(()=>{ phase='review'; render(); }, 700);
+    }, genDone<0?850:780);
+  })();
+}
+
+/* ---------- render ---------- */
+function render(){
+  $('#hbtn').classList.toggle('on', view==='history');
+  // top-left review bar: only once generation is done and we're reviewing
+  $('#rvbar').innerHTML = (view==='build' && phase==='review') ? rvBuild() : '';
+  if(view==='history'){
+    $('#leftcol').innerHTML = reviewSel===null ? `<div class="code">${CODE.map((l,i)=>cline(i+1,'','',l.t)).join('')}</div>` : commitView(reviewSel);
+    $('#rightcol').innerHTML = historyList();
+  } else if(phase==='gen'){
+    $('#leftcol').innerHTML = `<div class="code" id="gencode">${genCode()}</div>`;
+    $('#rightcol').innerHTML = genPanel();
+    const c=$('#gencode'); if(c) c.scrollTop=c.scrollHeight;   // keep the freshly-streamed lines in view
+  } else {
+    $('#leftcol').innerHTML = `<div class="code">${codeHTML()}</div>`;
+    $('#rightcol').innerHTML = panelBuild();
+  }
+  const m=$('#modal');
+  if(confirmRestore!==null){ m.innerHTML=restoreModal(); m.classList.remove('hide'); }
+  else { m.innerHTML=''; m.classList.add('hide'); }
+}
+let tt; function toast(msg,undo){ const e=$('#toast'); e.innerHTML=esc(msg)+(undo?' <span class="undo" data-undo>Undo</span>':''); e.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>e.classList.remove('show'),4200); }
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  // history toggle
+  if(e.target.closest('[data-historytoggle]')){ view=view==='history'?'build':'history'; reviewSel=null; confirmRestore=null; render(); return; }
+  // P1 disclosures
+  if(e.target.closest('[data-thought]')){ thoughtOpen=!thoughtOpen; render(); return; }
+  if(e.target.closest('[data-task]')){ taskOpen=!taskOpen; render(); return; }
+  // P2 drawer
+  if(e.target.closest('[data-drawer]')){ drawerOpen=!drawerOpen; render(); return; }
+  const exp=e.target.closest('[data-exp]'); if(exp){ e.stopPropagation(); chunkOpen[exp.dataset.exp]=!chunkOpen[exp.dataset.exp]; render(); return; }
+  const jump=e.target.closest('[data-jump]'); if(jump){ jumpHunk(+jump.dataset.jump); return; }
+  // P3 accept / reject
+  const acc=e.target.closest('[data-acc]'); if(acc){ hunkState[+acc.dataset.acc]='accepted'; cur=0; render(); return; }
+  const rej=e.target.closest('[data-rej]'); if(rej){ hunkState[+rej.dataset.rej]='rejected'; cur=0; render(); return; }
+  if(e.target.closest('[data-accall]')){ pendingGroups().forEach(g=>hunkState[g]='accepted'); render(); toast('Accepted all changes.'); return; }
+  if(e.target.closest('[data-rejall]')){ pendingGroups().forEach(g=>hunkState[g]='rejected'); render(); toast('Rejected all changes.'); return; }
+  const step=e.target.closest('[data-step]'); if(step){ const p=pendingGroups(); if(p.length){ cur=(cur+(+step.dataset.step)+p.length)%p.length; render(); jumpHunk(p[cur]); } return; }
+  // P5 history: restore is checked before selection (a "Rollback here" sits inside a data-sel row)
+  const roll=e.target.closest('[data-rollback]'); if(roll){ confirmRestore=+roll.dataset.rollback; reviewSel=confirmRestore; render(); return; }
+  const md=e.target.closest('[data-mode]'); if(md){ splitMode=md.dataset.mode==='split'; render(); return; }
+  const sel=e.target.closest('[data-sel]'); if(sel){ reviewSel=+sel.dataset.sel; render(); return; }
+  if(e.target.closest('[data-cancelrestore]') || e.target.id==='modal'){ confirmRestore=null; render(); return; }
+  if(e.target.closest('[data-confirmrestore]')){ const t=confirmRestore; prevHead=head; head=t; confirmRestore=null; view='build'; reviewSel=null; render(); toast(`Restored to “${CPS[t].title}”. The connection AIRO authorized stays connected.`,true); return; }
+  if(e.target.closest('[data-undo]')){ if(prevHead!==null){ head=prevHead; prevHead=null; render(); toast('Restore undone.'); } }
+});
+startGen();
+</script>
+</body>
+</html>
