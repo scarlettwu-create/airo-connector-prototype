@@ -913,6 +913,7 @@ function openScopedChat(){
       $('fsInput').value = fill;
       syncSend($('fsInput'), $('fsStop'));
       $('fsInput').focus();
+      row.remove();   /* picking a starting point turns into the prompt; the seed cards go away */
     };
     row.appendChild(s);
   });
@@ -936,6 +937,8 @@ $('fsStop').onclick = () => {
   send.innerHTML = ICON_STOP;
   send.classList.add('stop-mode');
   send.setAttribute('data-tip', 'Stop generating');
+  const seedRow = document.querySelector('#fsChat .seed-row');
+  if (seedRow) seedRow.remove();   /* typed their own prompt — seeds are moot once the run starts */
   const b = document.createElement('div');
   b.className = 'bubble-user';
   b.textContent = msg;
