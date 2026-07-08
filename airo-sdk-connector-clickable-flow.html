@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIRO SDK Connector — Clickable Flow (PMO-2980, July 2nd)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Code+Pro:wght@400;500;600&family=JetBrains+Mono:ital,wght@1,500&family=Inter:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#f6f9fb; --surface:#ffffff; --surface-subtle:#f7f9fa;
+    --hairline:#e5eaf1; --hairline-strong:#d5dbe4; --border-subtle:#ced5db;
+    --ink:#133440; --ink-body:#373d47; --ink-secondary:#586373; --ink-tertiary:#6d7788; --ink-icon:#637a87; --neutral-fg:#454e5b;
+    --ai-default:#1a57e5; --ai-secondary:#123c9f; --ai-subtle:#dce6ff; --ai-tint:#f0f4ff;
+    --ai-alt:#51c4f6; --ai-alt-tint:#dcf3fd; --ai-alt-subtle:#cbedfc; --plum-tint:#f6e7ee; --plum-fg:#9a3167; --plum-muted:#dda4c1;
+    --edit-dark:#063338; --edit-bold:#065f69;
+    --editor-toolbar:#111010; --editor-border:#282525; --editor-surface:#090d0e; --editor-text:#e5e7eb;
+    --diff-del-bg:rgba(255,86,100,.16); --diff-add-bg:rgba(33,221,170,.16);
+    --diff-del-text:#e67174; --diff-add-text:#67eadd; --diff-add-sign:#22dbc8;
+    --diff-stat-plus:#3ea2a8; --diff-stat-minus:#e67174;
+    --chat-text:#24434f; --reason:rgba(88,99,115,.7); --rail:#ced5db; --neutral-border:#bcc3ce;
+    --chat-shadow:0 6px 6px rgba(26,29,33,.03),0 24px 16px rgba(26,29,33,.08),0 100px 80px rgba(26,29,33,.08);
+    --glassy:-4px -4px 16px rgba(255,255,255,.70),4px 4px 16px rgba(26,29,33,.08);
+    --sans:"Source Sans 3","Source Sans Pro",Helvetica,Arial,sans-serif;
+    --code:"Source Code Pro","SF Mono",Menlo,ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:var(--sans);font-size:14px;line-height:20px;color:var(--ink-body);background:var(--canvas);overflow:hidden}
+  button{font-family:var(--sans)}
+  .scene{display:none;height:100vh}
+  .scene.active{display:flex}
+
+  /* ════ Workato shell (scenes 1 + 2) ════ */
+  .shell{flex-direction:column}
+  /* Fluid NavHeader_Airo (499:3550) + NavSidebar_Airo (501:3200): env bar, nav header, shared backdrop */
+  .shell{background:linear-gradient(90deg,rgba(19,52,64,.05),rgba(19,52,64,.05)),linear-gradient(191deg,#92b2fd 4%,#e5eaf1 46%)}
+  .env-bar{flex:none;height:6px;background:#1a57e5}
+  .nav-header{flex:none;height:40px;display:flex;align-items:center;gap:8px;padding:6px 10px;
+    background:linear-gradient(180deg,rgba(247,249,250,.15),rgba(247,249,250,.55));
+    border-bottom:1px solid rgba(255,255,255,.3);box-shadow:0 8px 8px rgba(26,29,33,.03),0 12px 10px -12px rgba(69,78,91,.15)}
+  .switcher{display:flex;align-items:center;gap:6px;padding:4px;border-radius:4px;cursor:pointer}
+  .switcher:hover{background:rgba(255,255,255,.4)}
+  .sw-chip{width:20px;height:20px;border-radius:2px;box-shadow:0 4px 7px rgba(4,20,26,.2);display:grid;place-items:center;color:#fff;font:600 12px/16px var(--sans)}
+  .sw-label{font:600 14px/20px var(--sans);color:#24434f}
+  .sw-chevron{color:#476270;display:grid;place-items:center;padding:0 2px}
+  .crumb-slash{width:1px;height:16px;background:#476270;opacity:.3;border-radius:2px;transform:rotate(15deg);margin:0 2px}
+  .nav-spacer{flex:1}
+  .avatar24{width:24px;height:24px;border-radius:50%;border:none;background:#68abec;color:#fff;font:600 13px/16px var(--sans);display:grid;place-items:center;text-transform:uppercase;cursor:pointer}
+  .shell-body{flex:1;display:flex;min-height:0}
+  .siderail{flex:none;width:48px;background:transparent;display:flex;flex-direction:column;align-items:center;padding:10px 0 8px;gap:8px}
+  /* AIRO nav entry, collapsed (Visual Standardization 2239:4643): stacked 32px component */
+  .rail-airo{width:32px;border:none;border-radius:4px;background:rgba(255,255,255,.3);display:flex;flex-direction:column;align-items:stretch;padding:0;cursor:pointer}
+  .rail-airo .cell-logo{position:relative;background:rgba(255,255,255,.5);border-radius:4px;padding:9px;display:grid;place-items:center}
+  .rail-airo:hover .cell-logo{background:rgba(255,255,255,.75)}
+  .rail-airo .nbadge{position:absolute;top:-4px;right:-4px;height:14px;min-width:14px;padding:0 4px;border-radius:16px;background:var(--ai-default);border:1px solid #fff;color:#fff;font:400 12px/12px var(--sans);display:grid;place-items:center}
+  .rail-airo .cell-plus{padding:2px;display:flex}
+  .rail-airo .cell-plus span{flex:1;height:24px;border-radius:4px;display:grid;place-items:center;color:var(--neutral-fg)}
+  .rail-airo .cell-plus span:hover{background:rgba(255,255,255,.5)}
+  .rail-sep{width:32px;height:1px;background:radial-gradient(closest-side,rgba(71,98,112,.3),rgba(71,98,112,0));margin:2px 0}
+  .rail-fluid{width:32px;height:32px;padding:9px;display:grid;place-items:center;color:#476270;opacity:.8;border-radius:6px;cursor:pointer}
+  .rail-fluid:hover{opacity:1;background:rgba(255,255,255,.35)}
+  .rail-fluid.selected{opacity:1}
+  .rail-foot{margin-top:auto;width:32px;height:56px;overflow:hidden;border-radius:8px;position:relative}
+  .rail-foot svg{position:absolute;left:3px;top:50%;transform:translateY(-50%)}
+  .sdk-main{flex:1;overflow-y:auto;padding:28px 40px;background:#ffffff}
+  .sdk-main h1{font-size:20px;font-weight:600;color:var(--ink);line-height:26px;padding-bottom:14px;border-bottom:1px solid var(--hairline);margin-bottom:22px}
+  .sdk-cols{display:flex;gap:28px;align-items:flex-start}
+  .sdk-left{flex:1;min-width:0}
+  .sdk-search{width:100%;height:36px;border:1px solid var(--border-subtle);border-radius:4px;padding:0 12px 0 32px;font:400 14px var(--sans);color:var(--ink);background:var(--surface) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="%23637a87" stroke-width="1.3"><circle cx="5.5" cy="5.5" r="4"/><path d="m8.7 8.7 3 3"/></svg>') no-repeat 11px center}
+  .sdk-search::placeholder{color:rgba(88,99,115,.7)}
+  .sdk-count{font-size:12px;color:var(--ink-secondary);margin:12px 0}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  /* split "new" card: AIRO half + on-my-own half */
+  .card-new{border:1.5px dashed var(--border-subtle);border-radius:8px;min-height:132px;display:flex;overflow:hidden}
+  .card-new .half{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:13px;font-weight:600;color:var(--ink-body);cursor:pointer;background:#fafbfc;border:none}
+  .card-new .half:hover{background:var(--ai-tint)}
+  .card-new .half + .half{border-left:1.5px dashed var(--border-subtle)}
+  .card-new .half .plus{font-size:20px;font-weight:400;color:var(--ink)}
+  .conn-card{position:relative;background:var(--surface);border:1px solid var(--hairline);border-radius:8px;min-height:132px;box-shadow:var(--glassy);display:flex;flex-direction:column;overflow:hidden}
+  .conn-card .strip{position:absolute;left:0;top:0;bottom:0;width:8px;opacity:.55}
+  .conn-card .body{flex:1;display:flex;align-items:flex-start;gap:12px;padding:16px 16px 12px 24px}
+  .conn-card .appicon{width:40px;height:40px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:17px;flex:none}
+  .conn-card .cname{font-size:15px;font-weight:600;color:var(--ink);line-height:21px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .conn-card .dots{margin-left:auto;border:none;background:none;color:var(--ink-tertiary);cursor:pointer;font-weight:700;letter-spacing:1px}
+  .conn-card .meta{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-secondary);border-top:1px solid var(--hairline);padding:10px 16px 10px 24px}
+  .tag-update{font-size:11px;font-weight:600;color:#3c7d0e;background:#eaf5e2;border-radius:9999px;padding:2px 8px;flex:none}
+  .sdk-rail{flex:none;width:300px;background:var(--surface);border:1px solid var(--hairline);border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:14px;font-size:13px;box-shadow:var(--glassy)}
+  .sdk-rail h3{font-size:13px;font-weight:600;color:var(--ink)}
+  .sdk-rail .act{color:var(--ink-secondary);line-height:18px}
+  .sdk-rail .act a{color:#1f75d7;text-decoration:underline;cursor:pointer}
+  .sdk-rail hr{border:none;border-top:1px solid var(--hairline)}
+
+  /* ════ popup panel: pops over the page (golden 397:42527), not a blank canvas ════ */
+  .popup{position:fixed;right:24px;bottom:24px;width:452px;height:540px;display:none;flex-direction:column;border-radius:16px;border:2px solid #ffffff;box-shadow:var(--chat-shadow);overflow:hidden;z-index:50;
+    background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.5)),linear-gradient(160deg,#e4e8eb 0%,#dce6ff 64%,#dcf3fd 100%)}
+  .popup.open{display:flex}
+
+  /* ════ shared AIRO panel pieces ════ */
+  /* header + send gradients: PIXEL-SAMPLED from goldens (Figma gradient-line offsets do NOT transplant into CSS) */
+  .airo-header{flex:none;height:48px;display:flex;align-items:center;gap:2px;padding:12px 12px 12px 24px;
+    background:linear-gradient(98deg,#e2e0ef 0%,#d5e0f7 47%,#cee2f6 100%)}
+  #scene-chat .airo-header{background:rgba(255,255,255,.55)}
+  .header-left{display:flex;align-items:center;gap:8px}
+  /* .ai-beta-tag (11:15166): h20, px6 py2, r4, border-BOTTOM only, white30 veil over plum→subtle→alt-tint */
+  .beta{font-size:12px;font-weight:600;line-height:16px;color:var(--ai-default);border:none;border-bottom:1px solid rgba(146,178,253,.7);border-radius:4px;padding:2px 6px;height:20px;
+    background:linear-gradient(90deg,#f2edf7,#e6f1fe)}
+  .hspacer{flex:1}
+  .hflat{height:24px;display:inline-flex;align-items:center;gap:4px;border:none;background:transparent;border-radius:4px;padding:4px 8px;font:600 12px/16px var(--sans);color:var(--neutral-fg);cursor:pointer;position:relative}
+  .hflat:hover{background:rgba(255,255,255,.6)}
+  .hflat.notif::after{content:"";position:absolute;top:3px;right:2px;width:6px;height:6px;border-radius:9999px;background:var(--ai-default)}
+  .hdivider{width:1px;height:12px;border-radius:2px;background:var(--neutral-border);margin:0 4px}
+  .hicon{width:24px;height:24px;border:none;background:transparent;border-radius:4px;color:var(--ink-secondary);cursor:pointer;display:grid;place-items:center;padding:0}
+  .hicon:hover{background:rgba(255,255,255,.6)}
+  .tabs{flex:none;height:36px;display:flex;gap:24px;padding:0 24px;background:rgba(255,255,255,.7);border-bottom:1px solid #e4e8eb}
+  .tab{position:relative;padding:10px 0;font:600 12px/16px var(--sans);color:var(--ink-icon);border:none;background:none;cursor:pointer;white-space:nowrap}
+  .tab.active{color:var(--ai-default)}
+  .tab.active::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--ai-default)}
+
+  .chat{flex:1;overflow-y:auto;padding:0 24px 24px;display:flex;flex-direction:column}
+  .chat-started{align-self:stretch;display:flex;align-items:center;gap:12px;font-size:12px;color:var(--ink-tertiary);padding:14px 0 4px}
+  .chat-started::before,.chat-started::after{content:"";flex:1;height:1px;background:var(--hairline-strong)}
+  .bubble-user{align-self:flex-end;max-width:85%;margin:18px 0 18px 24px;background:var(--ai-subtle);color:var(--chat-text);border-radius:8px;padding:12px 16px}
+  .action-chip{align-self:flex-end;margin:6px 0;background:rgba(255,255,255,.75);border:1px solid var(--border-subtle);border-radius:9999px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--ink-secondary)}
+  .airo-msg{align-self:stretch;color:var(--chat-text);padding:6px 0}
+  .airo-msg p{margin-bottom:8px}
+  .airo-msg b{color:var(--ink)}
+  .airo-msg ul{margin:0 0 8px 16px;font-size:13px;line-height:19px;color:var(--ink-secondary)}
+  .airo-msg .spec-h{font-size:13px;font-weight:600;color:var(--ink);margin:6px 0 3px}
+  .msg-actions{display:flex;gap:6px;padding:2px 0 6px}
+  .msg-actions button{width:20px;height:20px;border:none;background:none;color:var(--ink-icon);cursor:pointer;border-radius:4px;display:grid;place-items:center}
+  .msg-actions button:hover{background:rgba(255,255,255,.7)}
+  .chat-table{width:100%;border:1px solid var(--hairline);border-radius:8px;overflow:hidden;font-size:12px;line-height:16px;margin:4px 0 10px;background:var(--surface);border-collapse:separate;border-spacing:0}
+  .chat-table th{background:rgba(26,29,33,.03);color:var(--ink-secondary);font-weight:600;text-align:left;padding:10px 12px}
+  .chat-table td{color:var(--ink-body);padding:10px 12px;border-top:1px solid var(--hairline)}
+  /* Checkpoint Indicator (288:24202): DASHED 1px border-default dividers, py12 gap12, 12px clock icon + micro text @80% */
+  .cp-divider{display:flex;align-items:center;gap:12px;color:var(--ink-secondary);font:400 12px/16px var(--sans);padding:12px 0}
+  .cp-divider::before,.cp-divider::after{content:"";flex:1;border-top:1px dashed var(--hairline-strong)}
+  .cp-divider .cptext{display:flex;align-items:center;gap:4px;opacity:.8}
+  .change-card{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.8);border:1px solid var(--hairline);border-radius:8px;padding:8px 12px;font-size:14px;color:var(--ink-body);margin:4px 0 10px}
+  .change-card .chipgroup{margin-left:auto;display:flex;gap:6px}
+  .change-card button{height:24px;border:1px solid var(--border-subtle);background:var(--surface);border-radius:4px;padding:4px 10px;font:600 12px/16px var(--sans);color:var(--ink-body);cursor:pointer}
+  .change-card button:hover{background:var(--surface-subtle)}
+  .change-card.settled{color:var(--ink-secondary)}
+  .change-card.settled .ok{color:#5aa028;font-weight:600;margin-left:auto}
+
+  .think{align-self:stretch;padding:14px 0;display:flex;flex-direction:column;gap:12px}
+  .think-head{display:flex;align-items:center;gap:12px;border:none;background:none;cursor:default;padding:0;font-family:"JetBrains Mono",var(--code);font-size:12px;line-height:16px;font-style:italic;font-weight:500;text-align:left}
+  .think-head .wlabel{background:linear-gradient(90deg,#1a57e5,#9a3167,#51c4f6,#1a57e5);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 2.4s linear infinite}
+  @keyframes shimmer{to{background-position:-300% 0}}
+  .think-head.done{cursor:pointer;color:var(--ink-secondary)}
+  .think-head .caret{font-style:normal;font-size:9px;color:var(--ink-icon);transition:transform .15s}
+  .think.collapsed .caret{transform:rotate(-90deg)}
+  .steps{list-style:none;display:flex;flex-direction:column;gap:2px}
+  .step{display:flex;align-items:flex-start;gap:12px;min-height:20px}
+  .step .glyph{flex:none;width:16px;height:16px;margin-top:2px;display:grid;place-items:center;color:var(--ai-default)}
+  .spinner{width:12px;height:12px;border:2px solid var(--ai-subtle);border-top-color:var(--ai-default);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .step .slabel{font-family:var(--code);font-size:13px;line-height:20px;color:var(--ink-body)}
+  .reason{margin:2px 0 6px 7px;padding-left:19px;border-left:2px solid var(--rail);color:var(--reason);font-size:14px;line-height:20px;white-space:pre-wrap}
+  .reason.past{display:none}
+  .think.collapsed .steps{display:none}
+
+  .composer{flex:none;padding:0 24px 12px;display:flex;flex-direction:column;gap:12px}
+  .field{background:rgba(19,52,64,.05);border:1px solid transparent;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;transition:box-shadow .15s,border-color .15s,background .15s}
+  /* fullscreen surface uses the white field treatment (golden 311:30239 / guideline chat-input rest) */
+  .field.on-light{background:rgba(255,255,255,.7);border:2px solid #fff;box-shadow:var(--glassy)}
+  .field.focused{background:rgba(255,255,255,.7);border-color:#92b2fd;box-shadow:-8px -8px 30px rgba(255,255,255,.15),8px 8px 30px rgba(26,29,33,.03),4px 4px 20px rgba(146,178,253,.15)}
+  .field textarea{border:none;outline:none;resize:none;font:400 14px/20px var(--sans);color:var(--ink);height:40px;background:transparent;padding:0 4px}
+  .field textarea::placeholder{color:rgba(99,122,135,.5)}
+  .field-row{display:flex;align-items:flex-end;min-height:32px}
+  .field-row .fspacer{flex:1}
+  .actions{display:flex;align-items:center;gap:8px}
+  .attach{width:32px;height:32px;border-radius:50%;border:none;background:rgba(55,61,71,.05);color:var(--ink-secondary);cursor:pointer;display:grid;place-items:center}
+  .attach:hover{background:rgba(55,61,71,.1)}
+  .send{position:relative;width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;display:grid;place-items:center;
+    background:linear-gradient(100deg,#e1e0f0 0%,#cfe2f6 100%)}
+  .send .ic-hover{display:none}
+  .send:not(.idle):not(.stop-mode):hover{background:linear-gradient(100deg,#6f77ce 0%,#1c5adf 45%,#3f86e8 100%)}
+  .send:not(.idle):not(.stop-mode):hover .ic-rest{display:none}
+  .send:not(.idle):not(.stop-mode):hover .ic-hover{display:block}
+  .send.idle{background:#f0f3f6}
+  .send.stop-mode{background:rgba(55,61,71,.05)}
+  .send.stop-mode:hover{background:rgba(55,61,71,.15)}
+  /* Tooltip (2:369): dark, 4px above, arrow */
+  .send[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:40px;left:50%;transform:translateX(-50%);
+    background:#1a1d21;border:1px solid rgba(255,255,255,.2);color:#fff;font:400 12px/16px var(--sans);padding:4px 6px;border-radius:4px;white-space:nowrap;z-index:20}
+  .send[data-tip]:hover::before{content:"";position:absolute;bottom:34px;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:#1a1d21;z-index:20}
+  .disclaimer{text-align:center;font-size:12px;line-height:16px;color:var(--ink-icon)}
+
+  /* ════ Scene 3 · fullscreen chat ════ */
+  #scene-chat{padding:16px;background:#0a1b3d}
+  .fs-panel{flex:1;display:flex;flex-direction:column;min-height:0;border-radius:16px;border:2px solid #ffffff;box-shadow:var(--chat-shadow);overflow:hidden;
+    background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.5)),linear-gradient(160deg,#e4e8eb 0%,#dce6ff 64%,#dcf3fd 100%)}
+  .fs-chat-col{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+  .fs-inner{width:820px;max-width:92%;margin:0 auto;display:flex;flex-direction:column;flex:1}
+  .fs-composer{width:820px;max-width:92%;margin:0 auto}
+
+  /* ════ Scene 4 · editor ════ */
+  #scene-editor{flex-direction:column}
+  .app-bar{flex:none;height:52px;background:var(--edit-dark);display:flex;align-items:center;justify-content:space-between;padding:12px 28px 12px 32px}
+  .app-bar .title{display:flex;align-items:center;gap:12px;font:700 16px/24px var(--sans);color:rgba(255,255,255,.6)}
+  .app-bar .chip{width:28px;height:28px;border-radius:4px;background:var(--edit-bold);display:grid;place-items:center;color:#fff}
+  .app-bar .exit{display:flex;align-items:center;gap:4px;height:24px;padding:4px 8px;border-radius:4px;border:none;background:transparent;font:600 12px/16px var(--sans);color:rgba(255,255,255,.6);cursor:pointer}
+  .app-bar .exit:hover{background:rgba(255,255,255,.08)}
+  .ed-main{flex:1;display:flex;min-height:0}
+  .ed-left{flex:1;display:flex;flex-direction:column;min-width:0;padding:0 0 0 12px;background:var(--edit-dark)}
+  .editor-bar{height:53px;flex:none;background:var(--editor-toolbar);border:1px solid var(--editor-border);border-bottom:none;border-radius:12px 12px 0 0;display:flex;align-items:center;gap:12px;padding:8px 16px}
+  .editor-bar .fname{font:700 14px/20px var(--sans);color:var(--editor-text)}
+  .editor-bar .fstate{font-size:12px;color:rgba(229,231,235,.55)}
+  .editor-bar .espacer{flex:1}
+  /* Diff Viewer Control (288:24387): bordered 24px container r4 px8 gap4; 20px round chevron buttons; 1x16 divider; label pl8 pr4 */
+  .rev-cluster{display:flex;align-items:center;gap:4px;height:24px;border:1px solid rgba(255,255,255,.15);border-radius:4px;padding:0 8px}
+  .stepbtn{width:20px;height:20px;border:none;border-radius:18px;background:transparent;color:#fff;cursor:pointer;display:grid;place-items:center;padding:0}
+  .stepbtn:hover{background:#373d47}
+  .stepbtn:disabled{color:#686868;cursor:default;background:transparent}
+  .rev-divider{width:1px;height:16px;background:rgba(255,255,255,.15)}
+  .rev-count{display:flex;align-items:center;gap:4px;padding:0 4px 0 8px;font:600 14px/20px var(--sans);color:#fff;white-space:nowrap}
+  .rev-count .muted{color:rgba(255,255,255,.6);font-weight:400}
+  /* checkpoint-preview toolbar (311:28327): gray accent button outside the stepper box; bar bg lifts to #1a1717 */
+  #restoreBtn{height:24px;border:none;background:#454e5b;border-radius:4px;padding:4px 8px;margin-left:4px;font:600 12px/16px var(--sans);color:#fff;cursor:pointer;white-space:nowrap}
+  #restoreBtn:hover{background:#586373}
+  .tool-div{width:1px;height:20px;background:#30363d;margin:0 4px}
+  .editor-bar.previewing{background:#1a1717}
+  .editor-bar.previewing .fstate{color:#e5e7eb}
+  .toolbtn{width:20px;height:20px;border:none;border-radius:2px;background:#e5eaf1;color:#1a1d21;cursor:pointer;display:grid;place-items:center;padding:0}
+  .toolbtn:hover{background:#fff}
+  .code-wrap{flex:1;background:var(--editor-surface);border:1px solid var(--editor-border);border-top:none;overflow-y:auto;padding:12px 0;user-select:none}
+  .code-line{display:flex;min-height:20px;font-family:var(--code);font-size:12.5px;line-height:20px;white-space:pre}
+  .code-line .gut{flex:none;width:48px;text-align:right;padding-right:16px;color:rgba(229,231,235,.35);user-select:none}
+  .code-line .sign{flex:none;width:14px;color:transparent}
+  .code-line .src{color:var(--editor-text)}
+  .code-line.del{background:var(--diff-del-bg)}
+  .code-line.del .src{color:var(--diff-del-text);text-decoration:line-through}
+  .code-line.del .sign{color:var(--diff-del-text)}
+  .code-line.add{background:var(--diff-add-bg)}
+  .code-line.add .src{color:var(--diff-add-text)}
+  .code-line.add .sign{color:var(--diff-add-sign)}
+  .code-line.cur-hunk{box-shadow:inset 3px 0 0 var(--ai-alt)}
+  .resize-handle{flex:none;width:12px;background:var(--edit-dark);display:grid;place-items:center}
+  .resize-handle::after{content:"";width:2px;height:32px;border-radius:2px;background:rgba(255,255,255,.25)}
+  .ed-right{flex:none;width:450px;display:flex;flex-direction:column;min-height:0;
+    background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.5)),linear-gradient(160deg,#e4e8eb 0%,#dce6ff 64%,#dcf3fd 100%)}
+  .tabpane{flex:1;overflow-y:auto;padding:16px 24px;display:none;flex-direction:column;gap:8px}
+  .tabpane.active{display:flex}
+  /* Checkpoint rows per 311:28439 (current design): 14px clock icon, pad 4/8/8/6 r4, title pl20 14/20 SemiBold text-secondary */
+  #pane-cp{gap:0;padding-top:12px}
+  .cp-card{display:flex;flex-direction:column;align-items:stretch;border:none;background:transparent;border-radius:4px;padding:4px 8px 8px 6px;cursor:pointer;text-align:left;width:100%}
+  .cp-card:hover{background:rgba(55,61,71,.05)}
+  .cp-card.selected{background:rgba(55,61,71,.15)}
+  .cp-card .cp-meta{display:flex;align-items:center;gap:8px;height:26px;font:400 12px/16px var(--sans);color:var(--ink-secondary)}
+  .cp-card .cp-meta svg{flex:none;color:var(--ink-secondary)}
+  .cp-card .cp-row{display:flex;align-items:center;gap:8px;padding-left:20px}
+  .cp-card .cp-title{font:600 14px/20px var(--sans);color:var(--ink-secondary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hotkey{height:16px;display:inline-flex;align-items:center;padding:2px 4px;border-radius:2px;border:.5px solid rgba(188,195,206,.5);background:rgba(255,255,255,.7);font:400 10px/12px 'Inter',var(--sans)}
+  .hotkey.plus{color:#3ea2a8}
+  .hotkey.minus{color:#e67174}
+  .hotkey-group{display:flex;gap:3px;align-items:center}
+  /* in-chat change card keeps its larger chips */
+  .cp-chip{font-size:13px;font-weight:600;line-height:16px;border:1px solid var(--hairline);border-radius:6px;padding:3px 8px;background:var(--surface)}
+  .cp-chip.plus{color:var(--diff-stat-plus)}
+  .cp-chip.minus{color:var(--diff-stat-minus)}
+  .pane-note{font-size:13px;color:var(--ink-secondary);line-height:19px}
+  .test-btn{align-self:flex-start;height:28px;border:1px solid var(--border-subtle);background:var(--surface);border-radius:4px;padding:5px 12px;font:600 12px/16px var(--sans);color:var(--ink-body);cursor:pointer}
+  .test-row{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.7);border:1px solid var(--hairline);border-radius:8px;padding:10px 12px;font-size:13px}
+  .test-row .ok{color:#5aa028;font-weight:600}
+
+  /* ════ Restore compare = modal OVERLAY on the dark editor (327:42013: inset 11px sides / 32px top, r12 top) ════ */
+  #scene-restore{display:none;position:fixed;top:32px;left:11px;right:11px;bottom:0;z-index:100;flex-direction:column;background:var(--surface);border-radius:12px 12px 0 0;box-shadow:0 -12px 48px rgba(0,0,0,.4);overflow:hidden}
+  #scene-restore.open{display:flex}
+  .restore-bar{flex:none;height:44px;background:var(--surface);border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:16px;padding:0 24px}
+  .restore-bar .rtitle{font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--ink);text-transform:uppercase}
+  .restore-bar .rspacer{flex:1}
+  .btn-restore{height:24px;border:none;background:#133440;color:#fff;border-radius:4px;padding:4px 10px;font:600 12px/16px var(--sans);cursor:pointer}
+  .btn-restore:hover{background:#0c2630}
+  .rbar-div{width:1px;height:15px;background:var(--hairline-strong)}
+  .btn-cancel{height:24px;border:none;background:transparent;color:var(--neutral-fg);border-radius:4px;padding:4px 8px;font:600 12px/16px var(--sans);cursor:pointer}
+  .btn-cancel:hover{background:var(--surface-subtle)}
+  .restore-heads{flex:none;display:flex;gap:1px;background:var(--hairline-strong)}
+  #restoreNote{flex:none;align-items:center;justify-content:center;gap:8px;padding:8px 16px;background:var(--ai-tint);border-bottom:1px solid var(--hairline);font-size:13px;color:var(--ink-secondary)}
+  .restore-heads h4{flex:1;font-size:13px;font-weight:600;color:var(--ink);padding:14px 20px;background:var(--surface);border-bottom:1px solid var(--hairline)}
+  .rscroll{flex:1;overflow-y:auto;display:flex;gap:1px;background:var(--hairline-strong)}
+  .rcol{flex:1;background:var(--surface);padding:12px 0;min-width:0;user-select:none}
+  .rcol .code-line .src{color:var(--ink-body)}
+  .rcol .code-line .gut{color:rgba(19,52,64,.35)}
+  .rcol .code-line.add{background:#dcfce9}
+  .rcol .code-line.add .src{color:#065f46;text-decoration:none}
+  .rcol .code-line.add .sign{color:#059669}
+  .rcol .code-line.del{background:#fde8e8}
+  .rcol .code-line.del .src{color:#b91c1c;text-decoration:line-through}
+  .rcol .code-line.del .sign{color:#b91c1c}
+
+  .proto{position:fixed;bottom:12px;left:12px;display:flex;gap:6px;z-index:99;opacity:.4;transition:opacity .15s}
+  .proto:hover{opacity:1}
+  .proto button{font:600 11px/1 var(--sans);color:var(--ink-secondary);background:var(--surface);border:1px solid var(--border-subtle);border-radius:9999px;padding:6px 12px;cursor:pointer}
+  .proto button:hover{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<!-- ════ Scene 1 · Connector SDK ════ -->
+<div class="scene shell active" id="scene-sdk">
+  <div class="env-bar"></div><div class="nav-header" data-navhdr></div>
+  <div class="shell-body">
+    <nav class="siderail" id="rail1"></nav>
+    <main class="sdk-main">
+      <h1>Connector SDK</h1>
+      <div class="sdk-cols">
+        <div class="sdk-left">
+          <input class="sdk-search" placeholder="Search custom connectors">
+          <div class="sdk-count">Showing <b>7</b> custom connectors</div>
+          <div class="card-grid">
+            <div class="card-new">
+              <button class="half" id="buildWithAiro"><span id="newCardMark"></span>Build new connector with AIRO</button>
+              <button class="half"><span class="plus">+</span>Build on my own</button>
+            </div>
+            <div class="conn-card">
+              <span class="strip" style="background:#9fd6a8"></span>
+              <div class="body"><span class="appicon" style="background:#29b6f6"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#fff" stroke-width="1.4"><circle cx="10" cy="5" r="1.8"/><circle cx="5" cy="13" r="1.8"/><circle cx="15" cy="13" r="1.8"/><path d="M9 6.5 6 11.3m5-4.8 3 4.8M7 13h6"/></svg></span><span class="cname">Azure Active Directory</span><span class="tag-update">Update available</span><button class="dots">···</button></div>
+              <div class="meta"><span>Installed on <b>Aug 15, 2022 at 12:30 PM</b></span><span>Used by <b>1</b> recipe</span></div>
+            </div>
+            <div class="conn-card">
+              <span class="strip" style="background:#cfc36a"></span>
+              <div class="body"><span class="appicon" style="background:#f26722"><svg width="18" height="18" viewBox="0 0 18 18" fill="#fff"><path d="M9 2c2.4 3.2 4.5 5.4 4.5 8a4.5 4.5 0 1 1-9 0C4.5 7.4 6.6 5.2 9 2Z"/></svg></span><span class="cname">Title name that is sooo descriptive that it goes multiline and gets truncated Title name that is sooo ...</span><span class="tag-update">Update available</span><button class="dots">···</button></div>
+              <div class="meta"><span>Created on <b>Mar 1, 2020 12:30 PM</b></span><span>Never released</span></div>
+            </div>
+            <div class="conn-card">
+              <span class="strip" style="background:#b9aede"></span>
+              <div class="body"><span class="appicon" style="background:#16181d">w</span><span class="cname">New Connector 1</span><button class="dots">···</button></div>
+              <div class="meta"><span>Created on <b>Mar 1, 2020 12:30 PM</b></span><span>Never released</span></div>
+            </div>
+          </div>
+        </div>
+        <aside class="sdk-rail">
+          <h3>Latest activity</h3>
+          <p class="act"><a>Azure Blob Storage</a> listing was published by Troy Barnes<br><span style="font-size:12px">10 Oct, 2020 at 12:30 PM</span></p>
+          <p class="act"><a>Blackline (version 11)</a> was updated by Troy Barnes<br><span style="font-size:12px">10 Oct, 2020 at 12:30 PM</span></p>
+          <p class="act"><a>Blackline</a> was created by Troy Barnes<br><span style="font-size:12px">10 Oct, 2020 at 12:30 PM</span></p>
+          <p class="act"><a>View activity audit ↗</a></p>
+          <hr>
+          <h3>Documentation</h3>
+          <p class="act">Refer to our documentation to find out how to build custom connectors to applications Workato currently doesn't support just yet. <a>Learn more ↗</a></p>
+          <hr>
+          <h3>Explore the community</h3>
+          <p class="act">Find the app you're looking for in our library of connectors built by community members. You can use them directly or as a starting point for your own custom connector! <a>Search connectors ↗</a></p>
+        </aside>
+      </div>
+    </main>
+  </div>
+  <div class="popup">
+        <header class="airo-header">
+          <span class="header-left"><span id="logoSlotP"></span><span class="beta">Beta</span></span>
+          <span class="hspacer"></span>
+          <button class="hflat">New chat</button>
+          <button class="hflat notif">Chat history</button>
+          <span class="hdivider"></span>
+          <button class="hicon" id="popupExpand" title="Fullscreen"></button>
+          <button class="hicon" id="popupClose" title="Close">✕</button>
+        </header>
+        <div class="chat" id="popupChat">
+          <div class="chat-started">Jun 21 12:13 PM: You started a general chat</div>
+        </div>
+        <div class="composer">
+          <div class="field" id="pField">
+            <textarea id="pInput" rows="2">Build a HubSpot CRM connector for Deals, Companies and Contacts. Create, update, search and archive on each, plus a trigger for new or updated deals.</textarea>
+            <div class="field-row"><span class="fspacer"></span><span class="actions">
+              <button class="attach" title="Attach file" id="pAttach"></button>
+              <button class="send" id="pSend" title="Send"></button>
+            </span></div>
+          </div>
+          <p class="disclaimer">AIRO (Beta) can make mistakes. Review content before usage.</p>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- ════ Scene 3 · fullscreen chat ════ -->
+<div class="scene" id="scene-chat">
+  <div class="fs-panel">
+    <header class="airo-header">
+      <span class="header-left"><span id="logoSlotF"></span><span class="beta">Beta</span></span>
+      <span class="hspacer"></span>
+      <button class="hflat">New chat</button>
+      <button class="hflat notif">Chat history</button>
+      <span class="hdivider"></span>
+      <button class="hicon" id="fsExit" title="Close">✕</button>
+    </header>
+    <div class="fs-chat-col"><div class="fs-inner">
+      <div class="chat-started">11:45 AM · Chat started</div>
+      <div class="chat" id="fsChat" style="padding:0;overflow:visible"></div>
+      <div style="flex:1"></div>
+    </div></div>
+    <div class="fs-composer composer">
+      <div class="field on-light"><textarea rows="2" placeholder="Ask AIRO anything" disabled></textarea>
+        <div class="field-row"><span class="fspacer"></span><span class="actions">
+          <button class="attach" id="fsAttach"></button><button class="send stop-mode" id="fsStop"></button>
+        </span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ Scene 4 · editor ════ -->
+<div class="scene" id="scene-editor">
+  <div class="app-bar">
+    <span class="title"><span class="chip" id="blueprintSlot"></span>App Provisioning</span>
+    <button class="exit" id="exitBtn"><svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.2"><path d="m1 1 6 6M7 1 1 7"/></svg>Exit</button>
+  </div>
+  <div class="ed-main">
+    <section class="ed-left">
+      <div class="editor-bar">
+        <span class="fname">hubspot_connector.rb</span>
+        <span class="fstate" id="edState">empty</span>
+        <span class="espacer"></span>
+        <span class="rev-cluster" id="revCluster" style="display:none">
+          <button class="stepbtn" id="hunkPrev" title="Previous change"></button>
+          <button class="stepbtn" id="hunkNext" title="Next change"></button>
+          <span class="rev-divider"></span>
+          <span class="rev-count"><span><span id="hunkPos">1</span> / <span id="hunkTotal">5</span></span><span class="muted" id="chgWord">changes</span></span>
+        </span>
+        <button id="restoreBtn" style="display:none">Compare to Restore</button>
+        <span class="tool-div" id="toolDiv" style="display:none"></span>
+        <button class="toolbtn" title="Keyboard shortcuts" id="tb1"></button>
+        <button class="toolbtn" title="Fullscreen" id="tb2"></button>
+      </div>
+      <div class="code-wrap" id="codeWrap"></div>
+    </section>
+    <div class="resize-handle"></div>
+    <aside class="ed-right">
+      <header class="airo-header">
+        <span class="header-left"><span id="logoSlotE"></span><span class="beta">Beta</span></span>
+        <span class="hspacer"></span>
+        <button class="hflat">New chat</button>
+        <button class="hflat notif">Chat history</button>
+        <span class="hdivider"></span>
+        <button class="hicon" title="Collapse" id="hCollapse"></button>
+      </header>
+      <nav class="tabs">
+        <button class="tab active" data-pane="pane-chat">Chat</button>
+        <button class="tab" data-pane="pane-cp">Checkpoints</button>
+        <button class="tab" data-pane="pane-test">Test code</button>
+        <button class="tab" data-pane="pane-recent">Recent tests</button>
+      </nav>
+      <div class="tabpane active chat" id="pane-chat" style="padding:0 24px 12px"></div>
+      <div class="tabpane" id="pane-cp"></div>
+      <div class="tabpane" id="pane-test">
+        <p class="pane-note">Run the connection test against your linked HubSpot sandbox.</p>
+        <button class="test-btn">Run connection test</button>
+      </div>
+      <div class="tabpane" id="pane-recent">
+        <div class="test-row"><span>Connection test</span><span class="ok">Passed · 12:22 PM</span></div>
+        <div class="test-row"><span>search_deals dry run</span><span class="ok">Passed · 12:21 PM</span></div>
+      </div>
+      <div class="composer" id="edComposer">
+        <div class="field" id="edField">
+          <textarea id="edInput" rows="2" placeholder="Ask AIRO anything"></textarea>
+          <div class="field-row"><span class="fspacer"></span><span class="actions">
+            <button class="attach" title="Attach file" id="edAttach"></button>
+            <button class="send" id="edSend" title="Send"></button>
+          </span></div>
+        </div>
+        <p class="disclaimer">AIRO (Beta) can make mistakes. Review content before usage.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ════ Scene 5 · restore compare ════ -->
+<div id="scene-restore">
+  <div class="restore-bar">
+    <span class="rtitle" id="restoreTitle">Restore to "Initial HubSpot build"?</span>
+    <span class="rspacer"></span>
+    <button class="btn-restore" id="doRestore">Restore</button>
+    <span class="rbar-div"></span>
+    <button class="btn-cancel" id="cancelRestore">✕ Cancel</button>
+  </div>
+  <div class="restore-heads"><h4 id="rpaneLeftTitle">Select checkpoint</h4><h4>Current Environment</h4></div>
+  <div id="restoreNote" style="display:none">This checkpoint matches the current environment. Restoring will not change anything.</div>
+  <div class="rscroll"><div class="rcol" id="rcodeLeft"></div><div class="rcol" id="rcodeRight"></div></div>
+</div>
+
+<div class="proto">
+  <button data-scene="scene-sdk" class="on">1 · SDK</button>
+  <button id="protoPopup">2 · Popup</button>
+  <button data-scene="scene-editor">3 · Editor</button>
+  <button id="protoRestart">⟳ Restart</button>
+</div>
+
+<script>
+/* ═════════ real icon vectors (exported from Figma) ═════════ */
+const LOGOMARK_PATH = 'M0.0407709 1.86675C-0.200504 1.07538 0.678785 0.414981 1.371 0.867679L2.37391 1.52359C2.72687 1.75442 2.9876 2.10192 3.11065 2.50543L3.44632 3.60614C3.93402 5.20549 3.93402 6.91404 3.44632 8.51339L3.16522 9.43515C3.04783 9.82004 2.80492 10.1545 2.47535 10.3851L1.43062 11.1164C0.741572 11.5987 -0.168042 10.9376 0.0773189 10.1329L0.571119 8.51339C1.05883 6.91402 1.05883 5.20543 0.571119 3.60606L0.0407709 1.86675ZM4.11027 1.86682C3.86894 1.07543 4.74827 0.414972 5.4405 0.867679L11.3991 4.76444C12.1853 5.27864 12.2033 6.42495 11.4336 6.96364L5.50012 11.1164C4.81107 11.5987 3.90146 10.9376 4.14682 10.1329L4.64069 8.51339C5.12839 6.91403 5.12839 5.2055 4.64069 3.60614L4.11027 1.86682Z';
+let uidc = 0;
+function logomark(size){
+  const u = 'gm' + (++uidc);
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 12 12" fill="none"><path d="' + LOGOMARK_PATH + '" fill="url(#' + u + ')"/><path d="' + LOGOMARK_PATH + '" fill="#1A1D21" fill-opacity="0.03"/><defs><linearGradient id="' + u + '" x1="-4.74667" y1="-10.0431" x2="21.3937" y2="-9.59057" gradientUnits="userSpaceOnUse"><stop stop-color="#DDA4C1"/><stop offset="0.393109" stop-color="#1A57E5"/><stop offset="1" stop-color="#51C4F6"/></linearGradient></defs></svg>';
+}
+const AIRO_LOGO_TPL = `<svg width="57" height="12" viewBox="0 0 57 12" fill="none">
+<path d="M27.0096 11.7553L25.8924 8.8544H21.1865L20.0693 11.7553H18.1565L22.5577 0.134925H24.5043L28.9055 11.7553H27.0096ZM23.5395 2.37804L21.7959 7.25218H25.283L23.5395 2.37804Z" fill="url(#AW1)"/>
+<path d="M30.5384 11.7553V0.134925H32.3327V11.7553H30.5384Z" fill="url(#AW1)"/>
+<path d="M39.8677 1.78775H37.1931V5.85234H39.8C41.1034 5.85234 41.6282 4.82354 41.6282 3.82848C41.6282 2.85028 41.1203 1.78775 39.8677 1.78775ZM40.4771 7.42083L43.541 11.7553H41.3573L38.4458 7.4883H37.1931V11.7553H35.3819V0.134925H39.9354C42.4407 0.134925 43.4902 1.99013 43.4902 3.82848C43.4902 5.51503 42.6269 7.20158 40.4771 7.42083Z" fill="url(#AW1)"/>
+<path d="M46.9785 5.9704C46.9785 8.31471 48.7728 10.1699 51.0749 10.1699C53.394 10.1699 55.1884 8.31471 55.1884 5.9704C55.1884 3.62609 53.394 1.75401 51.0749 1.75401C48.7728 1.75401 46.9785 3.62609 46.9785 5.9704ZM45.1842 5.9704C45.1842 2.68162 47.7571 0 51.0749 0C54.4097 0 56.9996 2.68162 56.9996 5.9704C56.9996 9.27604 54.4097 11.9239 51.0749 11.9239C47.7571 11.9239 45.1842 9.27604 45.1842 5.9704Z" fill="url(#AW1)"/>
+<path d="M1.04169 1.30315C0.767515 0.403875 1.76671 -0.346579 2.55332 0.16785L3.69298 0.9132C4.09407 1.17551 4.39036 1.57039 4.5302 2.02894L4.91164 3.27973C5.46584 5.09718 5.46584 7.03871 4.91164 8.85616L4.5922 9.90361C4.4588 10.341 4.18277 10.721 3.80826 10.9831L2.62107 11.8142C1.83806 12.3622 0.804405 11.6109 1.08322 10.6965L1.64436 8.85616C2.19857 7.03869 2.19858 5.09712 1.64436 3.27965L1.04169 1.30315ZM5.66612 1.30324C5.39189 0.403935 6.39112 -0.346589 7.17774 0.16785L13.9488 4.59598C14.8423 5.1803 14.8628 6.48293 13.9881 7.09508L7.24549 11.8142C6.46249 12.3622 5.42884 11.6109 5.70765 10.6965L6.26887 8.85616C6.82308 7.03871 6.82307 5.09719 6.26887 3.27973L5.66612 1.30324Z" fill="url(#AW2)"/>
+<defs>
+<linearGradient id="AW1" x1="-16.0377" y1="-6.20663" x2="64.6914" y2="-17.3029" gradientUnits="userSpaceOnUse"><stop stop-color="#51C4F6"/><stop offset="0.606891" stop-color="#1A57E5"/><stop offset="1" stop-color="#DDA4C1"/></linearGradient>
+<linearGradient id="AW2" x1="-4.39858" y1="-12.2308" x2="25.3063" y2="-11.7165" gradientUnits="userSpaceOnUse"><stop stop-color="#DDA4C1"/><stop offset="0.393109" stop-color="#1A57E5"/><stop offset="1" stop-color="#51C4F6"/></linearGradient>
+</defs></svg>`;
+function airoLogo(){
+  const u = ++uidc;
+  return AIRO_LOGO_TPL.split('AW1').join('AW1_' + u).split('AW2').join('AW2_' + u);
+}
+const LOGOMARK_GRAY = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="' + LOGOMARK_PATH + '" fill="#a3abb4"/></svg>';
+const ICON_PAPERCLIP = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.87511 8.5006C2.27208 7.87149 2.27208 6.85152 2.87511 6.22242L7.6066 1.28638C8.61165 0.237875 10.2412 0.237875 11.2462 1.28638C12.2513 2.33488 12.2513 4.03483 11.2462 5.08333L6.15076 10.3991C4.74369 11.867 2.46237 11.867 1.0553 10.3991C-0.351768 8.93117 -0.351768 6.55123 1.0553 5.08333L5.05888 0.90668C5.25988 0.69698 5.58579 0.69698 5.7868 0.90668C5.98781 1.11638 5.98781 1.45637 5.7868 1.66607L1.78323 5.84272C0.778175 6.89123 0.778175 8.59118 1.78323 9.63968C2.78828 10.6882 4.41779 10.6882 5.42284 9.63968L10.5183 4.32394C11.1213 3.69484 11.1213 2.67487 10.5183 2.04577C9.91526 1.41667 8.93756 1.41667 8.33452 2.04577L3.60303 6.98181C3.40202 7.19151 3.40202 7.5315 3.60303 7.7412C3.80471 7.9516 4.12955 7.95128 4.32989 7.74232L8.69848 3.18485C8.8995 2.97515 9.2254 2.97515 9.42641 3.18485C9.62742 3.39455 9.62742 3.73455 9.42641 3.94425L5.05781 8.50171C4.4541 9.13148 3.47745 9.12898 2.87511 8.5006Z" fill="currentColor"/></svg>';
+const ICON_STOP = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M0 3C0 1.34315 1.34315 0 3 0H9C10.6569 0 12 1.34315 12 3V9C12 10.6569 10.6569 12 9 12H3C1.34315 12 0 10.6569 0 9V3Z" fill="#1a1d21"/></svg>';
+const LOGOMARK_WHITE = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="' + LOGOMARK_PATH + '" fill="#ffffff"/></svg>';
+function sendFilledHTML(){ return '<span class="ic-rest">' + logomark(12) + '</span><span class="ic-hover">' + LOGOMARK_WHITE + '</span>'; }
+const ICON_FULLSCREEN = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M7 17H10V18H7C6.44772 18 6 17.5523 6 17V14H7V17ZM18 17C18 17.5523 17.5523 18 17 18H14V17H17V14H18V17ZM10 7H7V10H6V7C6 6.44772 6.44772 6 7 6H10V7ZM17 6C17.5523 6 18 6.44772 18 7V10H17V7H14V6H17Z" fill="currentColor"/></svg>';
+const ICON_COLLAPSE = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M18 6L17 6V18H18V6ZM11.1109 8.11091C10.9157 7.91565 10.5991 7.91565 10.4038 8.11091C10.2085 8.30617 10.2085 8.62276 10.4038 8.81802L13.0858 11.5H6L6 12.5L13.0858 12.5L10.4038 15.182C10.2085 15.3772 10.2085 15.6938 10.4038 15.8891C10.5991 16.0843 10.9157 16.0843 11.1109 15.8891L15 12L11.1109 8.11091Z" fill="currentColor"/></svg>';
+const ICON_KEYBOARD = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.1667 7.66667C13.627 7.66667 14 8.10184 14 8.63889V11.3611C14 11.8981 13.627 12.3333 13.1667 12.3333H6.83333C6.373 12.3333 6 11.8981 6 11.3611V8.63889C6 8.13606 6.32833 7.71606 6.75767 7.67056C6.79766 7.66622 7.43767 7.66659 7.56402 7.66667L13.1667 7.66667ZM8.42857 10.9333H11.5714C11.6503 10.9333 11.7143 11.0378 11.7143 11.1666C11.7143 11.2954 11.6503 11.4 11.5714 11.4H8.42857C8.34971 11.4 8.28571 11.2954 8.28571 11.1666C8.28571 11.0378 8.34971 10.9333 8.42857 10.9333ZM8.00114 9.99998C8.00114 10.1288 8.08648 10.2333 8.19162 10.2333H8.3821C8.48724 10.2333 8.57257 10.1288 8.57257 9.99998C8.57257 9.87118 8.48724 9.76665 8.3821 9.76665H8.19162C8.08648 9.76665 8.00114 9.87118 8.00114 9.99998ZM9.144 9.99998C9.144 9.87118 9.22933 9.76665 9.33448 9.76665H9.52495C9.6301 9.76665 9.71543 9.87118 9.71543 9.99998C9.71543 10.1288 9.6301 10.2333 9.52495 10.2333H9.33448C9.22933 10.2333 9.144 10.1288 9.144 9.99998ZM10.4773 9.76665C10.3722 9.76665 10.2869 9.87118 10.2869 9.99998C10.2869 10.1288 10.3722 10.2333 10.4773 10.2333H10.6678C10.773 10.2333 10.8583 10.1288 10.8583 9.99998C10.8583 9.87118 10.773 9.76665 10.6678 9.76665H10.4773ZM11.4297 9.99998C11.4297 9.87118 11.515 9.76665 11.6202 9.76665H11.8107C11.9158 9.76665 12.0011 9.87118 12.0011 9.99998C12.0011 10.1288 11.9158 10.2333 11.8107 10.2333H11.6202C11.515 10.2333 11.4297 10.1288 11.4297 9.99998ZM12.5726 9.99998C12.5726 10.1288 12.6579 10.2333 12.763 10.2333H12.9535C13.0587 10.2333 13.144 10.1288 13.144 9.99998C13.144 9.87118 13.0587 9.76665 12.9535 9.76665H12.763C12.6579 9.76665 12.5726 9.87118 12.5726 9.99998ZM7.23924 9.76665C7.34438 9.76665 7.42971 9.87118 7.42971 9.99998C7.42971 10.1288 7.34438 10.2333 7.23924 10.2333H7.04876C6.94362 10.2333 6.85829 10.1288 6.85829 9.99998C6.85829 9.87118 6.94362 9.76665 7.04876 9.76665H7.23924ZM8.00114 8.83333C8.00114 8.96213 8.08648 9.06666 8.19162 9.06666H8.3821C8.48724 9.06666 8.57257 8.96213 8.57257 8.83333C8.57257 8.70453 8.48724 8.6 8.3821 8.6H8.19162C8.08648 8.6 8.00114 8.70453 8.00114 8.83333ZM9.144 8.83333C9.144 8.70453 9.22933 8.6 9.33448 8.6H9.52495C9.6301 8.6 9.71543 8.70453 9.71543 8.83333C9.71543 8.96213 9.6301 9.06666 9.52495 9.06666H9.33448C9.22933 9.06666 9.144 8.96213 9.144 8.83333ZM10.4773 8.6C10.3722 8.6 10.2869 8.70453 10.2869 8.83333C10.2869 8.96213 10.3722 9.06666 10.4773 9.06666H10.6678C10.773 9.06666 10.8583 8.96213 10.8583 8.83333C10.8583 8.70453 10.773 8.6 10.6678 8.6H10.4773ZM11.4297 8.83333C11.4297 8.70453 11.515 8.6 11.6202 8.6H11.8107C11.9158 8.6 12.0011 8.70453 12.0011 8.83333C12.0011 8.96213 11.9158 9.06666 11.8107 9.06666H11.6202C11.515 9.06666 11.4297 8.96213 11.4297 8.83333ZM12.5726 8.83333C12.5726 8.96213 12.6579 9.06666 12.763 9.06666H12.9535C13.0587 9.06666 13.144 8.96213 13.144 8.83333C13.144 8.70453 13.0587 8.6 12.9535 8.6H12.763C12.6579 8.6 12.5726 8.70453 12.5726 8.83333ZM7.23924 8.6C7.34438 8.6 7.42971 8.70453 7.42971 8.83333C7.42971 8.96213 7.34438 9.06666 7.23924 9.06666H7.04876C6.94362 9.06666 6.85829 8.96213 6.85829 8.83333C6.85829 8.70453 6.94362 8.6 7.04876 8.6H7.23924ZM7.23924 10.9333H7.04876C6.94362 10.9333 6.85829 11.0378 6.85829 11.1666C6.85829 11.2954 6.94362 11.4 7.04876 11.4H7.23924C7.34438 11.4 7.42971 11.2954 7.42971 11.1666C7.42971 11.0378 7.34438 10.9333 7.23924 10.9333ZM12.7611 11.4H12.9516C13.0568 11.4 13.1421 11.2954 13.1421 11.1666C13.1421 11.0378 13.0568 10.9333 12.9516 10.9333H12.7611C12.656 10.9333 12.5707 11.0378 12.5707 11.1666C12.5707 11.2954 12.656 11.4 12.7611 11.4Z" fill="currentColor"/></svg>';
+const ICON_EXPAND = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><g transform="translate(-28 0)"><path fill-rule="evenodd" clip-rule="evenodd" d="M41.6667 6C41.8507 6 42 6.14933 42 6.33333V8.5C42 8.63467 41.919 8.75633 41.7943 8.808C41.754 8.825 41.7103 8.83333 41.6667 8.83333C41.5783 8.83333 41.4933 8.798 41.431 8.73533L40.7013 8.00567C40.6687 7.973 40.616 7.973 40.5833 8.00567L39.128 9.461C38.9653 9.62367 38.7013 9.62367 38.5387 9.461C38.376 9.29833 38.376 9.03433 38.5387 8.87167L39.994 7.418C40.0267 7.38533 40.0267 7.33267 39.994 7.3L39.2643 6.569C39.2017 6.50633 39.1667 6.42167 39.1667 6.33333C39.1667 6.14933 39.316 6 39.5 6H41.6667ZM36.7357 13.431C36.7983 13.4937 36.8333 13.5783 36.8333 13.6667C36.8333 13.8507 36.684 14 36.5 14H34.3333C34.1493 14 34 13.8507 34 13.6667V11.5C34 11.4117 34.035 11.3267 34.0977 11.264C34.2277 11.134 34.4387 11.134 34.569 11.264L35.2987 11.9937C35.3313 12.0263 35.384 12.0263 35.4167 11.9937L36.872 10.5377C37.0347 10.375 37.2987 10.375 37.4613 10.5377C37.624 10.7003 37.624 10.9643 37.4613 11.127L36.0057 12.5827C35.9733 12.615 35.9737 12.6677 36.006 12.7L36.7357 13.431Z" fill="currentColor"/></g></svg>';
+const ICON_BLUEPRINT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 20C6.55228 20 7 20.4477 7 21V23C7 23.5523 6.55228 24 6 24C5.44772 24 5 23.5523 5 23V21C5 20.4477 5.44772 20 6 20ZM18 20C18.5523 20 19 20.4477 19 21V23C19 23.5523 18.5523 24 18 24C17.4477 24 17 23.5523 17 23V21C17 20.4477 17.4477 20 18 20ZM3 17C3.55228 17 4 17.4477 4 18C4 18.5523 3.55228 19 3 19H1C0.447715 19 0 18.5523 0 18C0 17.4477 0.447715 17 1 17H3ZM17 5C18.1046 5 19 5.89543 19 7V17C19 18.0357 18.2128 18.887 17.2041 18.9893L17 19H7L6.7959 18.9893C5.85435 18.8938 5.1062 18.1457 5.01074 17.2041L5 17V7C5 5.89543 5.89543 5 7 5H17ZM23 17C23.5523 17 24 17.4477 24 18C24 18.5523 23.5523 19 23 19H21C20.4477 19 20 18.5523 20 18C20 17.4477 20.4477 17 21 17H23ZM7 17H17V7H7V17ZM3 5C3.55228 5 4 5.44772 4 6C4 6.55228 3.55228 7 3 7H1C0.447715 7 0 6.55228 0 6C0 5.44772 0.447715 5 1 5H3ZM23 5C23.5523 5 24 5.44772 24 6C24 6.55228 23.5523 7 23 7H21C20.4477 7 20 6.55228 20 6C20 5.44772 20.4477 5 21 5H23ZM6 0C6.55228 0 7 0.447715 7 1V3C7 3.55228 6.55228 4 6 4C5.44772 4 5 3.55228 5 3V1C5 0.447715 5.44772 0 6 0ZM18 0C18.5523 0 19 0.447715 19 1V3C19 3.55228 18.5523 4 18 4C17.4477 4 17 3.55228 17 3V1C17 0.447715 17.4477 0 18 0Z" fill="currentColor"/></svg>';
+/* blue checkmark for completed steps (per review: checkmarks, not dots) */
+const ICON_CHECK = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="6" fill="#1a57e5"/><path d="m4 6.7 1.8 1.8L9.2 4.9" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+/* icon/checkpoint (288:24198): 12px clock-in-circle, stroke #586373 */
+const ICON_CHECKPOINT = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6.5 10.5C8.98528 10.5 11 8.48528 11 6C11 3.51472 8.98528 1.5 6.5 1.5C4.01472 1.5 2 3.51472 2 6C2 8.48528 4.01472 10.5 6.5 10.5Z" stroke="currentColor"/><path d="M6 3.75V6L7.5 7.25" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+/* Diff Viewer Control chevrons (288:24397/24399): 10px, disabled = #686868 via .stepbtn:disabled color */
+const ICON_CHEV_UP = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M4.99216 2.08502C4.82556 2.0847 4.6641 2.14279 4.53582 2.24922L0.257602 5.81879C-0.0456231 6.07114 -0.0871239 6.52182 0.164907 6.82541C0.416939 7.12901 0.867063 7.17056 1.17029 6.91822L4.99216 3.71989L8.81404 6.804C8.96135 6.92377 9.15026 6.97981 9.33896 6.95971C9.52766 6.93961 9.70058 6.84503 9.81942 6.69691C9.95143 6.54852 10.0157 6.35175 9.99674 6.15394C9.9778 5.95612 9.87736 5.77517 9.71959 5.65459L5.44138 2.20639C5.30941 2.11678 5.15124 2.07405 4.99216 2.08502Z" fill="currentColor"/></svg>';
+const ICON_CHEV_DOWN = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M4.99216 7.91498C4.82556 7.9153 4.6641 7.85721 4.53582 7.75078L0.257602 4.18121C-0.0456231 3.92886 -0.0871239 3.47818 0.164907 3.17459C0.416939 2.87099 0.867063 2.82944 1.17029 3.08178L4.99216 6.28011L8.81404 3.196C8.96135 3.07623 9.15026 3.02019 9.33896 3.04029C9.52766 3.06039 9.70058 3.15497 9.81942 3.30309C9.95143 3.45148 10.0157 3.64825 9.99674 3.84606C9.9778 4.04388 9.87736 4.22483 9.71959 4.34541L5.44138 7.79361C5.30941 7.88322 5.15124 7.92595 4.99216 7.91498Z" fill="currentColor"/></svg>';
+
+/* ═════════ code model: lines tagged with round r + hunk h ═════════ */
+const SEG = [
+ {t:"{"},{t:"  title: 'HubSpot',"},{t:""},
+ {t:"  connection: {"},
+ {t:"    fields: ["},
+ {t:"      { name: 'auth_type', control_type: 'select', default: 'oauth2',"},
+ {t:"        options: [['OAuth 2.0', 'oauth2'], ['Private App token', 'private_app']] },"},
+ {t:"      { name: 'client_id', optional: true },"},
+ {t:"      { name: 'client_secret', control_type: 'password', optional: true },"},
+ {t:"      { name: 'private_app_token', control_type: 'password', optional: true }"},
+ {t:"    ],"},
+ {t:"    authorization: {"},
+ {t:"      type: 'multi',"},
+ {t:"      selected: lambda { |connection| connection['auth_type'] },"},
+ {t:"      options: {"},
+ {t:"        oauth2: {"},
+ {t:"          type: 'oauth2',"},
+ {t:"          token_url: lambda { |_c| 'https://api.hubapi.com/oauth/v1/token' },"},
+ {t:"          apply: lambda { |_c, token| headers('Authorization': \"Bearer #{token}\") }"},
+ {t:"        },"},
+ {t:"        private_app: {"},
+ {t:"          type: 'custom_auth',"},
+ {t:"          apply: lambda { |c| headers('Authorization': \"Bearer #{c['private_app_token']}\") }"},
+ {t:"        }"},
+ {t:"      }"},
+ {t:"    },"},
+ {t:"    base_uri: lambda { |_c| 'https://api.hubapi.com' }"},
+ {t:"  },"},{t:""},
+ {t:"  test: lambda { |_c| get('/crm/v3/objects/deals', limit: 1) },"},{t:""},
+ {t:"  object_definitions: {"},
+ {t:"    deal:    { fields: lambda { |_c| [", s:'del', r:2, h:1},
+ {t:"      { name: 'dealname' }, { name: 'amount', type: 'number' } ] } },", s:'del', r:2, h:1},
+ {t:"    deal:    { fields: lambda { |_c| [", s:'add', r:2, h:1},
+ {t:"      { name: 'dealname' },      { name: 'amount', type: 'number' },", s:'add', r:2, h:1},
+ {t:"      { name: 'dealstage' },     { name: 'pipeline' },", s:'add', r:2, h:1},
+ {t:"      { name: 'closedate', type: 'date_time' }, { name: 'hs_object_id' },", s:'add', r:2, h:1},
+ {t:"      { name: 'hs_lastmodifieddate', type: 'date_time' },", s:'add', r:2, h:1},
+ {t:"      { name: 'hubspot_owner_id' },", s:'add', r:3, h:6},
+ {t:"      { name: 'hubspot_owner_trigger' },", s:'add', r:3, h:6},
+ {t:"      # ...44 properties total, incl. all hs_* system fields ] } },", s:'add', r:2, h:1},
+ {t:"    company: { fields: lambda { |_c| COMPANY_PROPS } },"},
+ {t:"    contact: { fields: lambda { |_c| CONTACT_PROPS } }"},
+ {t:"  },"},{t:""},
+ {t:"  actions: {"},
+ {t:"    # Deals / Companies / Contacts each expose create, update, search, archive (12 total)"},
+ {t:"    create_deal: {"},
+ {t:"      input_fields:  lambda { |od| od['deal'] },"},
+ {t:"      execute:       lambda { |_c, i| post('/crm/v3/objects/deals', properties: i['properties']) },"},
+ {t:"      output_fields: lambda { |od| od['deal'] }"},
+ {t:"    },"},
+ {t:"    update_deal: {"},
+ {t:"      input_fields: lambda { |od| [{ name: 'id', optional: false }] + od['deal'] },"},
+ {t:"      execute:      lambda { |_c, i| patch(\"/crm/v3/objects/deals/#{i['id']}\", properties: i['properties']) }"},
+ {t:"    },"},
+ {t:"    search_deals: {"},
+ {t:"      input_fields: lambda { |_od| [{ name: 'query' }] },", s:'del', r:2, h:2},
+ {t:"      input_fields: lambda { |_od| [", s:'add', r:2, h:2},
+ {t:"        { name: 'advanced', type: 'boolean', control_type: 'checkbox',", s:'add', r:2, h:2},
+ {t:"          hint: 'On = pass raw HubSpot Search filterGroups JSON' },", s:'add', r:2, h:2},
+ {t:"        { name: 'dealname' }, { name: 'dealstage' },", s:'add', r:2, h:2},
+ {t:"        { name: 'filter_groups', label: 'filterGroups (JSON)', ngIf: 'input.advanced == \"true\"' },", s:'add', r:2, h:2},
+ {t:"        { name: 'limit', type: 'integer', default: 100 },", s:'add', r:2, h:2},
+ {t:"        { name: 'after', hint: 'Paging cursor from the previous page' } ] },", s:'add', r:2, h:2},
+ {t:"      execute: lambda { |_c, i| post('/crm/v3/objects/deals/search', q: i['query']) },", s:'del', r:2, h:3},
+ {t:"      execute: lambda { |_c, i|", s:'add', r:2, h:3},
+ {t:"        body = i['advanced'] ? { filterGroups: parse_json(i['filter_groups']) }", s:'add', r:2, h:3},
+ {t:"                             : { filterGroups: call(:build_filters, i) }", s:'add', r:2, h:3},
+ {t:"        body[:limit] = i['limit']; body[:after] = i['after'] if i['after'].present?", s:'add', r:2, h:3},
+ {t:"        post('/crm/v3/objects/deals/search', body) },", s:'add', r:2, h:3},
+ {t:"      output_fields: lambda { |od| od['deal'] }", s:'del', r:2, h:4},
+ {t:"      output_fields: lambda { |od| [{ name: 'results', type: 'array', of: 'object',", s:'add', r:2, h:4},
+ {t:"        properties: od['deal'] }, { name: 'paging' }] }", s:'add', r:2, h:4},
+ {t:"    },"},
+ {t:"    archive_deal: {"},
+ {t:"      input_fields: lambda { |_od| [{ name: 'id', optional: false }] },"},
+ {t:"      execute:      lambda { |_c, i| delete(\"/crm/v3/objects/deals/#{i['id']}\") }"},
+ {t:"    }"},
+ {t:"    # ...same shape for companies (/companies) and contacts (/contacts)"},
+ {t:"  },"},{t:""},
+ {t:"  triggers: {"},
+ {t:"    new_or_updated_deal: {", s:'del', r:4, h:7},
+ {t:"    deal_changed: {", s:'add', r:4, h:7},
+ {t:"      poll: lambda { |_c, _i, closure|"},
+ {t:"        since = closure&.[]('cursor') || 1.hour.ago.to_i * 1000"},
+ {t:"        page  = post('/crm/v3/objects/deals/search',"},
+ {t:"                 filterGroups: [{ filters: [{ propertyName: 'hs_lastmodifieddate',"},
+ {t:"                   operator: 'GTE', value: since }] }], limit: 100)"},
+ {t:"        { events: page['results'],"},
+ {t:"          next_poll: { 'cursor' => page['results'].last&.dig('properties', 'hs_lastmodifieddate') },"},
+ {t:"          can_poll_more: page['paging'].present? }"},
+ {t:"      },"},
+ {t:"      dedup: lambda { |deal| deal['id'] },", s:'del', r:2, h:5},
+ {t:"      dedup: lambda { |deal| \"#{deal['id']}@#{deal.dig('properties', 'hs_lastmodifieddate')}\" },", s:'add', r:2, h:5},
+ {t:"      output_fields: lambda { |od| od['deal'] }"},
+ {t:"    }"},
+ {t:"  }"},
+ {t:"}"}
+];
+function roundStats(r){
+  const adds = SEG.filter(l => l.s === 'add' && l.r === r).length;
+  const dels = SEG.filter(l => l.s === 'del' && l.r === r).length;
+  const hunks = [...new Set(SEG.filter(l => l.r === r).map(l => l.h))];
+  return { adds, dels, hunks };
+}
+
+/* chat rounds: after round 2, keep-chatting auto-accepts the pending round (PM decision) */
+const ROUNDS = [
+  { r: 2,
+    prefill: 'The Deal search output is missing most of the fields from the API response. Can you add them?',
+    step: 'Updating the deal schema and search action',
+    reason: 'The search response carries the full property set. Expanding the shared deal object definition and wrapping search output in results + paging so every field flows through.',
+    thought: 'Thought for 6s',
+    answer: '<p>Added the full Deal property set to the search output (44 fields), including amount, dealstage, pipeline, closedate and the hs_* system fields. 5 changes across object_definitions and search_deals. Review them in the editor.</p>',
+    cpName: 'Add deal search fields' },
+  { r: 3,
+    prefill: 'Also include the deal owner on every deal record.',
+    step: 'Adding owner fields to the deal schema',
+    reason: 'hubspot_owner_id and hubspot_owner_trigger live on the shared deal object definition, so every action and the trigger pick them up in one change.',
+    thought: 'Thought for 4s',
+    answer: '<p>Added hubspot_owner_id and hubspot_owner_trigger to the shared deal schema. Every action and the trigger now return the owner. 1 change to object_definitions.</p>',
+    cpName: 'Add deal owner fields' },
+  { r: 4,
+    prefill: 'Rename the trigger to deal_changed.',
+    step: 'Renaming the polling trigger',
+    reason: 'Renaming new_or_updated_deal to deal_changed. Existing recipes keep working against the stored trigger key until they are re-selected.',
+    thought: 'Thought for 3s',
+    answer: '<p>Renamed the trigger to deal_changed. Recipes referencing the old name keep working until re-selected. 1 change to triggers.</p>',
+    cpName: 'Rename trigger' }
+];
+let roundIdx = 0;
+
+/* ═════════ helpers ═════════ */
+const $ = id => document.getElementById(id);
+let timers = [], intervals = [];
+function clearAll(){ timers.forEach(clearTimeout); intervals.forEach(clearInterval); timers = []; intervals = []; }
+function later(fn, ms){ const t = setTimeout(fn, ms); timers.push(t); return t; }
+function every(fn, ms){ const i = setInterval(fn, ms); intervals.push(i); return i; }
+function showScene(id){
+  document.querySelectorAll('.scene').forEach(s => s.classList.toggle('active', s.id === id));
+  document.querySelectorAll('.proto button[data-scene]').forEach(b => b.classList.toggle('on', b.dataset.scene === id));
+}
+
+/* Fluid nav components: NavHeader_Airo 499:3550 + NavSidebar_Airo 501:3200, real exported vectors */
+const NAV = {"home": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"home\"><path id=\"Shape\" d=\"M13.7733 5.88681C14.0282 6.08378 14.075 6.45051 13.8781 6.70542C13.6812 6.96017 13.315 7.00749 13.0601 6.8108L12.25 6.18418V12.1821C12.25 12.8264 11.7277 13.3488 11.0834 13.3488H8.16671V9.84881C8.16671 9.20451 7.64432 8.6822 7.00004 8.68214C6.3557 8.68214 5.83337 9.20448 5.83337 9.84881V13.3488H2.9167C2.27237 13.3488 1.75003 12.8265 1.75003 12.1821V6.18418L0.939972 6.8108C0.685083 7.00762 0.318898 6.96021 0.121937 6.70542C-0.075051 6.45049 -0.0281709 6.0838 0.226755 5.88681L7.00004 0.653333L13.7733 5.88681Z\" fill=\"currentColor\"/><\/g><\/svg>", "project": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"project\"><g id=\"Shape\"><path d=\"M6.48741 0.179681C6.81501 0.0406989 7.185 0.0406993 7.5126 0.179681L13.4403 2.69445C14.1513 2.9961 14.1513 4.00382 13.4403 4.30547L7.5126 6.82024C7.185 6.95922 6.81501 6.95922 6.48741 6.82024L0.55974 4.30547C-0.151285 4.00382 -0.151285 2.9961 0.55974 2.69445L6.48741 0.179681Z\" fill=\"currentColor\"/><path d=\"M2.15276 5.99391C2.24713 6.21634 2.14331 6.47316 1.92087 6.56753L0.901472 7L6.82914 9.51477C6.93834 9.5611 7.06167 9.5611 7.17087 9.51477L13.0985 7L12.0791 6.56753C11.8567 6.47316 11.7529 6.21634 11.8473 5.99391C11.9416 5.77147 12.1984 5.66765 12.4209 5.76202L13.4403 6.19449C14.1513 6.49614 14.1513 7.50386 13.4403 7.80551L7.5126 10.3203C7.185 10.4593 6.81501 10.4593 6.48741 10.3203L0.55974 7.80551C-0.151285 7.50386 -0.151284 6.49614 0.55974 6.19449L1.57914 5.76202C1.80158 5.66765 2.05839 5.77147 2.15276 5.99391Z\" fill=\"currentColor\"/><path d=\"M1.92087 10.0675C2.14331 9.97316 2.24713 9.71634 2.15276 9.49391C2.05839 9.27147 1.80158 9.16765 1.57914 9.26202L0.55974 9.69449C-0.151284 9.99614 -0.151285 11.0039 0.55974 11.3055L6.48741 13.8203C6.81501 13.9593 7.185 13.9593 7.5126 13.8203L13.4403 11.3055C14.1513 11.0039 14.1513 9.99614 13.4403 9.69449L12.4209 9.26202C12.1984 9.16765 11.9416 9.27147 11.8473 9.49391C11.7529 9.71634 11.8567 9.97316 12.0791 10.0675L13.0985 10.5L7.17087 13.0148C7.06167 13.0611 6.93834 13.0611 6.82914 13.0148L0.901472 10.5L1.92087 10.0675Z\" fill=\"currentColor\"/><\/g><\/g><\/svg>", "aihub": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"ai-hub\"><path id=\"Shape\" d=\"M13.4884 4.37329C13.8172 5.18457 14 6.07079 14 7C14 10.866 10.866 14 7 14C6.07079 14 5.18457 13.8172 4.37329 13.4884C4.69127 13.2339 4.94031 12.8979 5.09049 12.512C5.68892 12.7193 6.33106 12.8333 7 12.8333C10.2217 12.8333 12.8333 10.2217 12.8333 7C12.8333 6.33106 12.7193 5.68892 12.512 5.09049C12.8979 4.94031 13.2339 4.69127 13.4884 4.37329ZM2.91667 10.5C3.561 10.5 4.08333 11.0223 4.08333 11.6667C4.08333 12.311 3.561 12.8333 2.91667 12.8333C2.27233 12.8333 1.75 12.311 1.75 11.6667C1.75 11.0223 2.27233 10.5 2.91667 10.5ZM6.67643 2.53442C6.79559 2.24594 7.20441 2.24594 7.32357 2.53442L8.37516 5.08423C8.40117 5.14721 8.44479 5.20131 8.50106 5.23975L10.6589 6.71061C10.8628 6.84955 10.8628 7.15045 10.6589 7.28939L8.50106 8.76025C8.44479 8.79869 8.40117 8.85279 8.37516 8.91577L7.32357 11.4656C7.20441 11.7541 6.79559 11.7541 6.67643 11.4656L5.62484 8.91577C5.59883 8.85279 5.55521 8.79869 5.49894 8.76025L3.34106 7.28939C3.13725 7.15045 3.13725 6.84955 3.34106 6.71061L5.49894 5.23975C5.55521 5.20131 5.59883 5.14721 5.62484 5.08423L6.67643 2.53442ZM7 0C8.26009 0 9.44158 0.334424 10.463 0.917155C10.112 1.12886 9.82131 1.43042 9.62272 1.78988C8.83409 1.39211 7.94357 1.16667 7 1.16667C3.77834 1.16667 1.16667 3.77834 1.16667 7C1.16667 7.94357 1.39211 8.83409 1.78988 9.62272C1.43042 9.82131 1.12886 10.112 0.917155 10.463C0.334424 9.44158 0 8.26009 0 7C0 3.13401 3.13401 0 7 0ZM11.6667 1.75C12.311 1.75 12.8333 2.27233 12.8333 2.91667C12.8333 3.561 12.311 4.08333 11.6667 4.08333C11.0223 4.08333 10.5 3.561 10.5 2.91667C10.5 2.27233 11.0223 1.75 11.6667 1.75Z\" fill=\"currentColor\"/><\/g><\/svg>", "ops": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"operations-hub\"><path id=\"Shape\" fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M7.43441 3.44487C8.1892 3.2506 8.74691 2.56543 8.74691 1.75C8.74691 0.783502 7.96341 0 6.99691 0C6.03041 0 5.24691 0.783502 5.24691 1.75C5.24691 2.56543 5.80462 3.2506 6.55941 3.44487V4.62759L5.16109 5.43491L4.13684 4.84356C4.346 4.09275 4.03148 3.26717 3.32529 2.85945C2.48828 2.3762 1.418 2.66298 0.934749 3.49999C0.451499 4.33701 0.738281 5.40729 1.57529 5.89054C2.28147 6.29825 3.1537 6.15785 3.69933 5.60133L4.7236 6.19269V7.80733L3.69935 8.39868C3.15371 7.84215 2.28148 7.70174 1.57529 8.10945C0.73828 8.5927 0.451499 9.66298 0.934748 10.5C1.418 11.337 2.48828 11.6238 3.32529 11.1405C4.03147 10.7328 4.34599 9.90725 4.13684 9.15646L5.16111 8.5651L6.55941 9.37241V10.5551C5.80462 10.7494 5.24691 11.4346 5.24691 12.25C5.24691 13.2165 6.03041 14 6.99691 14C7.96341 14 8.74691 13.2165 8.74691 12.25C8.74691 11.4346 8.1892 10.7494 7.43441 10.5551V9.37241L8.83274 8.56509L9.85701 9.15645C9.64786 9.90725 9.96238 10.7328 10.6686 11.1405C11.5056 11.6238 12.5759 11.337 13.0591 10.5C13.5424 9.66298 13.2556 8.5927 12.4186 8.10945C11.7124 7.70174 10.8401 7.84215 10.2945 8.39868L9.27023 7.80731V6.19268L10.2945 5.60132C10.8401 6.15785 11.7124 6.29825 12.4186 5.89054C13.2556 5.40729 13.5424 4.33701 13.0591 3.5C12.5759 2.66298 11.5056 2.3762 10.6686 2.85945C9.96238 3.26717 9.64786 4.09274 9.85701 4.84354L8.83273 5.43491L7.43441 4.62759V3.44487Z\" fill=\"currentColor\"/><\/g><\/svg>", "platform": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"platform\"><path id=\"Shape\" fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M0 0.875C0 0.391751 0.391751 0 0.875 0H5.25V5.25H0V0.875ZM0 6.125H5.25V12.25H0.875C0.391751 12.25 0 11.8582 0 11.375V6.125ZM11.375 0H6.125V7H12.25V0.875C12.25 0.391751 11.8582 0 11.375 0ZM6.125 12.25H11.375C11.8582 12.25 12.25 11.8582 12.25 11.375V7.875H6.125V12.25ZM13.125 1.75C13.6082 1.75 14 2.14175 14 2.625V13.125C14 13.6082 13.6082 14 13.125 14L2.625 14C2.14175 14 1.75 13.6082 1.75 13.125H13.125V1.75Z\" fill=\"currentColor\"/><\/g><\/svg>", "tools": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"tools\"><path id=\"Shape\" d=\"M7.69672 1.82795C8.78337 0.741304 10.437 0.567219 11.7053 1.30569L9.7768 3.23421C9.44571 3.56531 9.44571 4.10212 9.7768 4.43321C10.1079 4.7643 10.6447 4.7643 10.9758 4.43321L12.9044 2.50457C13.6433 3.77296 13.4693 5.42692 12.3825 6.51372C11.3167 7.57953 9.7054 7.76744 8.44726 7.07744L4.02724 11.4975C4.00194 12.4088 3.25521 13.1398 2.33774 13.1398C1.40429 13.1398 0.647572 12.3831 0.647572 11.4497C0.647572 10.5162 1.40429 9.75949 2.33774 9.75949L2.34834 9.75952L6.89397 5.21389C6.51322 4.0626 6.78081 2.74387 7.69672 1.82795Z\" fill=\"currentColor\"/><\/g><\/svg>", "community": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"community\"><path id=\"Shape\" fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M2.33533 6.41658C2.48625 3.9714 3.57541 1.78012 5.24722 0.198337C2.39855 0.930082 0.248553 3.40376 0 6.41658H2.33533ZM3.21612e-09 7.58726C0.248511 10.5996 2.39782 13.0729 5.24576 13.8051C3.57455 12.2232 2.48591 10.0321 2.33527 7.58726H3.21612e-09ZM8.75425 13.8051C11.6022 13.0729 13.7515 10.5996 14 7.58726H11.6647C11.5141 10.0321 10.4255 12.2232 8.75425 13.8051ZM14 6.41658C13.7514 3.40375 11.6014 0.930073 8.75277 0.198333C10.4246 1.78012 11.5137 3.9714 11.6647 6.41658H14ZM3.5086 6.41658C3.66978 4.13477 4.76516 2.11091 6.41459 0.725195V6.41658H3.5086ZM7.58527 0.725084V6.41658H10.4914C10.3302 4.1347 9.23477 2.1108 7.58527 0.725084ZM3.50853 7.58726H6.41459V13.2796C4.76492 11.8937 3.66945 9.86948 3.50853 7.58726ZM7.58527 7.58726V13.2798C9.23502 11.8938 10.3305 9.86955 10.4915 7.58726H7.58527Z\" fill=\"currentColor\"/><\/g><\/svg>", "teams": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 14.0015 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"teams\"><g id=\"Shape\"><path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M0.851094 0.875C0.851094 0.391751 1.24284 0 1.72609 0H6.97609C7.45934 0 7.85109 0.391751 7.85109 0.875V5.86683L6.10109 6.45017V7H2.60109V7.875H6.10109V10.4653L6.10124 10.5H2.60109V11.375H6.2018C6.4257 12.3726 7.01204 13.2578 7.85109 13.8529V14H0.000156254V13.125H0.851094V0.875ZM2.60109 3.5H6.10109V4.375H2.60109V3.5Z\" fill=\"currentColor\"/><path d=\"M8.72609 5.57521L10.4892 4.9875L13.1011 5.85813V3.38389C13.1011 2.94845 12.7809 2.57927 12.3498 2.51769L8.72609 2.00001V5.57521Z\" fill=\"currentColor\"/><path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M14.0015 7.12074L10.4888 5.94983L6.97609 7.12074V10.3349C6.97609 11.5943 7.68765 12.7456 8.81411 13.3088L9.90185 13.8527C10.2714 14.0375 10.7063 14.0375 11.0758 13.8527L12.1635 13.3088C13.29 12.7456 14.0015 11.5943 14.0015 10.3349V7.12074ZM12.2261 7.45125L13.1265 7.7514V10.3349C13.1265 11.0798 12.7887 11.7734 12.2261 12.2327V7.45125ZM11.3511 7.15958L10.4888 6.87216L9.60109 7.16807V12.724L10.2932 13.0701C10.4163 13.1317 10.5613 13.1317 10.6845 13.0701L11.3511 12.7368V7.15958ZM8.72609 7.45974V12.2116C8.17876 11.7523 7.85109 11.0685 7.85109 10.3349V7.7514L8.72609 7.45974Z\" fill=\"currentColor\"/><\/g><\/g><\/svg>", "usage": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"usage-dashboard\"><path id=\"Shape\" fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M0.875 0C0.391751 0 0 0.391751 0 0.875V11.375C0 11.8582 0.391751 12.25 0.875 12.25H5.07736C4.63066 11.4778 4.375 10.5813 4.375 9.625C4.375 8.29353 4.87065 7.07783 5.68751 6.15234V2.62508H6.56251V5.36028C7.19965 4.90195 7.94367 4.58286 8.75001 4.44759V3.50008H9.62501V4.375C10.5813 4.375 11.4778 4.63066 12.25 5.07736V0.875C12.25 0.391751 11.8582 0 11.375 0H0.875ZM3.50001 4.37508H2.62501L2.62501 9.62508H3.50001V4.37508ZM9.625 13.125C11.558 13.125 13.125 11.558 13.125 9.625C13.125 7.692 11.558 6.125 9.625 6.125C7.692 6.125 6.125 7.692 6.125 9.625C6.125 11.558 7.692 13.125 9.625 13.125ZM9.625 14C12.0412 14 14 12.0412 14 9.625C14 7.20875 12.0412 5.25 9.625 5.25C7.20875 5.25 5.25 7.20875 5.25 9.625C5.25 12.0412 7.20875 14 9.625 14ZM9.18752 7H10.0625V7.45565C10.6833 7.55981 11.1562 8.09967 11.1562 8.75H10.2812C10.2812 8.50838 10.0854 8.3125 9.84374 8.3125H9.40624C9.16461 8.3125 8.96874 8.50838 8.96874 8.75C8.96874 8.99162 9.16461 9.1875 9.40624 9.1875H9.84374C10.5686 9.1875 11.1562 9.77513 11.1562 10.5C11.1562 11.1503 10.6833 11.6902 10.0625 11.7943V12.25H9.18752V11.7944C8.56674 11.6902 8.09371 11.1504 8.09371 10.5H8.96871C8.96871 10.7416 9.16459 10.9375 9.40621 10.9375H9.84374C10.0854 10.9375 10.2812 10.7416 10.2812 10.5C10.2812 10.2584 10.0854 10.0625 9.84374 10.0625H9.40624C8.68136 10.0625 8.09374 9.47487 8.09374 8.75C8.09374 8.09965 8.56675 7.55977 9.18752 7.45564V7Z\" fill=\"currentColor\"/><\/g><\/svg>", "logo": "<svg width=\"98\" height=\"16\" viewBox=\"0 0 98 16\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"Full logo\"><g id=\"Shape\"><path d=\"M24.8944 6.04036C26.4052 5.08694 26.8567 3.06534 25.9189 1.53811C24.9812 0.00204311 22.9928 -0.45701 21.4907 0.496408C20.5131 1.1228 20.0935 2.05306 19.976 3.30364C19.9442 3.5533 19.8634 3.77647 19.7484 3.9997C19.7001 4.09327 19.5526 4.37582 19.3128 4.52894C18.6703 4.94385 17.8107 4.74081 17.4026 4.07872L15.9178 1.65986C14.98 0.123798 12.9916 -0.335255 11.4895 0.618162C10.4996 1.24495 9.9613 2.33078 9.97867 3.4431C9.9613 3.89333 9.73555 4.33473 9.32745 4.59074L9.30811 4.603C8.66777 5.00154 7.82123 4.79599 7.41721 4.14051L5.94112 1.73931C5.00336 0.203249 3.01498 -0.255804 1.51284 0.697614C0.00200955 1.65103 -0.449502 3.67263 0.488252 5.19986L6.01058 14.1867C6.94834 15.7228 8.93672 16.1818 10.4389 15.2284C11.42 14.6105 11.9497 13.5423 11.9497 12.4476C11.9521 11.9687 12.1975 11.5122 12.6009 11.2558C13.2434 10.8409 14.1031 11.044 14.5111 11.7061L15.9786 14.0984C16.9163 15.6345 18.9047 16.0935 20.4068 15.1401C21.9177 14.1867 22.3692 12.1651 21.4314 10.6379L19.9346 8.19936C19.5426 7.54832 19.7448 6.68764 20.3895 6.27687C20.4924 6.20987 20.6002 6.15704 20.7089 6.1178C20.906 6.05866 21.1161 6.02532 21.3211 6.05679C21.4528 6.077 21.5763 6.11187 21.6994 6.16179C22.6772 6.66778 23.8882 6.67648 24.8944 6.04036Z\" fill=\"#111010\"/><path d=\"M64.8937 10.6565V14.3394H62.8824V3.23524e-08H64.8937V8.74719L68.3148 5.0516H70.9768L66.6092 9.72171L70.9768 14.3394H68.3148L64.8937 10.6565Z\" fill=\"#111010\"/><path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M49.2504 14.5383C51.8729 14.5383 54.0814 12.6091 54.0814 9.66566C54.0814 6.72221 51.8729 4.85272 49.2504 4.85272C46.6476 4.85272 44.4588 6.72221 44.4588 9.66566C44.4588 12.6091 46.6476 14.5383 49.2504 14.5383ZM46.4701 9.66566C46.4701 11.4158 47.7321 12.5495 49.2504 12.5495C50.7884 12.5495 52.0504 11.4158 52.0504 9.66566C52.0504 7.95528 50.7884 6.86143 49.2504 6.86143C47.7321 6.86143 46.4701 7.95528 46.4701 9.66566Z\" fill=\"#111010\"/><path d=\"M34.4681 14.3394L36.716 7.7564L39.0625 14.3394H40.7386L44.1104 5.0516H41.9414L39.7921 11.3164L37.6625 5.0516H35.7695L33.64 11.3164L31.5104 5.0516H29.3413L32.8118 14.3394H34.4681Z\" fill=\"#111010\"/><path d=\"M57.703 14.3394V10.9982C57.703 8.53204 58.4326 6.78188 60.1678 6.78188C60.5622 6.78188 61.0157 6.84154 61.5284 7.10009L61.8636 5.21071C61.5678 5.01183 60.8777 4.85272 60.227 4.85272C59.0833 4.85272 58.1763 5.52892 57.703 7.17964V5.0516H55.672V14.3394H57.703Z\" fill=\"#111010\"/><path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M75.7323 14.5383C76.8759 14.5383 78.2168 14.0212 78.8281 13.0069V14.3394H80.8393V5.0516H78.8281V6.36422C78.1971 5.31015 76.8365 4.85272 75.7323 4.85272C73.2477 4.85272 71.059 6.72221 71.059 9.68555C71.059 12.6489 73.2477 14.5383 75.7323 14.5383ZM73.1491 9.66566C73.1491 11.376 74.4308 12.5495 75.9689 12.5495C77.4675 12.5495 78.8083 11.4954 78.8083 9.66566C78.8083 7.83595 77.3492 6.84154 75.9689 6.84154C74.4308 6.84154 73.1491 7.95528 73.1491 9.66566Z\" fill=\"#111010\"/><path d=\"M85.7821 14.3394V6.7421H87.7342V5.0516H85.7821V1.53139H83.7511V5.0516H82.0948V6.7421H83.7511V14.3394H85.7821Z\" fill=\"#111010\"/><path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M97.8826 9.66566C97.8826 12.6091 95.6742 14.5383 93.0516 14.5383C90.4488 14.5383 88.26 12.6091 88.26 9.66566C88.26 6.72221 90.4488 4.85272 93.0516 4.85272C95.6742 4.85272 97.8826 6.72221 97.8826 9.66566ZM93.0516 12.5495C91.5333 12.5495 90.2713 11.4158 90.2713 9.66566C90.2713 7.95528 91.5333 6.86143 93.0516 6.86143C94.5897 6.86143 95.8517 7.95528 95.8517 9.66566C95.8517 11.4158 94.5897 12.5495 93.0516 12.5495Z\" fill=\"#111010\"/><\/g><\/g><\/svg>", "chevron": "<svg width=\"8\" height=\"8\" viewBox=\"0 0 8 8\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"chevron-expanded\"><g id=\"Shape\"><path d=\"M1.97556 3.15019L4.16667 1.07082L6.35778 3.15019C6.42494 3.2166 6.4921 3.2166 6.55926 3.15019L6.94963 2.77665C7.01679 2.71025 7.01679 2.64384 6.94963 2.57743L4.26741 0.0373541C4.24222 0.0124514 4.20864 0 4.16667 0C4.12469 0 4.09111 0.0124514 4.06593 0.0373541L1.3837 2.57743C1.31654 2.64384 1.31654 2.71025 1.3837 2.77665L1.77407 3.15019C1.84124 3.2166 1.90839 3.2166 1.97556 3.15019Z\" fill=\"currentColor\"/><path d=\"M1.97556 4.84981L4.16667 6.92918L6.35778 4.84981C6.42494 4.7834 6.4921 4.7834 6.55926 4.84981L6.94963 5.22335C7.01679 5.28975 7.01679 5.35616 6.94963 5.42257L4.26741 7.96265C4.24222 7.98755 4.20864 8 4.16667 8C4.12469 8 4.09111 7.98755 4.06593 7.96265L1.3837 5.42257C1.31654 5.35616 1.31654 5.28975 1.3837 5.22335L1.77407 4.84981C1.84124 4.7834 1.90839 4.7834 1.97556 4.84981Z\" fill=\"currentColor\"/><\/g><\/g><\/svg>", "env": "<svg width=\"12\" height=\"12\" viewBox=\"0 0 12.0001 12\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><g id=\"environment\"><g id=\"Shape\"><path d=\"M3.70384 5.50001H5.02092L3.81722 6.90433L5.03329 8.32309H3.71622L2.50014 6.90433L3.70384 5.50001Z\" fill=\"white\"/><path d=\"M5.25332 8.32309L6.05991 5.50001H7.05991L6.25332 8.32309H5.25332Z\" fill=\"white\"/><path d=\"M8.50014 6.90433L7.29643 5.50001H8.61351L9.81722 6.90433L8.60114 8.32309H7.28406L8.50014 6.90433Z\" fill=\"white\"/><path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M0.000139475 2.00001C0.000139475 1.44773 0.447855 1.00001 1.00014 1.00001H11.0001C11.5524 1.00001 12.0001 1.44773 12.0001 2.00001V10C12.0001 10.5523 11.5524 11 11.0001 11H1.00014C0.447855 11 0.000139475 10.5523 0.000139475 10V2.00001ZM2.00014 3.00001H1.00014L1.00014 10H11.0001V4.00001H4.00014V3.00001H3.00014V4.00001H2.00014V3.00001Z\" fill=\"white\"/><\/g><\/g><\/svg>"};
+function railHTML(){
+  const fluid = ['home','project','aihub','ops','platform','tools'];
+  const fluid2 = ['community','teams','usage'];
+  return '<button class="rail-airo railAiro"><span class="cell-logo">' + logomark(14) + '<span class="nbadge">4</span></span><span class="cell-plus"><span><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M5 1v8M1 5h8"/></svg></span></span></button>' +
+    '<span class="rail-sep"></span>' +
+    fluid.map((k, i) => '<span class="rail-fluid' + (i === 0 ? ' selected' : '') + '">' + NAV[k] + '</span>').join('') +
+    '<span class="rail-sep"></span>' +
+    fluid2.map(k => '<span class="rail-fluid">' + NAV[k] + '</span>').join('') +
+    '<span class="rail-foot">' + NAV.logo + '</span>';
+}
+function navHeaderHTML(){
+  return '<span class="switcher"><span class="sw-chip" style="background:#68abec">w</span><span class="sw-label">Workato Design</span><span class="sw-chevron">' + NAV.chevron + '</span></span>' +
+    '<span class="crumb-slash"></span>' +
+    '<span class="switcher"><span class="sw-chip" style="background:#1a57e5">' + NAV.env + '</span><span class="sw-label">Development</span><span class="sw-chevron">' + NAV.chevron + '</span></span>' +
+    '<span class="nav-spacer"></span>' +
+    '<button class="avatar24">s</button>';
+}
+document.querySelectorAll('[data-navhdr]').forEach(n => n.innerHTML = navHeaderHTML());
+$('rail1').innerHTML = railHTML();
+
+/* icon slots */
+$('logoSlotP').innerHTML = airoLogo();
+$('logoSlotF').innerHTML = airoLogo();
+$('logoSlotE').innerHTML = airoLogo();
+$('newCardMark').innerHTML = logomark(20);
+$('blueprintSlot').innerHTML = ICON_BLUEPRINT;
+$('pAttach').innerHTML = ICON_PAPERCLIP;
+$('fsAttach').innerHTML = ICON_PAPERCLIP;
+$('edAttach').innerHTML = ICON_PAPERCLIP;
+$('pSend').innerHTML = sendFilledHTML();
+$('edSend').innerHTML = sendFilledHTML();
+$('fsStop').innerHTML = ICON_STOP;
+$('tb1').innerHTML = ICON_KEYBOARD;
+$('tb2').innerHTML = ICON_EXPAND;
+$('hCollapse').innerHTML = ICON_COLLAPSE;
+$('popupExpand').innerHTML = ICON_FULLSCREEN;
+$('hunkPrev').innerHTML = ICON_CHEV_UP;
+$('hunkNext').innerHTML = ICON_CHEV_DOWN;
+
+/* thinking block (blue CHECKMARK for done steps) */
+function makeThink(container){
+  const think = document.createElement('div');
+  think.className = 'think';
+  const head = document.createElement('button');
+  head.className = 'think-head working';
+  head.innerHTML = logomark(12) + '<span class="wlabel">AIRO is working&hellip;</span>';
+  const steps = document.createElement('ol');
+  steps.className = 'steps';
+  think.append(head, steps);
+  container.appendChild(think);
+  return { think, head, steps };
+}
+function addStep(T, label){
+  const li = document.createElement('li');
+  li.className = 'step';
+  li.innerHTML = '<span class="glyph"><span class="spinner"></span></span><span class="slabel">' + label + '</span>';
+  T.steps.appendChild(li);
+  const reason = document.createElement('div');
+  reason.className = 'reason';
+  T.steps.appendChild(reason);
+  return { li, reason };
+}
+function doneStep(row, keep){
+  row.li.querySelector('.glyph').innerHTML = ICON_CHECK;
+  if (!keep) row.reason.classList.add('past');
+}
+function typeInto(el, text, scroller){
+  let i = 0;
+  const iv = every(() => {
+    i += 4; el.textContent = text.slice(0, i);
+    if (scroller) scroller.scrollTop = scroller.scrollHeight;
+    if (i >= text.length) clearInterval(iv);
+  }, 28);
+}
+function collapseThink(T, label){
+  T.head.className = 'think-head done';
+  T.head.innerHTML = logomark(12) + '<span>' + label + '</span><span class="caret">&#9660;</span>';
+  T.think.classList.add('collapsed');
+  T.think.querySelectorAll('.reason.past').forEach(r => r.classList.remove('past'));
+  T.head.onclick = () => T.think.classList.toggle('collapsed');
+}
+
+/* ═════════ Scene 1 → 2 ═════════ */
+document.querySelectorAll('.railAiro').forEach(b => b.onclick = openPopup);
+$('buildWithAiro').onclick = openPopup;
+function openPopup(){
+  clearAll();
+  showScene('scene-sdk');
+  $('popupChat').innerHTML = '<div class="chat-started">Jun 21 12:13 PM: You started a general chat</div>';
+  $('pInput').value = 'Build a HubSpot CRM connector for Deals, Companies and Contacts. Create, update, search and archive on each, plus a trigger for new or updated deals.';
+  $('pInput').disabled = false;
+  $('pSend').innerHTML = sendFilledHTML();
+  $('pSend').classList.remove('stop-mode');
+  $('pSend').setAttribute('data-tip', 'Send');
+  document.querySelector('.popup').classList.add('open');
+}
+$('popupClose').onclick = () => document.querySelector('.popup').classList.remove('open');
+$('popupExpand').onclick = () => showScene('scene-chat');
+$('fsExit').onclick = () => showScene('scene-sdk');
+
+const USER_MSG = 'Build a HubSpot CRM connector for Deals, Companies and Contacts. Create, update, search and archive on each, plus a trigger for new or updated deals.';
+$('pSend').onclick = () => {
+  if ($('pSend').classList.contains('stop-mode')) return;
+  $('pInput').value = '';
+  $('pInput').disabled = true;
+  $('pSend').innerHTML = ICON_STOP;
+  $('pSend').classList.add('stop-mode');
+  $('pSend').setAttribute('data-tip', 'Stop generating');
+  const b = document.createElement('div');
+  b.className = 'bubble-user';
+  b.textContent = USER_MSG;
+  $('popupChat').appendChild(b);
+  const T = makeThink($('popupChat'));
+  const steps = [
+    ['Reading the Workato SDK docs', 'The user wants a HubSpot CRM connector. Starting with the Workato connector SDK conventions so the connection, object_definitions and actions follow the right shape before I touch the HubSpot API.', 2600],
+    ['Reading the HubSpot deals API', 'HubSpot exposes deals via /crm/v3/objects/deals. I\u2019ll map the create, update, search and archive endpoints, note the required properties, and check how search filters and pagination work.', 2800],
+    ['Creating the connector', 'Scaffolding connection and test first, then one shared deal schema reused across create, update, search and the trigger.', 3000],
+    ['Validating the connector', 'Running the SDK linter and a dry run of the connection test. No errors.', 2200]
+  ];
+  let prev = null, t = 200;
+  steps.forEach(([label, reason, dur]) => {
+    later(() => {
+      if (prev) doneStep(prev);
+      prev = addStep(T, label);
+      typeInto(prev.reason, reason, $('popupChat'));
+    }, t);
+    t += dur;
+  });
+  /* no auto-fullscreen: when generation completes, go straight to the side-by-side editor */
+  later(() => enterEditor(true), t + 300);
+};
+
+/* ═════════ Scene 3 · fullscreen continuation ═════════ */
+function startFullscreen(){
+  const fsChat = $('fsChat');
+  fsChat.innerHTML = '';
+  const b = document.createElement('div');
+  b.className = 'bubble-user';
+  b.textContent = USER_MSG;
+  fsChat.appendChild(b);
+  const T = makeThink(fsChat);
+  const r1 = addStep(T, 'Reading the Workato SDK docs');
+  doneStep(r1);
+  r1.reason.textContent = 'The user wants a HubSpot CRM connector. Starting with the Workato connector SDK conventions so the connection, object_definitions and actions follow the right shape before I touch the HubSpot API.';
+  r1.reason.classList.add('past');
+  const r2 = addStep(T, 'Reading the HubSpot deals API');
+  typeInto(r2.reason, 'HubSpot exposes deals via /crm/v3/objects/deals. I’ll map the create, update, search and archive endpoints, note the required properties, and check how search filters and pagination (the after cursor) work so the actions cover them.', $('scene-chat').querySelector('.fs-chat-col'));
+  later(() => enterEditor(), 3400);
+}
+
+/* ═════════ Scene 4 · editor ═════════ */
+const codeWrap = $('codeWrap');
+const edChat = $('pane-chat');
+let applied = new Set();
+let pending = null;       /* round number under review */
+let previewCp = null;     /* checkpoint previewed in the editor (311:28315) */
+let curHunk = 0, curHunks = [];
+let checkpoints = [];
+
+function currentSet(){ const s = new Set(applied); if (pending !== null) s.add(pending); return s; }
+function previewDiffRounds(){
+  const cur = currentSet(), out = new Set();
+  for (const r of [2, 3, 4]) if (previewCp.snapshot.has(r) !== cur.has(r)) out.add(r);
+  return out;
+}
+function lineVisible(l){
+  if (!l.s) return true;
+  if (l.s === 'add') return applied.has(l.r) || l.r === pending;
+  return !applied.has(l.r);           /* del: visible until its round is applied (struck while pending) */
+}
+function renderCode(streamedCount){
+  codeWrap.innerHTML = '';
+  let n = 0;
+  const cur = currentSet();
+  const diffR = previewCp ? previewDiffRounds() : null;
+  const rows = [];
+  for (const l of SEG){
+    let show, mark = '';
+    if (diffR && l.r && diffR.has(l.r)){ show = true; mark = l.s; }
+    else if (!diffR && pending !== null && l.r === pending){ show = true; mark = l.s; }
+    else { show = l.s ? (l.s === 'add' ? cur.has(l.r) : !cur.has(l.r)) : true; }
+    if (show) rows.push({ l, mark });
+  }
+  const list = streamedCount !== undefined ? rows.slice(0, streamedCount) : rows;
+  for (const { l, mark } of list){
+    n++;
+    let cls = 'code-line';
+    if (mark === 'del') cls += ' del';
+    if (mark === 'add') cls += ' add';
+    if (mark && l.h === curHunks[curHunk]) cls += ' cur-hunk';
+    const div = document.createElement('div');
+    div.className = cls;
+    div.innerHTML = '<span class="gut">' + n + '</span><span class="sign">' + (mark === 'del' ? '-' : mark === 'add' ? '+' : '') + '</span><span class="src"></span>';
+    div.querySelector('.src').textContent = l.t;
+    if (mark && l.h) div.dataset.hunk = l.h;
+    codeWrap.appendChild(div);
+  }
+  return n;
+}
+function setToolbar(){
+  const active = pending !== null || previewCp !== null;
+  $('revCluster').style.display = active ? 'flex' : 'none';
+  $('restoreBtn').style.display = previewCp ? 'inline-block' : 'none';
+  $('toolDiv').style.display = previewCp ? 'inline-block' : 'none';
+  document.querySelector('.editor-bar').classList.toggle('previewing', !!previewCp);
+  if (active){
+    $('hunkTotal').textContent = curHunks.length;
+    $('chgWord').textContent = curHunks.length === 1 ? 'change' : 'changes';
+    $('hunkPos').textContent = Math.min(curHunk + 1, Math.max(curHunks.length, 1));
+  }
+  const fn = document.querySelector('.editor-bar .fname');
+  if (previewCp){ fn.textContent = previewCp.name; $('edState').textContent = previewCp.time; }
+  else { fn.textContent = 'hubspot_connector.rb'; }
+}
+function gotoHunk(i){
+  if (!pending) return;
+  curHunk = Math.max(0, Math.min(curHunks.length - 1, i));
+  $('hunkPos').textContent = curHunk + 1;
+  $('hunkPrev').disabled = curHunk === 0;
+  $('hunkNext').disabled = curHunk === curHunks.length - 1;
+  codeWrap.querySelectorAll('.code-line').forEach(el => el.classList.toggle('cur-hunk', Number(el.dataset.hunk) === curHunks[curHunk]));
+  const first = codeWrap.querySelector('[data-hunk="' + curHunks[curHunk] + '"]');
+  if (first) first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+$('hunkPrev').onclick = () => gotoHunk(curHunk - 1);
+$('hunkNext').onclick = () => gotoHunk(curHunk + 1);
+
+function cpDivider(text){
+  const d = document.createElement('div');
+  d.className = 'cp-divider';
+  d.innerHTML = '<span class="cptext">' + ICON_CHECKPOINT + (text || 'Checkpoint created') + '</span>';
+  edChat.appendChild(d);
+}
+function addCheckpoint(name, plus, minus){
+  checkpoints.push({ name, time: 'just now', plus, minus, snapshot: new Set(applied) });
+  renderCheckpoints();
+}
+function renderCheckpoints(){
+  const pane = $('pane-cp');
+  pane.innerHTML = checkpoints.length ? '' : '<p class="pane-note">No checkpoints yet. A checkpoint is created each time a round of changes is accepted.</p>';
+  checkpoints.slice().reverse().forEach(cp => {
+    const c = document.createElement('button');
+    c.className = 'cp-card';
+    c.innerHTML = '<span class="cp-meta">' + ICON_CHECKPOINT.replace('width="12" height="12"', 'width="14" height="14"') + cp.time + '</span>' +
+      '<span class="cp-row"><span class="cp-title">' + cp.name + '</span>' +
+      '<span class="hotkey-group"><span class="hotkey plus">+' + (cp.plus || 0).toLocaleString('en-US') + '</span>' +
+      '<span class="hotkey minus">-' + (cp.minus || 0) + '</span></span></span>';
+    c.onclick = () => {
+      pane.querySelectorAll('.cp-card').forEach(x => x.classList.remove('selected'));
+      c.classList.add('selected');
+      enterPreview(cp);
+    };
+    pane.appendChild(c);
+  });
+}
+function scrollEdChat(){ edChat.scrollTop = edChat.scrollHeight; }
+function airoMsg(html){
+  const m = document.createElement('div');
+  m.className = 'airo-msg';
+  m.innerHTML = html;
+  edChat.appendChild(m);
+  scrollEdChat();
+  return m;
+}
+function msgActions(){
+  const a = document.createElement('div');
+  a.className = 'msg-actions';
+  a.innerHTML = '<button title="Copy"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.1"><rect x="3.5" y="3.5" width="7" height="7" rx="1"/><path d="M8.5 3.5v-1a1 1 0 0 0-1-1h-5a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1"/></svg></button>' +
+    '<button title="Good response"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M3.5 5.5v5m0-5 2-4a1.2 1.2 0 0 1 2.3.5V4h2.4a1 1 0 0 1 1 1.2l-.8 4a1 1 0 0 1-1 .8H3.5m0-4.5h-2v5h2"/></svg></button>' +
+    '<button title="Bad response"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.1" transform="rotate(180)"><path d="M3.5 5.5v5m0-5 2-4a1.2 1.2 0 0 1 2.3.5V4h2.4a1 1 0 0 1 1 1.2l-.8 4a1 1 0 0 1-1 .8H3.5m0-4.5h-2v5h2"/></svg></button>';
+  edChat.appendChild(a);
+}
+/* empty input = idle gray send (sampled from golden 311:26869); filled = pastel gradient + logomark */
+function syncSend(inputEl, btn){
+  if (btn.classList.contains('stop-mode')) return;
+  const empty = !inputEl.value.trim();
+  btn.classList.toggle('idle', empty);
+  btn.innerHTML = empty ? LOGOMARK_GRAY : sendFilledHTML();
+  if (empty) btn.removeAttribute('data-tip'); else btn.setAttribute('data-tip', 'Send');
+}
+function setSendState(generating){
+  $('edSend').innerHTML = generating ? ICON_STOP : sendFilledHTML();
+  $('edSend').classList.toggle('stop-mode', generating);
+  $('edSend').setAttribute('data-tip', generating ? 'Stop generating' : 'Send');
+  $('edInput').disabled = generating;
+  if (!generating) syncSend($('edInput'), $('edSend'));
+}
+
+function enterEditor(instant){
+  showScene('scene-editor');
+  document.querySelector('.popup').classList.remove('open');
+  edChat.innerHTML = '';
+  checkpoints = []; renderCheckpoints();
+  applied = new Set(); pending = null; roundIdx = 0;
+  setToolbar();
+  $('edState').textContent = 'empty';
+  codeWrap.innerHTML = '';
+  setSendState(true);
+
+  const b = document.createElement('div');
+  b.className = 'bubble-user';
+  b.textContent = USER_MSG;
+  edChat.appendChild(b);
+  const T = makeThink(edChat);
+  const done1 = addStep(T, 'Reading the Workato SDK docs');
+  doneStep(done1); done1.reason.textContent = 'The user wants a HubSpot CRM connector. Starting with the Workato connector SDK conventions so the connection, object_definitions and actions follow the right shape.'; done1.reason.classList.add('past');
+  const done2 = addStep(T, 'Reading the HubSpot deals API');
+  doneStep(done2); done2.reason.textContent = 'HubSpot exposes deals via /crm/v3/objects/deals; mapped create, update, search and archive endpoints, required properties, and after-cursor pagination.'; done2.reason.classList.add('past');
+
+  const r3 = addStep(T, 'Creating the connector');
+  const baseCount = SEG.filter(lineVisible).length;
+  if (instant){
+    doneStep(r3);
+    r3.reason.textContent = 'Scaffolding connection and test first so credentials can be verified on their own, then one shared deal schema reused across create, update, search and the trigger.';
+    r3.reason.classList.add('past');
+    const r4i = addStep(T, 'Validating the connector');
+    doneStep(r4i, true);
+    r4i.reason.textContent = 'Running the SDK linter and a dry run of the connection test. No errors.';
+    renderCode();
+    $('edState').textContent = baseCount + ' lines · draft';
+    collapseThink(T, 'Thought for 14s');
+    round1Answer();
+    return;
+  }
+  typeInto(r3.reason, 'Scaffolding connection and test first so credentials can be verified on their own, then one shared deal schema reused across create, update, search and the trigger.', edChat);
+  $('edState').textContent = 'AIRO is writing…';
+  let count = 0;
+  const iv = every(() => {
+    count += 2;
+    renderCode(Math.min(count, baseCount));
+    codeWrap.scrollTop = codeWrap.scrollHeight;
+    if (count >= baseCount){
+      clearInterval(iv);
+      doneStep(r3);
+      const r4 = addStep(T, 'Validating the connector');
+      typeInto(r4.reason, 'Running the SDK linter and a dry run of the connection test. No errors.', edChat);
+      later(() => {
+        doneStep(r4, true);
+        $('edState').textContent = baseCount + ' lines · draft';
+        collapseThink(T, 'Thought for 14s');
+        round1Answer();
+      }, 2200);
+    }
+  }, 120);
+}
+
+function round1Answer(){
+  airoMsg('<p>Your HubSpot connector is ready. 12 actions across 3 objects:</p>' +
+    '<table class="chat-table"><tr><th>Object</th><th>Permissions</th></tr>' +
+    '<tr><td>Deals</td><td>Create, Update, Search, Archive</td></tr>' +
+    '<tr><td>Companies</td><td>Create, Update, Search, Archive</td></tr>' +
+    '<tr><td>Contacts</td><td>Create, Update, Search, Archive</td></tr></table>' +
+    '<div class="spec-h">Search: dual mode per action</div>' +
+    '<ul><li>Simple mode: individual fields (dealname, dealstage, email) auto-built into HubSpot filter groups</li>' +
+    '<li>Advanced mode: toggle field accepts raw HubSpot Search API JSON (filterGroups)</li>' +
+    '<li>Both support limit and after-cursor pagination</li></ul>' +
+    '<div class="spec-h">1 polling trigger: new_or_updated_deal</div>' +
+    '<ul><li>Polls POST /crm/v3/objects/deals/search filtered by hs_lastmodifieddate</li>' +
+    '<li>Dedup on deal id + last-modified timestamp</li>' +
+    '<li>Cursor stored as last-seen hs_lastmodifieddate in milliseconds</li></ul>');
+  msgActions();
+  initialPending = true;
+  const card = document.createElement('div');
+  card.className = 'change-card';
+  card.id = 'changeCard';
+  card.innerHTML = '<span>1 change in current version</span>' +
+    '<span class="chipgroup"><span class="cp-chip plus">+' + SEG.filter(lineVisible).length + '</span><span class="cp-chip minus">\u22120</span>' +
+    '<button id="discardBtn">Discard</button></span>';
+  edChat.appendChild(card);
+  $('discardBtn').onclick = discardPending;
+  setSendState(false);
+  $('edInput').value = ROUNDS[0].prefill;
+  syncSend($('edInput'), $('edSend'));
+  scrollEdChat();
+}
+
+/* keep-chatting auto-accept (PM decision: continuing = accept + checkpoint; Discard = reject, no checkpoint) */
+let initialPending = false;
+function acceptPending(){
+  const cc = $('changeCard'); if (cc) cc.remove();   /* keep-chatting: the card simply disappears */
+  if (initialPending){
+    initialPending = false;
+    addCheckpoint('Initial HubSpot build', SEG.filter(lineVisible).length, 0);
+    cpDivider();
+    return;
+  }
+  if (pending === null) return;
+  const round = ROUNDS[roundIdx - 1];
+  const st = roundStats(pending);
+  applied.add(pending);
+  pending = null;
+  renderCode(); setToolbar();
+  $('edState').textContent = SEG.filter(lineVisible).length + ' lines · saved';
+  addCheckpoint(round.cpName, st.adds, st.dels);
+  cpDivider();
+}
+function discardPending(){
+  if (initialPending){
+    initialPending = false;
+    const cc0 = $('changeCard'); if (cc0) cc0.remove();
+    codeWrap.innerHTML = '';
+    $('edState').textContent = 'empty';
+    const chip0 = document.createElement('div');
+    chip0.className = 'action-chip';
+    chip0.textContent = 'Discard changes';
+    edChat.appendChild(chip0);
+    airoMsg('<p>No problem, I\u2019ve discarded the draft connector. Tell me what you\u2019d like to build instead.</p>');
+    scrollEdChat();
+    return;
+  }
+  if (pending === null) return;
+  pending = null;
+  renderCode(); setToolbar();
+  $('edState').textContent = SEG.filter(lineVisible).length + ' lines · draft';
+  const cc = $('changeCard'); if (cc) cc.remove();
+  const chip = document.createElement('div');
+  chip.className = 'action-chip';
+  chip.textContent = 'Discard changes';
+  edChat.appendChild(chip);
+  airoMsg('<p>No problem, I’ve discarded those changes. Everything is back to the previous checkpoint, and no new checkpoint was created. Let me know what you’d like to do instead.</p>');
+  msgActions();
+  scrollEdChat();
+}
+
+$('edSend').onclick = () => {
+  if ($('edSend').classList.contains('stop-mode')) return;
+  const msg = $('edInput').value.trim();
+  if (!msg) return;
+  exitPreview();
+  acceptPending();                      /* continuing the chat accepts the open round */
+  $('edInput').value = '';
+  const b = document.createElement('div');
+  b.className = 'bubble-user';
+  b.textContent = msg;
+  edChat.appendChild(b);
+  scrollEdChat();
+  setSendState(true);
+  const T = makeThink(edChat);
+  if (roundIdx < ROUNDS.length){
+    const round = ROUNDS[roundIdx++];
+    const r = addStep(T, round.step);
+    typeInto(r.reason, round.reason, edChat);
+    later(() => {
+      doneStep(r, true);
+      collapseThink(T, round.thought);
+      startDiffRound(round);
+    }, 3200);
+  } else {
+    const r = addStep(T, 'Considering the request');
+    typeInto(r.reason, 'This scripted prototype covers three change rounds; replay to walk them again.', edChat);
+    later(() => {
+      doneStep(r, true);
+      collapseThink(T, 'Thought for 2s');
+      airoMsg('<p>Happy to keep going. Replay the prototype to walk the scripted rounds again, or explore the Checkpoints tab.</p>');
+      setSendState(false);
+    }, 2400);
+  }
+};
+
+function startDiffRound(round){
+  exitPreview();   /* a new round arriving takes over the editor */
+  const st = roundStats(round.r);
+  pending = round.r;
+  curHunks = st.hunks; curHunk = 0;
+  renderCode(); setToolbar();
+  $('edState').textContent = 'pending changes';
+  airoMsg(round.answer);
+  msgActions();
+  const card = document.createElement('div');
+  card.className = 'change-card';
+  card.id = 'changeCard';
+  card.innerHTML = '<span>' + st.hunks.length + (st.hunks.length === 1 ? ' change' : ' changes') + ' in current version</span>' +
+    '<span class="chipgroup"><span class="cp-chip plus">+' + st.adds + '</span><span class="cp-chip minus">−' + st.dels + '</span>' +
+    '<button id="discardBtn">Discard</button></span>';
+  edChat.appendChild(card);
+  $('discardBtn').onclick = discardPending;
+  setSendState(false);
+  if (roundIdx < ROUNDS.length) $('edInput').value = ROUNDS[roundIdx].prefill;
+  syncSend($('edInput'), $('edSend'));
+  $('edInput').placeholder = 'Keep chatting to accept, or Discard in the card above';
+  gotoHunk(0);
+  scrollEdChat();
+}
+
+/* tabs */
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+  document.querySelectorAll('.tabpane').forEach(p => p.classList.toggle('active', p.id === t.dataset.pane));
+  $('edComposer').style.display = t.dataset.pane === 'pane-chat' ? 'flex' : 'none';
+  if (t.dataset.pane !== 'pane-cp') exitPreview();
+});
+$('exitBtn').onclick = () => showScene('scene-sdk');
+
+/* checkpoint preview (311:28315): inline diff + Restore in the toolbar */
+function enterPreview(cp){
+  previewCp = cp;
+  const diffR = previewDiffRounds();
+  curHunks = [...new Set(SEG.filter(l => l.r && diffR.has(l.r)).map(l => l.h))];
+  curHunk = 0;
+  renderCode(); setToolbar();
+  if (curHunks.length) gotoHunk(0);
+}
+function exitPreview(){
+  if (!previewCp) return;
+  previewCp = null;
+  $('pane-cp').querySelectorAll('.cp-card').forEach(x => x.classList.remove('selected'));
+  curHunks = pending !== null ? roundStats(pending).hunks : [];
+  curHunk = 0;
+  renderCode(); setToolbar();
+  $('edState').textContent = pending !== null ? 'pending changes' : SEG.filter(lineVisible).length + ' lines · draft';
+}
+$('restoreBtn').onclick = () => { if (previewCp) openRestore(previewCp); };
+
+/* ═════════ Scene 5 · restore (single scroller = synced panes) ═════════ */
+let restoreTarget = null;
+function visibleIn(l, snapshot){
+  if (!l.s) return true;
+  if (l.s === 'add') return snapshot.has(l.r);
+  return !snapshot.has(l.r);
+}
+function renderCompare(cp){
+  const L = $('rcodeLeft'), R = $('rcodeRight');
+  L.innerHTML = ''; R.innerHTML = '';
+  const cur = new Set(applied);
+  if (pending !== null) cur.add(pending);   /* the editor's visible state counts as current */
+  let nl = 0, nr = 0;
+  for (const l of SEG.filter(x => visibleIn(x, cp.snapshot))){
+    nl++;
+    const hot = !visibleIn(l, cur);      /* in checkpoint, not in current → comes back (green) */
+    const d = document.createElement('div');
+    d.className = 'code-line' + (hot ? ' add' : '');
+    d.innerHTML = '<span class="gut">' + nl + '</span><span class="sign">' + (hot ? '+' : '') + '</span><span class="src"></span>';
+    d.querySelector('.src').textContent = l.t;
+    L.appendChild(d);
+  }
+  let diffs = 0;
+  for (const l of SEG.filter(x => visibleIn(x, cur))){
+    nr++;
+    const hot = !visibleIn(l, cp.snapshot);  /* in current, not in checkpoint → would be removed (red) */
+    if (hot) diffs++;
+    const d = document.createElement('div');
+    d.className = 'code-line' + (hot ? ' del' : '');
+    d.innerHTML = '<span class="gut">' + nr + '</span><span class="sign">' + (hot ? '-' : '') + '</span><span class="src"></span>';
+    d.querySelector('.src').textContent = l.t;
+    R.appendChild(d);
+  }
+  diffs += L.querySelectorAll('.add').length;
+  $('restoreNote').style.display = diffs === 0 ? 'flex' : 'none';
+}
+function openRestore(cp){
+  restoreTarget = cp;
+  $('restoreTitle').textContent = 'Restore to “' + cp.name + '”?';
+  $('rpaneLeftTitle').textContent = 'Select checkpoint: ' + cp.name;
+  renderCompare(cp);
+  $('scene-restore').classList.add('open');
+  const firstDiff = document.querySelector('#rcodeLeft .add, #rcodeRight .del');
+  if (firstDiff) firstDiff.scrollIntoView({ block: 'center' });
+}
+$('cancelRestore').onclick = () => $('scene-restore').classList.remove('open');
+$('doRestore').onclick = () => {
+  applied = new Set(restoreTarget.snapshot);
+  pending = null;
+  previewCp = null;
+  document.querySelectorAll('#pane-cp .cp-card').forEach(x => x.classList.remove('selected'));
+  curHunks = []; curHunk = 0;
+  renderCode(); setToolbar();
+  $('edState').textContent = 'restored · ' + restoreTarget.name;
+  $('scene-restore').classList.remove('open');
+  const d = document.createElement('div');
+  d.className = 'cp-divider';
+  d.innerHTML = '<span class="cptext">' + ICON_CHECKPOINT + 'Restored to “' + restoreTarget.name + '”</span>';
+  edChat.appendChild(d);
+  document.querySelector('.tab[data-pane="pane-chat"]').click();
+  scrollEdChat();
+};
+
+/* proto controls */
+document.querySelectorAll('.proto button[data-scene]').forEach(b => b.onclick = () => showScene(b.dataset.scene));
+$('protoPopup').onclick = openPopup;
+$('protoRestart').onclick = () => { clearAll(); location.reload(); };
+[['pField','pInput'],['edField','edInput']].forEach(([f, i]) => {
+  $(i).addEventListener('focus', () => $(f).classList.add('focused'));
+  $(i).addEventListener('blur', () => $(f).classList.remove('focused'));
+});
+$('pInput').addEventListener('input', () => syncSend($('pInput'), $('pSend')));
+$('edInput').addEventListener('input', () => syncSend($('edInput'), $('edSend')));
+</script>
+</body>
+</html>
