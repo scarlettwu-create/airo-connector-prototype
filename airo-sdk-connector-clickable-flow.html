@@ -266,30 +266,61 @@
   .test-row{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.7);border:1px solid var(--hairline);border-radius:8px;padding:10px 12px;font-size:13px}
   .test-row .ok{color:#5aa028;font-weight:600}
 
-  /* ════ Restore compare = modal OVERLAY on the dark editor (327:42013: inset 11px sides / 32px top, r12 top) ════ */
-  #scene-restore{display:none;position:fixed;top:32px;left:11px;right:11px;bottom:0;z-index:100;flex-direction:column;background:var(--surface);border-radius:12px 12px 0 0;box-shadow:0 -12px 48px rgba(0,0,0,.4);overflow:hidden}
+  /* ════ Restore compare = modal OVERLAY on the dark editor (327:42013 layout, DARK theme per Scarlett July 8):
+     inset 11px sides / 32px top, r12 top; panes reuse the editor's dark diff palette ════ */
+  #scene-restore{display:none;position:fixed;top:32px;left:11px;right:11px;bottom:0;z-index:100;flex-direction:column;background:var(--editor-surface);border-radius:12px 12px 0 0;box-shadow:0 -12px 48px rgba(0,0,0,.55);overflow:hidden}
   #scene-restore.open{display:flex}
-  .restore-bar{flex:none;height:44px;background:var(--surface);border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:16px;padding:0 24px}
-  .restore-bar .rtitle{font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--ink);text-transform:uppercase}
+  .restore-bar{flex:none;height:44px;background:var(--editor-toolbar);border-bottom:1px solid var(--editor-border);display:flex;align-items:center;gap:16px;padding:0 24px}
+  .restore-bar .rtitle{font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--editor-text);text-transform:uppercase}
   .restore-bar .rspacer{flex:1}
-  .btn-restore{height:24px;border:none;background:#133440;color:#fff;border-radius:4px;padding:4px 10px;font:600 12px/16px var(--sans);cursor:pointer}
-  .btn-restore:hover{background:#0c2630}
-  .rbar-div{width:1px;height:15px;background:var(--hairline-strong)}
-  .btn-cancel{height:24px;border:none;background:transparent;color:var(--neutral-fg);border-radius:4px;padding:4px 8px;font:600 12px/16px var(--sans);cursor:pointer}
-  .btn-cancel:hover{background:var(--surface-subtle)}
-  .restore-heads{flex:none;display:flex;gap:1px;background:var(--hairline-strong)}
-  #restoreNote{flex:none;align-items:center;justify-content:center;gap:8px;padding:8px 16px;background:var(--ai-tint);border-bottom:1px solid var(--hairline);font-size:13px;color:var(--ink-secondary)}
-  .restore-heads h4{flex:1;font-size:13px;font-weight:600;color:var(--ink);padding:14px 20px;background:var(--surface);border-bottom:1px solid var(--hairline)}
-  .rscroll{flex:1;overflow-y:auto;display:flex;gap:1px;background:var(--hairline-strong)}
-  .rcol{flex:1;background:var(--surface);padding:12px 0;min-width:0;user-select:none}
-  .rcol .code-line .src{color:var(--ink-body)}
-  .rcol .code-line .gut{color:rgba(19,52,64,.35)}
-  .rcol .code-line.add{background:#dcfce9}
-  .rcol .code-line.add .src{color:#065f46;text-decoration:none}
-  .rcol .code-line.add .sign{color:#059669}
-  .rcol .code-line.del{background:#fde8e8}
-  .rcol .code-line.del .src{color:#b91c1c;text-decoration:line-through}
-  .rcol .code-line.del .sign{color:#b91c1c}
+  .btn-restore{height:24px;border:none;background:#1a57e5;color:#fff;border-radius:4px;padding:4px 10px;font:600 12px/16px var(--sans);cursor:pointer}
+  .btn-restore:hover{background:#123c9f}
+  .rbar-div{width:1px;height:15px;background:rgba(255,255,255,.15)}
+  .btn-cancel{height:24px;border:none;background:transparent;color:rgba(255,255,255,.75);border-radius:4px;padding:4px 8px;font:600 12px/16px var(--sans);cursor:pointer}
+  .btn-cancel:hover{background:rgba(255,255,255,.08)}
+  .restore-heads{flex:none;display:flex;gap:1px;background:var(--editor-border)}
+  #restoreNote{flex:none;align-items:center;justify-content:center;gap:8px;padding:8px 16px;background:rgba(146,178,253,.12);border-bottom:1px solid var(--editor-border);font-size:13px;color:#92b2fd}
+  .restore-heads h4{flex:1;font-size:13px;font-weight:600;color:var(--editor-text);padding:14px 20px;background:var(--editor-toolbar);border-bottom:1px solid var(--editor-border)}
+  .rscroll{flex:1;overflow-y:auto;display:flex;gap:1px;background:var(--editor-border)}
+  .rcol{flex:1;background:var(--editor-surface);padding:12px 0;min-width:0;user-select:none}
+  /* code lines inherit the editor's dark .code-line .add/.del styles — no light overrides needed */
+
+  /* ════ Rollback confirmation modal (Figma 447:46721) ════ */
+  #rollbackModal{display:none;position:fixed;inset:0;z-index:120;background:rgba(58,66,77,.6);align-items:center;justify-content:center}
+  #rollbackModal.open{display:flex}
+  .rb-card{width:480px;background:#fff;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:18px;box-shadow:0 16px 48px rgba(0,0,0,.35)}
+  .rb-head{display:flex;align-items:center;justify-content:space-between}
+  .rb-head h3{font:700 16px/24px var(--sans);color:var(--ink)}
+  .rb-head button{border:none;background:transparent;color:var(--ink-secondary);font-size:13px;cursor:pointer;padding:4px;border-radius:4px}
+  .rb-head button:hover{background:var(--surface-subtle)}
+  .rb-sec h5{font:600 13px/18px var(--sans);color:var(--ink);margin-bottom:8px}
+  .rb-target{display:flex;align-items:center;gap:10px;border:1px solid var(--hairline);border-radius:8px;padding:10px 12px}
+  .rb-target .rb-name{font:600 14px/20px var(--sans);color:var(--ink-body)}
+  .rb-target .rb-time{font:400 12px/16px var(--sans);color:var(--ink-secondary)}
+  .rb-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .rb-list li{font:400 13px/19px var(--sans);color:var(--ink-secondary);padding-left:14px;position:relative}
+  .rb-list li::before{content:"";position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%;background:var(--ink-secondary)}
+  .rb-list li b{display:block;font:600 13px/19px var(--sans);color:var(--ink-body)}
+  .rb-foot{display:flex;justify-content:flex-end;gap:8px}
+  .rb-foot .rb-cancel{height:28px;border:1px solid var(--border-subtle);background:#fff;color:var(--ink-body);border-radius:4px;padding:5px 12px;font:600 12px/16px var(--sans);cursor:pointer}
+  .rb-foot .rb-cancel:hover{background:var(--surface-subtle)}
+  .rb-foot .rb-confirm{height:28px;border:none;background:#133440;color:#fff;border-radius:4px;padding:5px 14px;font:600 12px/16px var(--sans);cursor:pointer}
+  .rb-foot .rb-confirm:hover{background:#0c2630}
+
+  /* ════ Restoring overlay — Fluid proto-kit SpinnerComponent (w-spinner, large):
+     8 bars 4×8 r2, gap 4, color --text-primary, 1.2s cubic-bezier(.3,.02,.2,1), delay i*0.08s ════ */
+  #restoringOverlay{display:none;position:fixed;inset:0;z-index:130;background:rgba(58,66,77,.5);align-items:center;justify-content:center}
+  #restoringOverlay.open{display:flex}
+  .rst-card{background:#fff;border-radius:16px;padding:36px 44px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 16px 48px rgba(19,52,64,.3)}
+  .w-spinner{display:flex;align-items:center;gap:4px;height:24px}
+  .w-spinner i{width:4px;height:8px;border-radius:2px;background:var(--ink-body);opacity:.3;animation:spinner-pulse 1.2s cubic-bezier(.3,.02,.2,1) infinite}
+  .w-spinner i:nth-child(1){animation-delay:.08s}.w-spinner i:nth-child(2){animation-delay:.16s}
+  .w-spinner i:nth-child(3){animation-delay:.24s}.w-spinner i:nth-child(4){animation-delay:.32s}
+  .w-spinner i:nth-child(5){animation-delay:.4s}.w-spinner i:nth-child(6){animation-delay:.48s}
+  .w-spinner i:nth-child(7){animation-delay:.56s}.w-spinner i:nth-child(8){animation-delay:.64s}
+  @keyframes spinner-pulse{0%{opacity:.3;transform:scaleY(1)}12%{opacity:1;transform:scaleY(2)}40%{opacity:.3;transform:scaleY(1)}100%{opacity:.3;transform:scaleY(1)}}
+  .rst-title{font:600 16px/24px var(--sans);color:var(--ink)}
+  .rst-sub{font:400 13px/19px var(--sans);color:var(--ink-secondary);text-align:center}
 
   .proto{position:fixed;bottom:12px;left:12px;display:flex;gap:6px;z-index:99;opacity:.4;transition:opacity .15s}
   .proto:hover{opacity:1}
@@ -478,6 +509,40 @@
   <div class="restore-heads"><h4 id="rpaneLeftTitle">Select checkpoint</h4><h4>Current Environment</h4></div>
   <div id="restoreNote" style="display:none">This checkpoint matches the current environment. Restoring will not change anything.</div>
   <div class="rscroll"><div class="rcol" id="rcodeLeft"></div><div class="rcol" id="rcodeRight"></div></div>
+</div>
+
+<!-- ════ Rollback confirmation modal (Figma 447:46721) ════ -->
+<div id="rollbackModal">
+  <div class="rb-card">
+    <div class="rb-head"><h3>Rollback to checkpoint</h3><button id="rbClose" title="Close">✕</button></div>
+    <div class="rb-sec">
+      <h5>Target checkpoint</h5>
+      <div class="rb-target">
+        <div><div class="rb-name" id="rbName">—</div><div class="rb-time" id="rbTime">—</div></div>
+      </div>
+    </div>
+    <div class="rb-sec">
+      <h5>What will be impacted</h5>
+      <ul class="rb-list">
+        <li><b>Connector code</b><span>Your connector code will be restored to the state it was in at the time of this checkpoint.</span></li>
+        <li><b>Agent memory</b><span>AIRO’s memory will reset to what it knew about your connector at the time of this checkpoint.</span></li>
+        <li><b>Test results</b><span>Previous test results will no longer match the restored code. Run tests again before releasing.</span></li>
+      </ul>
+    </div>
+    <div class="rb-foot">
+      <button class="rb-cancel" id="rbCancel">Cancel</button>
+      <button class="rb-confirm" id="rbConfirm">Restore</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ Restoring overlay — Fluid w-spinner (proto-kit SpinnerComponent, large) ════ -->
+<div id="restoringOverlay">
+  <div class="rst-card">
+    <div class="w-spinner" role="status" aria-label="Restoring"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="rst-title" id="rstTitle">Restoring…</div>
+    <div class="rst-sub">Rolling back connector code and AIRO’s memory.<br>This usually takes a few seconds.</div>
+  </div>
 </div>
 
 <div class="proto">
@@ -1230,7 +1295,22 @@ function openRestore(cp){
   if (firstDiff) firstDiff.scrollIntoView({ block: 'center' });
 }
 $('cancelRestore').onclick = () => $('scene-restore').classList.remove('open');
+
+/* Restore in the compare bar → confirmation modal (447:46721) → restoring overlay (Fluid w-spinner) → done */
 $('doRestore').onclick = () => {
+  $('rbName').textContent = restoreTarget.name;
+  $('rbTime').textContent = restoreTarget.time;
+  $('rollbackModal').classList.add('open');
+};
+$('rbCancel').onclick = $('rbClose').onclick = () => $('rollbackModal').classList.remove('open');
+$('rbConfirm').onclick = () => {
+  $('rollbackModal').classList.remove('open');
+  $('rstTitle').textContent = 'Restoring to “' + restoreTarget.name + '”…';
+  $('restoringOverlay').classList.add('open');
+  setTimeout(finishRestore, 2200);
+};
+function finishRestore(){
+  $('restoringOverlay').classList.remove('open');
   applied = new Set(restoreTarget.snapshot);
   pending = null;
   previewCp = null;
@@ -1245,7 +1325,7 @@ $('doRestore').onclick = () => {
   edChat.appendChild(d);
   document.querySelector('.tab[data-pane="pane-chat"]').click();
   scrollEdChat();
-};
+}
 
 /* proto controls */
 document.querySelectorAll('.proto button[data-scene]').forEach(b => b.onclick = () => showScene(b.dataset.scene));
