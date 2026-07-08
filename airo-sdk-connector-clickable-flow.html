@@ -266,24 +266,29 @@
   .test-row{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.7);border:1px solid var(--hairline);border-radius:8px;padding:10px 12px;font-size:13px}
   .test-row .ok{color:#5aa028;font-weight:600}
 
-  /* ════ Restore compare = modal OVERLAY on the dark editor (327:42013 layout, DARK theme per Scarlett July 8):
-     inset 11px sides / 32px top, r12 top; panes reuse the editor's dark diff palette ════ */
+  /* ════ Restore compare = modal OVERLAY on the dark editor (525:44xxx redesign):
+     WHITE bar + WHITE column heads, gray Restore button; code panes stay DARK (editor palette) ════ */
   #scene-restore{display:none;position:fixed;top:32px;left:11px;right:11px;bottom:0;z-index:100;flex-direction:column;background:var(--editor-surface);border-radius:12px 12px 0 0;box-shadow:0 -12px 48px rgba(0,0,0,.55);overflow:hidden}
   #scene-restore.open{display:flex}
-  .restore-bar{flex:none;height:44px;background:var(--editor-toolbar);border-bottom:1px solid var(--editor-border);display:flex;align-items:center;gap:16px;padding:0 24px}
-  .restore-bar .rtitle{font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--editor-text);text-transform:uppercase}
+  .restore-bar{flex:none;height:44px;background:var(--surface);border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:16px;padding:0 24px}
+  .restore-bar .rtitle{font-size:13px;font-weight:700;color:var(--ink)}
   .restore-bar .rspacer{flex:1}
-  .btn-restore{height:24px;border:none;background:#1a57e5;color:#fff;border-radius:4px;padding:4px 10px;font:600 12px/16px var(--sans);cursor:pointer}
-  .btn-restore:hover{background:#123c9f}
-  .rbar-div{width:1px;height:15px;background:rgba(255,255,255,.15)}
-  .btn-cancel{height:24px;border:none;background:transparent;color:rgba(255,255,255,.75);border-radius:4px;padding:4px 8px;font:600 12px/16px var(--sans);cursor:pointer}
-  .btn-cancel:hover{background:rgba(255,255,255,.08)}
-  .restore-heads{flex:none;display:flex;gap:1px;background:var(--editor-border)}
-  #restoreNote{flex:none;align-items:center;justify-content:center;gap:8px;padding:8px 16px;background:rgba(146,178,253,.12);border-bottom:1px solid var(--editor-border);font-size:13px;color:#92b2fd}
-  .restore-heads h4{flex:1;font-size:13px;font-weight:600;color:var(--editor-text);padding:14px 20px;background:var(--editor-toolbar);border-bottom:1px solid var(--editor-border)}
+  .btn-restore{height:24px;border:none;background:#454e5b;color:#fff;border-radius:4px;padding:4px 10px;font:600 12px/16px var(--sans);cursor:pointer}
+  .btn-restore:hover{background:#586373}
+  .rbar-div{width:1px;height:15px;background:var(--hairline-strong)}
+  .btn-cancel{height:24px;border:none;background:transparent;color:var(--neutral-fg);border-radius:4px;padding:4px 8px;font:600 12px/16px var(--sans);cursor:pointer}
+  .btn-cancel:hover{background:var(--surface-subtle)}
+  .restore-heads{flex:none;display:flex;gap:1px;background:var(--hairline-strong)}
+  #restoreNote{flex:none;align-items:center;justify-content:center;gap:8px;padding:8px 16px;background:var(--ai-tint);border-bottom:1px solid var(--hairline);font-size:13px;color:var(--ink-secondary)}
+  .restore-heads h4{flex:1;font-size:13px;font-weight:600;color:var(--ink);padding:14px 20px;background:var(--surface);border-bottom:1px solid var(--hairline)}
   .rscroll{flex:1;overflow-y:auto;display:flex;gap:1px;background:var(--editor-border)}
   .rcol{flex:1;background:var(--editor-surface);padding:12px 0;min-width:0;user-select:none}
   /* code lines inherit the editor's dark .code-line .add/.del styles — no light overrides needed */
+
+  /* Checkpoints tab: rolled-back section (525:44382) */
+  .cp-rolled-head{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:12px;padding:12px 4px 8px;border:none;border-top:1px solid var(--hairline);background:transparent;font:400 13px/19px var(--sans);color:var(--ink-secondary);cursor:pointer}
+  .cp-rolled-head svg{transition:transform .15s}
+  .cp-rolled-head.collapsed svg{transform:rotate(180deg)}
 
   /* ════ Rollback confirmation modal (Figma 447:46721) ════ */
   #rollbackModal{display:none;position:fixed;inset:0;z-index:120;background:rgba(58,66,77,.6);align-items:center;justify-content:center}
@@ -588,6 +593,8 @@ const ICON_BLUEPRINT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="no
 const ICON_CHECK = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="6" fill="#1a57e5"/><path d="m4 6.7 1.8 1.8L9.2 4.9" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 /* icon/checkpoint (288:24198): 12px clock-in-circle, stroke #586373 */
 const ICON_CHECKPOINT = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6.5 10.5C8.98528 10.5 11 8.48528 11 6C11 3.51472 8.98528 1.5 6.5 1.5C4.01472 1.5 2 3.51472 2 6C2 8.48528 4.01472 10.5 6.5 10.5Z" stroke="currentColor"/><path d="M6 3.75V6L7.5 7.25" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+/* icon/restore (Figma I525:45438;472:5621;288:24167): counterclockwise ring + center dot */
+const ICON_RESTORE = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.55312 2.34238C4.47362 0.512767 7.48477 0.553425 9.3568 2.46435C11.2695 4.41682 11.2695 7.58318 9.3568 9.53565C7.44407 11.4881 4.34216 11.4881 2.42944 9.53565C1.83824 8.93216 1.43216 8.21181 1.20801 7.44626L2.35807 7.44603C2.54298 7.92109 2.82248 8.36544 3.19915 8.74994C4.6866 10.2683 7.09963 10.2683 8.58708 8.74994C10.0745 7.23158 10.0745 4.76842 8.58708 3.25006C7.13344 1.76621 4.79581 1.73248 3.30198 3.14889L3.19915 3.25006L3.92012 3.98601L3.95184 4.02549C3.97946 4.06778 3.99451 4.11777 3.99451 4.16934C3.99451 4.29463 3.90745 4.39916 3.79171 4.42334L3.74052 4.4286L1.52887 4.42859L1.47768 4.42332C1.37848 4.4026 1.30034 4.32284 1.28004 4.22157L1.27488 4.16932V1.91173L1.2798 1.86091C1.28956 1.81108 1.31355 1.76487 1.34927 1.7284C1.43606 1.63981 1.57004 1.62873 1.66862 1.69518L1.70847 1.7284L2.42944 2.46435L2.55312 2.34238Z" fill="currentColor"/><path d="M7.04134 6C7.04134 5.42449 6.57521 4.95833 5.99967 4.95833C5.42414 4.95833 4.95801 5.42449 4.95801 6C4.95801 6.57551 5.42414 7.04167 5.99967 7.04167C6.57521 7.04167 7.04134 6.57551 7.04134 6Z" fill="currentColor"/></svg>';
 /* Diff Viewer Control chevrons (288:24397/24399): 10px, disabled = #686868 via .stepbtn:disabled color */
 const ICON_CHEV_UP = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M4.99216 2.08502C4.82556 2.0847 4.6641 2.14279 4.53582 2.24922L0.257602 5.81879C-0.0456231 6.07114 -0.0871239 6.52182 0.164907 6.82541C0.416939 7.12901 0.867063 7.17056 1.17029 6.91822L4.99216 3.71989L8.81404 6.804C8.96135 6.92377 9.15026 6.97981 9.33896 6.95971C9.52766 6.93961 9.70058 6.84503 9.81942 6.69691C9.95143 6.54852 10.0157 6.35175 9.99674 6.15394C9.9778 5.95612 9.87736 5.77517 9.71959 5.65459L5.44138 2.20639C5.30941 2.11678 5.15124 2.07405 4.99216 2.08502Z" fill="currentColor"/></svg>';
 const ICON_CHEV_DOWN = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M4.99216 7.91498C4.82556 7.9153 4.6641 7.85721 4.53582 7.75078L0.257602 4.18121C-0.0456231 3.92886 -0.0871239 3.47818 0.164907 3.17459C0.416939 2.87099 0.867063 2.82944 1.17029 3.08178L4.99216 6.28011L8.81404 3.196C8.96135 3.07623 9.15026 3.02019 9.33896 3.04029C9.52766 3.06039 9.70058 3.15497 9.81942 3.30309C9.95143 3.45148 10.0157 3.64825 9.99674 3.84606C9.9778 4.04388 9.87736 4.22483 9.71959 4.34541L5.44138 7.79361C5.30941 7.88322 5.15124 7.92595 4.99216 7.91498Z" fill="currentColor"/></svg>';
@@ -973,23 +980,36 @@ function addCheckpoint(name, plus, minus){
   checkpoints.push({ name, time: 'just now', plus, minus, snapshot: new Set(applied) });
   renderCheckpoints();
 }
+let rolledOpen = true;   /* rolled-back section expanded state (525:44382) */
+function cpCard(cp, pane){
+  const c = document.createElement('button');
+  c.className = 'cp-card';
+  c.innerHTML = '<span class="cp-meta">' + ICON_CHECKPOINT.replace('width="12" height="12"', 'width="14" height="14"') + cp.time + '</span>' +
+    '<span class="cp-row"><span class="cp-title">' + cp.name + '</span>' +
+    '<span class="hotkey-group"><span class="hotkey plus">+' + (cp.plus || 0).toLocaleString('en-US') + '</span>' +
+    '<span class="hotkey minus">-' + (cp.minus || 0) + '</span></span></span>';
+  c.onclick = () => {
+    pane.querySelectorAll('.cp-card').forEach(x => x.classList.remove('selected'));
+    c.classList.add('selected');
+    enterPreview(cp);
+  };
+  pane.appendChild(c);
+}
 function renderCheckpoints(){
   const pane = $('pane-cp');
   pane.innerHTML = checkpoints.length ? '' : '<p class="pane-note">No checkpoints yet. A checkpoint is created each time a round of changes is accepted.</p>';
-  checkpoints.slice().reverse().forEach(cp => {
-    const c = document.createElement('button');
-    c.className = 'cp-card';
-    c.innerHTML = '<span class="cp-meta">' + ICON_CHECKPOINT.replace('width="12" height="12"', 'width="14" height="14"') + cp.time + '</span>' +
-      '<span class="cp-row"><span class="cp-title">' + cp.name + '</span>' +
-      '<span class="hotkey-group"><span class="hotkey plus">+' + (cp.plus || 0).toLocaleString('en-US') + '</span>' +
-      '<span class="hotkey minus">-' + (cp.minus || 0) + '</span></span></span>';
-    c.onclick = () => {
-      pane.querySelectorAll('.cp-card').forEach(x => x.classList.remove('selected'));
-      c.classList.add('selected');
-      enterPreview(cp);
-    };
-    pane.appendChild(c);
-  });
+  const active = checkpoints.filter(cp => !cp.rolledBack);
+  const rolled = checkpoints.filter(cp => cp.rolledBack);
+  active.slice().reverse().forEach(cp => cpCard(cp, pane));
+  if (rolled.length){
+    const head = document.createElement('button');
+    head.className = 'cp-rolled-head' + (rolledOpen ? '' : ' collapsed');
+    head.innerHTML = '<span>' + rolled.length + ' checkpoint' + (rolled.length > 1 ? 's were' : ' was') + ' rolled back</span>' +
+      '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 6.5 3-3 3 3"/></svg>';
+    head.onclick = () => { rolledOpen = !rolledOpen; renderCheckpoints(); };
+    pane.appendChild(head);
+    if (rolledOpen) rolled.slice().reverse().forEach(cp => cpCard(cp, pane));
+  }
 }
 function scrollEdChat(){ edChat.scrollTop = edChat.scrollHeight; }
 function airoMsg(html){
@@ -1314,6 +1334,10 @@ function finishRestore(){
   applied = new Set(restoreTarget.snapshot);
   pending = null;
   previewCp = null;
+  /* checkpoints newer than the target move into the "rolled back" section (525:44382) */
+  const tIdx = checkpoints.indexOf(restoreTarget);
+  checkpoints.forEach((cp, i) => { cp.rolledBack = i > tIdx; });
+  renderCheckpoints();
   document.querySelectorAll('#pane-cp .cp-card').forEach(x => x.classList.remove('selected'));
   curHunks = []; curHunk = 0;
   renderCode(); setToolbar();
@@ -1321,7 +1345,7 @@ function finishRestore(){
   $('scene-restore').classList.remove('open');
   const d = document.createElement('div');
   d.className = 'cp-divider';
-  d.innerHTML = '<span class="cptext">' + ICON_CHECKPOINT + 'Restored to “' + restoreTarget.name + '”</span>';
+  d.innerHTML = '<span class="cptext">' + ICON_RESTORE + 'Restored to “' + restoreTarget.name + '”</span>';
   edChat.appendChild(d);
   document.querySelector('.tab[data-pane="pane-chat"]').click();
   scrollEdChat();
