@@ -514,7 +514,7 @@
     <span class="rbar-div"></span>
     <button class="btn-cancel" id="cancelRestore">✕ Cancel</button>
   </div>
-  <div class="restore-heads"><h4 id="rpaneLeftTitle">Select checkpoint</h4><h4>Current Environment</h4></div>
+  <div class="restore-heads"><h4>Current Environment</h4><h4 id="rpaneRightTitle">Select checkpoint</h4></div>
   <div id="restoreNote" style="display:none">This checkpoint matches the current environment. Restoring will not change anything.</div>
   <div class="rscroll"><div class="rcol" id="rcodeLeft"></div><div class="rcol" id="rcodeRight"></div></div>
 </div>
@@ -1280,41 +1280,43 @@ function visibleIn(l, snapshot){
   return !snapshot.has(l.r);
 }
 function renderCompare(cp){
+  /* before → after, left → right: LEFT = current environment (red = what restore removes),
+     RIGHT = the checkpoint you restore to (green = what comes back). Matches git base/target order. */
   const L = $('rcodeLeft'), R = $('rcodeRight');
   L.innerHTML = ''; R.innerHTML = '';
   const cur = new Set(applied);
   if (pending !== null) cur.add(pending);   /* the editor's visible state counts as current */
   let nl = 0, nr = 0;
-  for (const l of SEG.filter(x => visibleIn(x, cp.snapshot))){
-    nl++;
-    const hot = !visibleIn(l, cur);      /* in checkpoint, not in current → comes back (green) */
-    const d = document.createElement('div');
-    d.className = 'code-line' + (hot ? ' add' : '');
-    d.innerHTML = '<span class="gut">' + nl + '</span><span class="sign">' + (hot ? '+' : '') + '</span><span class="src"></span>';
-    d.querySelector('.src').textContent = l.t;
-    L.appendChild(d);
-  }
   let diffs = 0;
   for (const l of SEG.filter(x => visibleIn(x, cur))){
-    nr++;
+    nl++;
     const hot = !visibleIn(l, cp.snapshot);  /* in current, not in checkpoint → would be removed (red) */
     if (hot) diffs++;
     const d = document.createElement('div');
     d.className = 'code-line' + (hot ? ' del' : '');
-    d.innerHTML = '<span class="gut">' + nr + '</span><span class="sign">' + (hot ? '-' : '') + '</span><span class="src"></span>';
+    d.innerHTML = '<span class="gut">' + nl + '</span><span class="sign">' + (hot ? '-' : '') + '</span><span class="src"></span>';
+    d.querySelector('.src').textContent = l.t;
+    L.appendChild(d);
+  }
+  for (const l of SEG.filter(x => visibleIn(x, cp.snapshot))){
+    nr++;
+    const hot = !visibleIn(l, cur);      /* in checkpoint, not in current → comes back (green) */
+    if (hot) diffs++;
+    const d = document.createElement('div');
+    d.className = 'code-line' + (hot ? ' add' : '');
+    d.innerHTML = '<span class="gut">' + nr + '</span><span class="sign">' + (hot ? '+' : '') + '</span><span class="src"></span>';
     d.querySelector('.src').textContent = l.t;
     R.appendChild(d);
   }
-  diffs += L.querySelectorAll('.add').length;
   $('restoreNote').style.display = diffs === 0 ? 'flex' : 'none';
 }
 function openRestore(cp){
   restoreTarget = cp;
   $('restoreTitle').textContent = 'Restore to “' + cp.name + '”?';
-  $('rpaneLeftTitle').textContent = 'Select checkpoint: ' + cp.name;
+  $('rpaneRightTitle').textContent = 'Select checkpoint: ' + cp.name;
   renderCompare(cp);
   $('scene-restore').classList.add('open');
-  const firstDiff = document.querySelector('#rcodeLeft .add, #rcodeRight .del');
+  const firstDiff = document.querySelector('#rcodeLeft .del, #rcodeRight .add');
   if (firstDiff) firstDiff.scrollIntoView({ block: 'center' });
 }
 $('cancelRestore').onclick = () => $('scene-restore').classList.remove('open');
