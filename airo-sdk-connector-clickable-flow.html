@@ -299,27 +299,30 @@
   .cp-rolled-head svg{transition:transform .15s}
   .cp-rolled-head.collapsed svg{transform:rotate(180deg)}
 
-  /* ════ Rollback confirmation modal (Figma 447:46721) ════ */
+  /* ════ Rollback confirmation modal — Fluid modal template (Figma 541:48046):
+     700w r12, white header 20/32 · gray body #f1f5f9 16/32 · white footer; 36px r4 buttons ════ */
   #rollbackModal{display:none;position:fixed;inset:0;z-index:120;background:rgba(58,66,77,.6);align-items:center;justify-content:center}
   #rollbackModal.open{display:flex}
-  .rb-card{width:480px;background:#fff;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:18px;box-shadow:0 16px 48px rgba(0,0,0,.35)}
-  .rb-head{display:flex;align-items:center;justify-content:space-between}
-  .rb-head h3{font:700 16px/24px var(--sans);color:var(--ink)}
-  .rb-head button{border:none;background:transparent;color:var(--ink-secondary);font-size:13px;cursor:pointer;padding:4px;border-radius:4px}
+  .rb-card{width:700px;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,.35)}
+  .rb-head{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;border-bottom:1px solid var(--hairline)}
+  .rb-head h3{font:700 20px/28px var(--sans);color:var(--ink-body)}
+  .rb-head button{border:none;background:transparent;color:var(--ink-secondary);font-size:14px;cursor:pointer;padding:4px;border-radius:4px}
   .rb-head button:hover{background:var(--surface-subtle)}
-  .rb-sec h5{font:600 13px/18px var(--sans);color:var(--ink);margin-bottom:8px}
-  .rb-target{display:flex;align-items:center;gap:10px;border:1px solid var(--hairline);border-radius:8px;padding:10px 12px}
+  .rb-body{background:#f1f5f9;padding:16px 32px;display:flex;flex-direction:column;gap:16px;border-bottom:1px solid var(--hairline)}
+  .rb-sec h5{font:700 14px/20px var(--sans);color:var(--ink-body);margin-bottom:10px}
+  .rb-target{display:flex;gap:12px;padding:8px 4px;align-items:flex-start}
+  .rb-target .rb-clock{flex:none;color:var(--ink-secondary);margin-top:1px}
   .rb-target .rb-name{font:600 14px/20px var(--sans);color:var(--ink-body)}
-  .rb-target .rb-time{font:400 12px/16px var(--sans);color:var(--ink-secondary)}
-  .rb-list{list-style:none;display:flex;flex-direction:column;gap:10px}
-  .rb-list li{font:400 13px/19px var(--sans);color:var(--ink-secondary);padding-left:14px;position:relative}
-  .rb-list li::before{content:"";position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%;background:var(--ink-secondary)}
-  .rb-list li b{display:block;font:600 13px/19px var(--sans);color:var(--ink-body)}
-  .rb-foot{display:flex;justify-content:flex-end;gap:8px}
-  .rb-foot .rb-cancel{height:28px;border:1px solid var(--border-subtle);background:#fff;color:var(--ink-body);border-radius:4px;padding:5px 12px;font:600 12px/16px var(--sans);cursor:pointer}
+  .rb-target .rb-time{font:400 14px/18px var(--sans);color:var(--ink-secondary);margin-top:4px}
+  .rb-list{list-style:none;display:flex;flex-direction:column;gap:6px}
+  .rb-list li{font:400 14px/21px var(--sans);color:var(--ink-secondary);padding-left:16px;position:relative}
+  .rb-list li::before{content:"";position:absolute;left:2px;top:9px;width:4px;height:4px;border-radius:50%;background:var(--ink-body)}
+  .rb-list li b{display:block;font:600 14px/21px var(--sans);color:var(--ink-body)}
+  .rb-foot{display:flex;justify-content:flex-end;gap:8px;padding:20px 32px}
+  .rb-foot .rb-cancel{height:36px;border:1px solid var(--border-subtle);background:#fff;color:#454e5b;border-radius:4px;padding:8px 24px;font:600 14px/20px var(--sans);cursor:pointer}
   .rb-foot .rb-cancel:hover{background:var(--surface-subtle)}
-  .rb-foot .rb-confirm{height:28px;border:none;background:#133440;color:#fff;border-radius:4px;padding:5px 14px;font:600 12px/16px var(--sans);cursor:pointer}
-  .rb-foot .rb-confirm:hover{background:#0c2630}
+  .rb-foot .rb-confirm{height:36px;border:none;background:#454e5b;color:#fff;border-radius:4px;padding:8px 24px;font:600 14px/20px var(--sans);cursor:pointer}
+  .rb-foot .rb-confirm:hover{background:#586373}
 
   /* ════ Restoring overlay — Fluid proto-kit SpinnerComponent (w-spinner, large):
      8 bars 4×8 r2, gap 4, color --text-primary, 1.2s cubic-bezier(.3,.02,.2,1), delay i*0.08s ════ */
@@ -529,19 +532,22 @@
 <div id="rollbackModal">
   <div class="rb-card">
     <div class="rb-head"><h3>Rollback to checkpoint</h3><button id="rbClose" title="Close">✕</button></div>
-    <div class="rb-sec">
-      <h5>Target checkpoint</h5>
-      <div class="rb-target">
-        <div><div class="rb-name" id="rbName">—</div><div class="rb-time" id="rbTime">—</div></div>
+    <div class="rb-body">
+      <div class="rb-sec">
+        <h5>Target checkpoint</h5>
+        <div class="rb-target">
+          <span class="rb-clock"></span>
+          <div><div class="rb-name" id="rbName">—</div><div class="rb-time" id="rbTime">—</div></div>
+        </div>
       </div>
-    </div>
-    <div class="rb-sec">
-      <h5>What will be impacted</h5>
-      <ul class="rb-list">
-        <li><b>Connector code</b><span>Your connector code will be restored to the state it was in at the time of this checkpoint.</span></li>
-        <li><b>Agent memory</b><span>AIRO’s memory will reset to what it knew about your connector at the time of this checkpoint.</span></li>
-        <li><b>Test results</b><span>Previous test results will no longer match the restored code. Run tests again before releasing.</span></li>
-      </ul>
+      <div class="rb-sec">
+        <h5>What will be impacted</h5>
+        <ul class="rb-list">
+          <li><b>Connector code</b><span>Your connector code will be restored to the state it was in at the time of this checkpoint.</span></li>
+          <li><b>Agent memory</b><span>AIRO’s memory will reset to what it knew about your connector at the time of this checkpoint.</span></li>
+          <li><b>Test results</b><span>Previous test results will no longer match the restored code. Run tests again before releasing.</span></li>
+        </ul>
+      </div>
     </div>
     <div class="rb-foot">
       <button class="rb-cancel" id="rbCancel">Cancel</button>
@@ -784,6 +790,7 @@ $('edAttach').innerHTML = ICON_PAPERCLIP;
 $('pSend').innerHTML = sendFilledHTML();
 $('edSend').innerHTML = sendFilledHTML();
 $('fsStop').innerHTML = ICON_STOP;
+document.querySelector('#rollbackModal .rb-clock').innerHTML = ICON_CHECKPOINT.replace('width="12" height="12"', 'width="20" height="20"');
 $('tb1').innerHTML = ICON_KEYBOARD;
 $('tb2').innerHTML = ICON_EXPAND;
 $('hCollapse').innerHTML = ICON_COLLAPSE;
