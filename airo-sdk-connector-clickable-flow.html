@@ -1126,7 +1126,7 @@ function round1Answer(){
   card.id = 'changeCard';
   card.innerHTML = '<span>1 change in current version</span>' +
     '<span class="chipgroup"><span class="cp-chip plus">+' + SEG.filter(lineVisible).length + '</span><span class="cp-chip minus">\u22120</span>' +
-    '<button id="discardBtn">Discard</button></span>';
+    '<button id="discardBtn">Undo</button></span>';
   edChat.appendChild(card);
   $('discardBtn').onclick = discardPending;
   setSendState(false);
@@ -1135,7 +1135,7 @@ function round1Answer(){
   scrollEdChat();
 }
 
-/* keep-chatting auto-accept (PM decision: continuing = accept + checkpoint; Discard = reject, no checkpoint) */
+/* keep-chatting auto-accept (PM decision: continuing = accept + checkpoint; Undo = reject, no checkpoint) */
 let initialPending = false;
 function acceptPending(){
   const cc = $('changeCard'); if (cc) cc.remove();   /* keep-chatting: the card simply disappears */
@@ -1163,9 +1163,9 @@ function discardPending(){
     $('edState').textContent = 'empty';
     const chip0 = document.createElement('div');
     chip0.className = 'action-chip';
-    chip0.textContent = 'Discard changes';
+    chip0.textContent = 'Undo changes';
     edChat.appendChild(chip0);
-    airoMsg('<p>No problem, I\u2019ve discarded the draft connector. Tell me what you\u2019d like to build instead.</p>');
+    airoMsg('<p>No problem, I\u2019ve undone the draft connector. Tell me what you\u2019d like to build instead.</p>');
     scrollEdChat();
     return;
   }
@@ -1176,9 +1176,9 @@ function discardPending(){
   const cc = $('changeCard'); if (cc) cc.remove();
   const chip = document.createElement('div');
   chip.className = 'action-chip';
-  chip.textContent = 'Discard changes';
+  chip.textContent = 'Undo changes';
   edChat.appendChild(chip);
-  airoMsg('<p>No problem, I’ve discarded those changes. Everything is back to the previous checkpoint, and no new checkpoint was created. Let me know what you’d like to do instead.</p>');
+  airoMsg('<p>No problem, I’ve undone those changes. Everything is back to the previous checkpoint, and no new checkpoint was created. Let me know what you’d like to do instead.</p>');
   msgActions();
   scrollEdChat();
 }
@@ -1232,13 +1232,13 @@ function startDiffRound(round){
   card.id = 'changeCard';
   card.innerHTML = '<span>' + st.hunks.length + (st.hunks.length === 1 ? ' change' : ' changes') + ' in current version</span>' +
     '<span class="chipgroup"><span class="cp-chip plus">+' + st.adds + '</span><span class="cp-chip minus">−' + st.dels + '</span>' +
-    '<button id="discardBtn">Discard</button></span>';
+    '<button id="discardBtn">Undo</button></span>';
   edChat.appendChild(card);
   $('discardBtn').onclick = discardPending;
   setSendState(false);
   if (roundIdx < ROUNDS.length) $('edInput').value = ROUNDS[roundIdx].prefill;
   syncSend($('edInput'), $('edSend'));
-  $('edInput').placeholder = 'Keep chatting to accept, or Discard in the card above';
+  $('edInput').placeholder = 'Keep chatting to accept, or Undo in the card above';
   gotoHunk(0);
   scrollEdChat();
 }
@@ -1337,6 +1337,10 @@ function finishRestore(){
   applied = new Set(restoreTarget.snapshot);
   pending = null;
   previewCp = null;
+  /* the pending Undo card is moot after a restore — the round it referred to no longer exists */
+  const cc = $('changeCard');
+  if (cc && !cc.classList.contains('settled')) cc.remove();
+  $('edInput').placeholder = 'Ask AIRO anything';
   /* checkpoints newer than the target move into the "rolled back" section (525:44382) */
   const tIdx = checkpoints.indexOf(restoreTarget);
   checkpoints.forEach((cp, i) => { cp.rolledBack = i > tIdx; });
