@@ -913,7 +913,7 @@ function openScopedChat(){
       $('fsInput').value = fill;
       syncSend($('fsInput'), $('fsStop'));
       $('fsInput').focus();
-      row.remove();   /* picking a starting point turns into the prompt; the seed cards go away */
+      /* seeds stay visible so the user can switch starting points; they clear on send */
     };
     row.appendChild(s);
   });
