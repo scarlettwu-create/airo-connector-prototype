@@ -120,6 +120,12 @@
   .chat{flex:1;overflow-y:auto;padding:0 24px 24px;display:flex;flex-direction:column}
   .chat-started{align-self:stretch;display:flex;align-items:center;gap:12px;font-size:12px;color:var(--ink-tertiary);padding:14px 0 4px}
   .chat-started::before,.chat-started::after{content:"";flex:1;height:1px;background:var(--hairline-strong)}
+  /* Option A entry (airo-initiation-options.html): seeded starting points inside the scoped chat */
+  .seed-row{display:flex;gap:10px;flex-wrap:wrap;padding:8px 0 4px}
+  .seed{display:flex;flex-direction:column;gap:4px;align-items:flex-start;background:rgba(255,255,255,.75);border:1px solid var(--border-subtle);border-radius:8px;padding:12px 14px;cursor:pointer;font:600 13px/18px var(--sans);color:var(--ink-body);flex:1;min-width:190px;text-align:left}
+  .seed:hover{border-color:#92b2fd;background:#fff}
+  .seed small{font:400 12px/16px var(--sans);color:var(--ink-secondary)}
+  .seed .s-top{display:flex;align-items:center;gap:6px}
   .bubble-user{align-self:flex-end;max-width:85%;margin:18px 0 18px 24px;background:var(--ai-subtle);color:var(--chat-text);border-radius:8px;padding:12px 16px}
   .action-chip{align-self:flex-end;margin:6px 0;background:rgba(255,255,255,.75);border:1px solid var(--border-subtle);border-radius:9999px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--ink-secondary)}
   .airo-msg{align-self:stretch;color:var(--chat-text);padding:6px 0}
@@ -426,12 +432,12 @@
       <button class="hicon" id="fsExit" title="Close">✕</button>
     </header>
     <div class="fs-chat-col"><div class="fs-inner">
-      <div class="chat-started">11:45 AM · Chat started</div>
+      <div class="chat-started" id="fsStarted">11:45 AM · Chat started</div>
       <div class="chat" id="fsChat" style="padding:0;overflow:visible"></div>
       <div style="flex:1"></div>
     </div></div>
     <div class="fs-composer composer">
-      <div class="field on-light"><textarea rows="2" placeholder="Ask AIRO anything" disabled></textarea>
+      <div class="field on-light" id="fsField"><textarea rows="2" placeholder="Ask AIRO anything" id="fsInput" disabled></textarea>
         <div class="field-row"><span class="fspacer"></span><span class="actions">
           <button class="attach" id="fsAttach"></button><button class="send stop-mode" id="fsStop"></button>
         </span></div>
@@ -830,7 +836,7 @@ function collapseThink(T, label){
 
 /* ═════════ Scene 1 → 2 ═════════ */
 document.querySelectorAll('.railAiro').forEach(b => b.onclick = openPopup);
-$('buildWithAiro').onclick = openPopup;
+$('buildWithAiro').onclick = openScopedChat;   /* Option A: card goes straight to the scoped fullscreen chat */
 function openPopup(){
   clearAll();
   showScene('scene-sdk');
@@ -847,6 +853,26 @@ $('popupExpand').onclick = () => showScene('scene-chat');
 $('fsExit').onclick = () => showScene('scene-sdk');
 
 const USER_MSG = 'Build a HubSpot CRM connector for Deals, Companies and Contacts. Create, update, search and archive on each, plus a trigger for new or updated deals.';
+const BUILD_STEPS = [
+  ['Reading the Workato SDK docs', 'The user wants a HubSpot CRM connector. Starting with the Workato connector SDK conventions so the connection, object_definitions and actions follow the right shape before I touch the HubSpot API.', 2600],
+  ['Reading the HubSpot deals API', 'HubSpot exposes deals via /crm/v3/objects/deals. I\u2019ll map the create, update, search and archive endpoints, note the required properties, and check how search filters and pagination work.', 2800],
+  ['Creating the connector', 'Scaffolding connection and test first, then one shared deal schema reused across create, update, search and the trigger.', 3000],
+  ['Validating the connector', 'Running the SDK linter and a dry run of the connection test. No errors.', 2200]
+];
+function runBuildStream(chatEl, scrollEl){
+  const T = makeThink(chatEl);
+  let prev = null, t = 200;
+  BUILD_STEPS.forEach(([label, reason, dur]) => {
+    later(() => {
+      if (prev) doneStep(prev);
+      prev = addStep(T, label);
+      typeInto(prev.reason, reason, scrollEl);
+    }, t);
+    t += dur;
+  });
+  /* no auto-fullscreen: when generation completes, go straight to the side-by-side editor */
+  later(() => enterEditor(true), t + 300);
+}
 $('pSend').onclick = () => {
   if ($('pSend').classList.contains('stop-mode')) return;
   $('pInput').value = '';
@@ -858,24 +884,63 @@ $('pSend').onclick = () => {
   b.className = 'bubble-user';
   b.textContent = USER_MSG;
   $('popupChat').appendChild(b);
-  const T = makeThink($('popupChat'));
-  const steps = [
-    ['Reading the Workato SDK docs', 'The user wants a HubSpot CRM connector. Starting with the Workato connector SDK conventions so the connection, object_definitions and actions follow the right shape before I touch the HubSpot API.', 2600],
-    ['Reading the HubSpot deals API', 'HubSpot exposes deals via /crm/v3/objects/deals. I\u2019ll map the create, update, search and archive endpoints, note the required properties, and check how search filters and pagination work.', 2800],
-    ['Creating the connector', 'Scaffolding connection and test first, then one shared deal schema reused across create, update, search and the trigger.', 3000],
-    ['Validating the connector', 'Running the SDK linter and a dry run of the connection test. No errors.', 2200]
-  ];
-  let prev = null, t = 200;
-  steps.forEach(([label, reason, dur]) => {
-    later(() => {
-      if (prev) doneStep(prev);
-      prev = addStep(T, label);
-      typeInto(prev.reason, reason, $('popupChat'));
-    }, t);
-    t += dur;
+  runBuildStream($('popupChat'), $('popupChat'));
+};
+
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 Option A entry (airo-initiation-options.html): card \u2192 fullscreen scoped chat, seeded \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+const SEEDS = [
+  ['Import an OpenAPI spec', 'AIRO scaffolds actions and triggers from your spec', 'Here is the OpenAPI spec for our internal billing API: [attach spec]'],
+  ['Describe the API', 'e.g. \u201cBuild a HubSpot CRM connector for deals\u201d', USER_MSG],
+  ['Start from a Workato template', 'Guided setup on a proven skeleton', 'Start me from the Salesforce connector template and rename it for our Zendesk instance.']
+];
+function openScopedChat(){
+  showScene('scene-chat');
+  $('fsStarted').textContent = '11:45 AM \u00b7 New connector \u00b7 chat scoped to Connector SDK';
+  const fsChat = $('fsChat');
+  fsChat.innerHTML = '';
+  const m = document.createElement('div');
+  m.className = 'airo-msg';
+  m.style.marginTop = '16px';
+  m.innerHTML = '<p><b>Let\u2019s build a new connector.</b> What are you starting from?</p>';
+  const row = document.createElement('div');
+  row.className = 'seed-row';
+  SEEDS.forEach(([title, sub, fill]) => {
+    const s = document.createElement('button');
+    s.className = 'seed';
+    s.innerHTML = '<span class="s-top">' + logomark(12) + title + '</span><small></small>';
+    s.querySelector('small').textContent = sub;
+    s.onclick = () => {
+      $('fsInput').value = fill;
+      syncSend($('fsInput'), $('fsStop'));
+      $('fsInput').focus();
+    };
+    row.appendChild(s);
   });
-  /* no auto-fullscreen: when generation completes, go straight to the side-by-side editor */
-  later(() => enterEditor(true), t + 300);
+  m.appendChild(row);
+  fsChat.appendChild(m);
+  const inp = $('fsInput');
+  inp.disabled = false; inp.value = '';
+  const send = $('fsStop');
+  send.classList.remove('stop-mode');
+  send.innerHTML = sendFilledHTML();
+  send.setAttribute('data-tip', 'Send');
+  syncSend(inp, send);
+}
+$('fsStop').onclick = () => {
+  const send = $('fsStop');
+  if (send.classList.contains('stop-mode')) return;
+  const inp = $('fsInput');
+  if (!inp.value.trim()) return;
+  const msg = inp.value.trim();
+  inp.value = ''; inp.disabled = true;
+  send.innerHTML = ICON_STOP;
+  send.classList.add('stop-mode');
+  send.setAttribute('data-tip', 'Stop generating');
+  const b = document.createElement('div');
+  b.className = 'bubble-user';
+  b.textContent = msg;
+  $('fsChat').appendChild(b);
+  runBuildStream($('fsChat'), document.querySelector('#scene-chat .fs-chat-col'));
 };
 
 /* ═════════ Scene 3 · fullscreen continuation ═════════ */
@@ -1364,12 +1429,13 @@ function finishRestore(){
 document.querySelectorAll('.proto button[data-scene]').forEach(b => b.onclick = () => showScene(b.dataset.scene));
 $('protoPopup').onclick = openPopup;
 $('protoRestart').onclick = () => { clearAll(); location.reload(); };
-[['pField','pInput'],['edField','edInput']].forEach(([f, i]) => {
+[['pField','pInput'],['edField','edInput'],['fsField','fsInput']].forEach(([f, i]) => {
   $(i).addEventListener('focus', () => $(f).classList.add('focused'));
   $(i).addEventListener('blur', () => $(f).classList.remove('focused'));
 });
 $('pInput').addEventListener('input', () => syncSend($('pInput'), $('pSend')));
 $('edInput').addEventListener('input', () => syncSend($('edInput'), $('edSend')));
+$('fsInput').addEventListener('input', () => syncSend($('fsInput'), $('fsStop')));
 </script>
 </body>
 </html>
