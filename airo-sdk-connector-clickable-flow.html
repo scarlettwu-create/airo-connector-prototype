@@ -211,10 +211,26 @@
   .app-bar .exit{display:flex;align-items:center;gap:4px;height:24px;padding:4px 8px;border-radius:4px;border:none;background:transparent;font:600 12px/16px var(--sans);color:rgba(255,255,255,.6);cursor:pointer}
   .app-bar .exit:hover{background:rgba(255,255,255,.08)}
   .ed-main{flex:1;display:flex;min-height:0}
-  .ed-left{flex:1;display:flex;flex-direction:column;min-width:0;padding:0 0 0 12px;background:var(--edit-dark)}
+  .ed-left{position:relative;flex:1;display:flex;flex-direction:column;min-width:0;padding:0 0 0 12px;background:var(--edit-dark)}
   .editor-bar{height:53px;flex:none;background:var(--editor-toolbar);border:1px solid var(--editor-border);border-bottom:none;border-radius:12px 12px 0 0;display:flex;align-items:center;gap:12px;padding:8px 16px}
   .editor-bar .fname{font:700 14px/20px var(--sans);color:var(--editor-text)}
   .editor-bar .fstate{font-size:12px;color:rgba(229,231,235,.55)}
+  /* Lock affordance while AIRO writes: str_replace targets a stable buffer, so the file can't take
+     concurrent hand edits without risking a misapplied or partial round (see decision log 3.12 precedent
+     for cursor-blocked-not-dimmed regions). Icon + label pair with a Stop right beside it so the escape
+     hatch is never more than one glance away from the reason. */
+  .lock-chip{display:none;align-items:center;gap:5px;color:rgba(229,231,235,.55);font-size:12px}
+  .lock-chip svg{flex:none}
+  .stopbar{display:none;align-items:center;gap:5px;height:22px;border:none;background:rgba(255,255,255,.08);color:#e5e7eb;border-radius:4px;padding:0 8px;font:600 12px/16px var(--sans);cursor:pointer}
+  .stopbar:hover{background:rgba(255,255,255,.16)}
+  .stopbar svg{flex:none;color:var(--diff-del-text)}
+  .code-wrap.locked{cursor:not-allowed}
+  .lock-toast{position:absolute;left:50%;top:14px;transform:translateX(-50%) translateY(-6px);z-index:5;
+    display:flex;align-items:center;gap:6px;background:#1a1d21;border:1px solid rgba(255,255,255,.15);color:#fff;
+    font:500 12px/16px var(--sans);padding:6px 10px;border-radius:6px;white-space:nowrap;pointer-events:none;
+    opacity:0;transition:opacity .15s,transform .15s}
+  .lock-toast svg{flex:none;color:rgba(255,255,255,.6)}
+  .lock-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .editor-bar .espacer{flex:1}
   /* Diff Viewer Control (288:24387): bordered 24px container r4 px8 gap4; 20px round chevron buttons; 1x16 divider; label pl8 pr4 */
   .rev-cluster{display:flex;align-items:center;gap:4px;height:24px;border:1px solid rgba(255,255,255,.15);border-radius:4px;padding:0 8px}
@@ -460,6 +476,14 @@
       <div class="editor-bar">
         <span class="fname">hubspot_connector.rb</span>
         <span class="fstate" id="edState">empty</span>
+        <span class="lock-chip" id="lockChip" title="AIRO is writing to a stable copy of this file — hand edits here could land in the wrong place or get lost">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><rect x="2.25" y="5.25" width="7.5" height="5.25" rx="1" stroke="currentColor"/><path d="M4 5.25V3.75a2 2 0 0 1 4 0v1.5" stroke="currentColor" stroke-linecap="round"/></svg>
+          Locked while AIRO writes
+        </span>
+        <button class="stopbar" id="stopBarBtn" title="Stop AIRO">
+          <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><rect width="12" height="12" rx="2" fill="currentColor"/></svg>
+          Stop
+        </button>
         <span class="espacer"></span>
         <span class="rev-cluster" id="revCluster" style="display:none">
           <button class="stepbtn" id="hunkPrev" title="Previous change"></button>
@@ -473,6 +497,10 @@
         <button class="toolbtn" title="Fullscreen" id="tb2"></button>
       </div>
       <div class="code-wrap" id="codeWrap"></div>
+      <div class="lock-toast" id="lockToast">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><rect x="2.25" y="5.25" width="7.5" height="5.25" rx="1" stroke="currentColor"/><path d="M4 5.25V3.75a2 2 0 0 1 4 0v1.5" stroke="currentColor" stroke-linecap="round"/></svg>
+        Locked while AIRO is working
+      </div>
     </section>
     <div class="resize-handle"></div>
     <aside class="ed-right">
@@ -1114,13 +1142,30 @@ function syncSend(inputEl, btn){
   btn.innerHTML = empty ? LOGOMARK_GRAY : sendFilledHTML();
   if (empty) btn.removeAttribute('data-tip'); else btn.setAttribute('data-tip', 'Send');
 }
+let lockToastTimer = null;
 function setSendState(generating){
   $('edSend').innerHTML = generating ? ICON_STOP : sendFilledHTML();
   $('edSend').classList.toggle('stop-mode', generating);
   $('edSend').setAttribute('data-tip', generating ? 'Stop generating' : 'Send');
   $('edInput').disabled = generating;
   if (!generating) syncSend($('edInput'), $('edSend'));
+  /* editor lock: whole-file scope (str_replace targets a stable buffer, not just the touched
+     lines), full legibility kept (no dimming — the point is to watch AIRO write), Stop stays
+     one glance from the reason it's locked. */
+  $('lockChip').style.display = generating ? 'flex' : 'none';
+  $('stopBarBtn').style.display = generating ? 'inline-flex' : 'none';
+  codeWrap.classList.toggle('locked', generating);
+  if (!generating) $('lockToast').classList.remove('show');
 }
+codeWrap.addEventListener('mousedown', (e) => {
+  if (!codeWrap.classList.contains('locked')) return;
+  e.preventDefault();
+  const t = $('lockToast');
+  t.classList.add('show');
+  clearTimeout(lockToastTimer);
+  lockToastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+});
+$('stopBarBtn').onclick = () => $('edSend').click();
 
 function enterEditor(instant){
   showScene('scene-editor');
