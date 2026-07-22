@@ -217,13 +217,15 @@
   .editor-bar .fstate{font-size:12px;color:rgba(229,231,235,.55)}
   /* Lock affordance while AIRO writes: str_replace targets a stable buffer, so the file can't take
      concurrent hand edits without risking a misapplied or partial round (see decision log 3.12 precedent
-     for cursor-blocked-not-dimmed regions). Icon + label pair with a Stop right beside it so the escape
-     hatch is never more than one glance away from the reason. */
-  .lock-chip{display:none;align-items:center;gap:5px;color:rgba(229,231,235,.55);font-size:12px}
-  .lock-chip svg{flex:none}
-  .stopbar{display:none;align-items:center;gap:5px;height:22px;border:none;background:rgba(255,255,255,.08);color:#e5e7eb;border-radius:4px;padding:0 8px;font:600 12px/16px var(--sans);cursor:pointer}
-  .stopbar:hover{background:rgba(255,255,255,.16)}
-  .stopbar svg{flex:none;color:var(--diff-del-text)}
+     for cursor-blocked-not-dimmed regions). No separate top bar for this — PMO-2980's real Code View
+     component (node 1378:51235) has no persistent editor toolbar; its only per-round chrome is a floating
+     pill in the code pane's corner that today shows "N of M changes / Accept all / Reject all" (state=
+     Pending). This is a second content-state of that SAME pill (state=Generating), not a new component.
+     Stop lives in the composer's send button (already flips to stop-mode below), not floated over the code. */
+  .gen-pill{display:none;position:absolute;top:65px;left:24px;z-index:6;align-items:center;gap:8px;
+    background:#1a1d21;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 12px 6px 10px;
+    box-shadow:0 4px 14px rgba(0,0,0,.35);font:600 12px/16px var(--sans);color:#e5e7eb;white-space:nowrap}
+  .gen-pill .spinner{width:12px;height:12px;flex:none}
   .code-wrap.locked{cursor:not-allowed}
   .lock-toast{position:absolute;left:50%;top:14px;transform:translateX(-50%) translateY(-6px);z-index:5;
     display:flex;align-items:center;gap:6px;background:#1a1d21;border:1px solid rgba(255,255,255,.15);color:#fff;
@@ -476,14 +478,6 @@
       <div class="editor-bar">
         <span class="fname">hubspot_connector.rb</span>
         <span class="fstate" id="edState">empty</span>
-        <span class="lock-chip" id="lockChip" title="AIRO is writing to a stable copy of this file — hand edits here could land in the wrong place or get lost">
-          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><rect x="2.25" y="5.25" width="7.5" height="5.25" rx="1" stroke="currentColor"/><path d="M4 5.25V3.75a2 2 0 0 1 4 0v1.5" stroke="currentColor" stroke-linecap="round"/></svg>
-          Locked while AIRO writes
-        </span>
-        <button class="stopbar" id="stopBarBtn" title="Stop AIRO">
-          <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><rect width="12" height="12" rx="2" fill="currentColor"/></svg>
-          Stop
-        </button>
         <span class="espacer"></span>
         <span class="rev-cluster" id="revCluster" style="display:none">
           <button class="stepbtn" id="hunkPrev" title="Previous change"></button>
@@ -497,6 +491,12 @@
         <button class="toolbtn" title="Fullscreen" id="tb2"></button>
       </div>
       <div class="code-wrap" id="codeWrap"></div>
+      <!-- Same pill as the "N of M changes" reviewer (Code View, node 1378:51235), a second content-state
+           of it (state=Generating) — not a new bar. Floats in the code pane's corner like the real one. -->
+      <div class="gen-pill" id="genPill">
+        <span class="spinner"></span>
+        AIRO is writing…
+      </div>
       <div class="lock-toast" id="lockToast">
         <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><rect x="2.25" y="5.25" width="7.5" height="5.25" rx="1" stroke="currentColor"/><path d="M4 5.25V3.75a2 2 0 0 1 4 0v1.5" stroke="currentColor" stroke-linecap="round"/></svg>
         Locked while AIRO is working
@@ -1150,10 +1150,9 @@ function setSendState(generating){
   $('edInput').disabled = generating;
   if (!generating) syncSend($('edInput'), $('edSend'));
   /* editor lock: whole-file scope (str_replace targets a stable buffer, not just the touched
-     lines), full legibility kept (no dimming — the point is to watch AIRO write), Stop stays
-     one glance from the reason it's locked. */
-  $('lockChip').style.display = generating ? 'flex' : 'none';
-  $('stopBarBtn').style.display = generating ? 'inline-flex' : 'none';
+     lines), full legibility kept (no dimming — the point is to watch AIRO write). Stop lives only
+     in the composer send button above (already toggled); no separate Stop floats over the code. */
+  $('genPill').style.display = generating ? 'flex' : 'none';
   codeWrap.classList.toggle('locked', generating);
   if (!generating) $('lockToast').classList.remove('show');
 }
@@ -1165,7 +1164,6 @@ codeWrap.addEventListener('mousedown', (e) => {
   clearTimeout(lockToastTimer);
   lockToastTimer = setTimeout(() => t.classList.remove('show'), 1800);
 });
-$('stopBarBtn').onclick = () => $('edSend').click();
 
 function enterEditor(instant){
   showScene('scene-editor');
